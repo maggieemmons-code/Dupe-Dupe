@@ -38,7 +38,7 @@ Update this section when a phase's check passes. Phases and their "Done when" ch
 - Commit to GitHub after each working step, with a plain-English message.
 - At the end of each step, explain what changed in plain words and how to test it (on her phone where it applies).
 - Use the prototype's prompts and behavior and `DESIGN.md`'s look, unless the plan says otherwise.
-- When Maggie has to do something in GitHub, Vercel, Supabase or any other website, give exact click-by-click steps. Look up the exact page or direct download link yourself and give it to her, name the button or file to expect, and say what to ignore. Her Mac has an Apple chip (arm64).
+- When Maggie has to do something in GitHub, Vercel, Supabase or any other website, give exact click-by-click steps. Spell out every step in full every time, even if it was given earlier: where it happens ("In **Terminal**…", "In Supabase's SQL Editor…"), the exact command in its own code block, the exact link, the button, and what she'll see when it worked. Never just "run 0008" or "see above" (Maggie, Nov 15). Look up the exact page or direct download link yourself and give it to her, name the button or file to expect, and say what to ignore. Her Mac has an Apple chip (arm64).
 - Record decisions and gotchas in `NOTES.md` so later sessions don't repeat mistakes.
 
 ## Stack
