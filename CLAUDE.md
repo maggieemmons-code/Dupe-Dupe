@@ -6,11 +6,15 @@ A private, invite-only web app for Maggie and up to 20 friends. A friend drops i
 - **`prototype.html` is the look and behavior reference.** Reuse its prompts, palette, type, swing-tag look and interaction details unless `PLAN.md` says otherwise.
 - Maggie is a first-time builder. She doesn't write code; she reads plans and tests on her phone.
 
-## Current phase: 0 (Setup)
+## Current phase: 1 (Sign-in)
 
-**Builds:** accounts opened, domain bought, eBay Partner Network application sent, empty Next.js app in a private GitHub repo, deployed to Vercel, `CLAUDE.md` written.
+**Builds:** Supabase project, Resend connected to the domain and set as Supabase's email sender, email-link sign-in, `invites` and `profiles` tables, row-level security.
 
-**Done when:** a "Hello Dupe Dupe" page loads at the Vercel link.
+**Done when:** 5 test invites all land in the inbox, not spam, within 2 minutes; an uninvited email is turned away.
+
+**Phase 0 passed on 2026-11-14:** "Hello Dupe Dupe" loads at https://dupe-dupe.vercel.app. Repo: https://github.com/maggieemmons-code/Dupe-Dupe (Vercel deploys from `main` on every push). Still open from Phase 0, needed before or during Phase 1: buy the domain (Resend needs it), open the Supabase and Resend accounts, send the eBay Partner Network application, open the other accounts in `PLAN.md` › Stack and accounts.
+
+**Uploading:** `gh` lives at `~/.local/bin/gh` (not on PATH). Claude's auto mode has blocked `git push`, so Maggie runs `cd ~/Documents/"Dupe Dupe" && git push` in Terminal unless she adds a permission for it.
 
 Update this section when a phase's check passes. Phases and their "Done when" checks are in `PLAN.md` › Build phases. Don't start a phase until the one before passes.
 
