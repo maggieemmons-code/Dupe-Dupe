@@ -6,7 +6,6 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { cleanCandidates, type CleanRow } from "../lib/search/clean";
-import { priceFloor } from "../lib/search/priceFloor";
 import { runScreener } from "../lib/agents/screener";
 import { downloadThumb, downloadPhoto } from "../lib/server/linkPhotos";
 
@@ -39,7 +38,7 @@ async function main() {
     rows.push({ id: `A${i++}`, kind: "new", title: String(r.title), store: "Amazon", store_domain: "amazon.com", link: String(r.link_clean ?? r.link), photo_url: (r.thumbnail as string) ?? null, price: num(r.extracted_price), in_stock: null, size: "", source: "amazon", rating: num(r.rating), reviews: num(r.reviews), position: Number(r.position), thumb: (r.thumbnail as string) ?? null });
   }
 
-  const results = cleanCandidates(rows, { budget, priceFloor: priceFloor(750, budget), brand: "Sau Lee", styleName: "Joanna Jacquard Gown", sizes: ["4"], hiddenStores: [], secondhandOn: false });
+  const results = cleanCandidates(rows, { budget, priceFloor: null, brand: "Sau Lee", styleName: "Joanna Jacquard Gown", sizes: ["4"], hiddenStores: [], secondhandOn: false });
   const reasons: Record<string, number> = {};
   for (const r of results) reasons[r.drop_reason ?? "kept"] = (reasons[r.drop_reason ?? "kept"] ?? 0) + 1;
   console.log(`Gathered ${rows.length}:`, reasons);

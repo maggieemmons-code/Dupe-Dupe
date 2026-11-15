@@ -21,7 +21,7 @@ async function main() {
   const rows = (data ?? []) as CleanRow[];
   const results = cleanCandidates(rows, {
     budget: s?.budget ?? null,
-    priceFloor: lowEnd({ budget_min: s?.budget_min ?? null, retail_price: s?.retail_price ?? null, budget: s?.budget ?? null }),
+    priceFloor: lowEnd({ budget_min: s?.budget_min ?? null }),
     brand: s?.brand ?? "",
     styleName: s?.style_name ?? "",
     sizes: s?.sizes ?? [],

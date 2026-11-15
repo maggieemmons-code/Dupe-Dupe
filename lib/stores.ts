@@ -63,7 +63,9 @@ const APPROVED_ENTRIES = [
   "safiyaa.com | SAFIYAA",
   // From Maggie's test set (Nov 15): stores of dupes she picked as good
   "clubllondon.us | Club L London | clubllondon.com", "selfieleslie.com | Selfie Leslie", "rosier.com | Rosier",
-  "dessy.com | Dessy | Dessy Group", "dollskill.com | Dolls Kill", "shopakira.com | Akira | AKIRA", "ounass.com | Ounass", "cultmia.com | CULT MIA", "katiemay.com | Katie May", "vicicollection.com | VICI",
+  "dessy.com | Dessy | Dessy Group", "dollskill.com | Dolls Kill", "shopakira.com | Akira | AKIRA",
+  "femme.la | Femme LA | FEMME LA", "allegra-k.com | Allegra K", "babyboofashion.com | Babyboo | Babyboo Fashion",
+  "terrycosta.com | Terry Costa", "nookie.com.au | Nookie", "jdjune.com | JD June", "lilysilk.com | LilySilk | LILYSILK", "luckyvintageseattle.com | Lucky Vintage", "ounass.com | Ounass", "cultmia.com | CULT MIA", "katiemay.com | Katie May", "vicicollection.com | VICI",
   // Shoes and bags
   "stevemadden.com | Steve Madden", "samedelman.com | Sam Edelman", "vincecamuto.com | Vince Camuto", "stuartweitzman.com | Stuart Weitzman",
   "sarahflint.com | Sarah Flint", "margauxny.com | Margaux", "rothys.com | Rothy's", "loefflerrandall.com | Loeffler Randall",

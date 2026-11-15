@@ -42,9 +42,9 @@ export async function startSearch(_prev: StartState, formData: FormData): Promis
     session.supabase.from("profiles").select("default_sizes, default_view").eq("id", session.userId).single(),
     session.supabase
       .from("searches")
-      .select("budget")
+      .select("budget, budget_min")
       .eq("user_id", session.userId)
-      .not("budget", "is", null)
+      .or("budget.not.is.null,budget_min.not.is.null")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -59,6 +59,7 @@ export async function startSearch(_prev: StartState, formData: FormData): Promis
       sizes: profile?.default_sizes ?? [],
       view: profile?.default_view ?? "all",
       budget: last?.budget ?? null,
+      budget_min: last?.budget_min ?? null, // the friend's own floor, never worked out from the original's price
     })
     .select("id")
     .single();

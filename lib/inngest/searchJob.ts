@@ -129,7 +129,7 @@ export const runSearch = inngest.createFunction(
         lensHint: (q.lens_hint || fallback).slice(0, 80),
         lookAlike: (q.look_alike ?? []).filter(Boolean).length ? q.look_alike!.filter(Boolean) : [fallback || searchName(s)],
         budget: s.budget ?? null,
-        priceFloor: lowEnd({ budget_min: s.budget_min ?? null, retail_price: s.retail_price ?? null, budget: s.budget ?? null }),
+        priceFloor: lowEnd({ budget_min: s.budget_min ?? null }),
         brand: s.brand ?? "",
         styleName: s.style_name ?? "",
         sizes: s.sizes ?? [],

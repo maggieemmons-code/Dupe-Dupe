@@ -343,7 +343,11 @@ export async function runBriefBuilder(input: BriefInput) {
       (b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use" && b.name === "submit_brief",
     );
     const raw = parseToolInput<RawBrief>(call?.input);
-    if (raw?.item && raw.visual_brief && raw.search_queries) {
+    const vb = raw?.visual_brief as { anchors?: unknown } | undefined;
+    const complete = !!raw?.item && !!raw.search_queries && !!vb && typeof vb === "object" && !Array.isArray(vb) && Array.isArray(vb.anchors) && vb.anchors.length > 0;
+    // Missing or garbled signature details: ask once more; on the last try keep what came back.
+    if (raw?.item && raw.search_queries && (complete || attempt === 2)) {
+      if (!complete) raw.visual_brief = (vb && typeof vb === "object" && !Array.isArray(vb) ? vb : {}) as RawBrief["visual_brief"];
       return { brief: cleanBrief(raw), usage };
     }
     // No call, or an incomplete one: ask once more.

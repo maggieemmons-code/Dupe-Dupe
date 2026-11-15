@@ -27,6 +27,69 @@
         "https://shopakira.com/products/azalea-wang-faux-fur-trim-peplum-moto-black",
         "https://www.windsorstore.com/products/belted-up-faux-fur-trim-faux-leather-jacket-06201000109001"
       ]
+    },
+    {
+      "name": "Saint Laurent Fran\u00e7oise boots, smooth leather",
+      "original": "https://www.ysl.com/en-us/pr/francoise-boots-in-smooth-leather-813963265.html",
+      "good": [
+        "https://femme.la/products/the-soho-boot-nero",
+        "https://www.nordstrom.com/s/cassie-knee-high-boot/8991751",
+        "https://www2.hm.com/en_us/productpage.1304253001.html"
+      ]
+    },
+    {
+      "name": "Mulberry Heritage Bayswater top handle bag",
+      "original": "https://www.saksfifthavenue.com/product/mulberry-heritage-bayswater-leather-top-handle-bag-0400027583983.html",
+      "note": "All three good dupes are the same bag secondhand (phase 5).",
+      "good": [
+        "https://us.vestiairecollective.com/women-bags/handbags/mulberry/black-leather-bayswater-mulberry-handbag-70826432.shtml",
+        "https://luckyvintageseattle.com/products/mulberry-bayswater-satchel",
+        "https://us.vestiairecollective.com/women-bags/handbags/mulberry/black-leather-bayswater-mulberry-handbag-73531663.shtml"
+      ]
+    },
+    {
+      "name": "Max Mara Poldo coat, camel",
+      "original": "https://us.maxmara.com/p-9016076306045-poldo-camel",
+      "good": [
+        "https://www.lilysilk.com/us/product/double-faced-wool-blend-robe-coat.html",
+        "https://www.theory.com/women/womens-outerwear/wrap-trench-coat-in-double-face-wool-cashmere/beige/196060552181.html"
+      ]
+    },
+    {
+      "name": "Holland Cooper full-length Regency coat, soft black",
+      "original": "https://us.hollandcooper.com/products/full-length-regency-coat-soft-black",
+      "note": "Maggie: the Akira coat's fabric is not great.",
+      "good": [
+        "https://www.aritzia.com/us/en/product/the-constant%E2%84%A2-coat/104728062.html?color=1461",
+        "https://shopakira.com/products/scarlett-luxe-trench-coat-in-black",
+        "https://www.nordstromrack.com/s/kensie-belt-detail-coat/8474554"
+      ]
+    },
+    {
+      "name": "JD June Bodysuits for Bosses",
+      "original": "https://jdjune.com/products/bodysuits-for-bosses",
+      "good": [
+        "https://www.dillards.com/p/antonio-melani-greta-long-sleeve-point-collar-poplin-bodysuit/520098224",
+        "https://www.allegra-k.com/products/p-166106a"
+      ]
+    },
+    {
+      "name": "Bronx and Banco Florentina strapless velvet gown, burgundy",
+      "original": "https://bronxbanco.com/products/florentina-burgundy-strapless-velvet-gown",
+      "note": "Maggie: the Babyboo dress is a different fabric.",
+      "good": [
+        "https://www.revolve.com/nookie-majesty-gown-in-black/dp/NKIE-WD577/",
+        "https://www.babyboofashion.com/en-us/products/yulia-maxi-dress-cherry-lacquer"
+      ]
+    },
+    {
+      "name": "Bronx and Banco Allegra pearl Veronica maxi dress",
+      "original": "https://bronxbanco.com/products/allegra-pearl-veronica-maxi-dress",
+      "good": [
+        "https://www.terrycosta.com/products/sherri-hill-dress-57610",
+        "https://www.revolve.com/nookie-lumiere-gown-in-gold/dp/NKIE-WD648/",
+        "https://macduggal.com/products/68895-nude"
+      ]
     }
   ]
 }

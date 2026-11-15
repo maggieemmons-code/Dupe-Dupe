@@ -1,24 +1,16 @@
 /**
- * Price range for new items (Maggie, Nov 15). Very cheap pieces rarely look as
- * high end as the original, so the low end of the range starts at 15% of the
- * original's retail price ($750 gown → $113). On Review the friend drags both
- * ends of a slider: `budget_min` (low, null = this default, 0 = no low end) and
- * `budget` (high, null = no limit).
+ * Price range for new items. On Review the friend drags both ends of a slider:
+ * `budget_min` (the low end; null or 0 = none) and `budget` (the high end;
+ * null = no limit). Both start where the friend left them on their last search.
+ *
+ * History: the low end used to start at 15% of the original's price (Nov 15),
+ * then capped at $75; Maggie then asked that friends set it themselves, because
+ * a very expensive original skews any floor worked out from its price.
  */
-export const PRICE_FLOOR_SHARE = 0.15;
 
-/** The starting low end before a friend moves it. Null when there's no retail price or the budget is tight. */
-export function priceFloor(retailPrice: number | null, budget: number | null): number | null {
-  if (!retailPrice || retailPrice <= 0) return null;
-  const floor = Math.round(retailPrice * PRICE_FLOOR_SHARE);
-  if (budget && floor >= budget * 0.6) return null; // a tight budget wins over the floor
-  return floor;
-}
-
-/** The low end a search actually uses: the friend's choice if they moved it, else the default floor. */
-export function lowEnd(s: { budget_min: number | null; retail_price: number | null; budget: number | null }) {
-  if (s.budget_min != null) return s.budget_min > 0 ? s.budget_min : null;
-  return priceFloor(s.retail_price, s.budget);
+/** The low end a search uses: only what the friend set. */
+export function lowEnd(s: { budget_min: number | null }) {
+  return s.budget_min != null && s.budget_min > 0 ? s.budget_min : null;
 }
 
 /** Top of the slider: the original's price, or a sensible scale when it's unknown. */

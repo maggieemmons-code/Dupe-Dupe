@@ -71,7 +71,7 @@ export default function PriceRange({
         <span>$0</span>
         <span>{money(scaleMax)}+</span>
       </div>
-      <span className={styles.hint}>Very cheap pieces rarely look high end, so the low end starts at about 15% of the original&rsquo;s price.</span>
+      <span className={styles.hint}>Drag the low end up to skip very cheap pieces. Both ends start where you left them last time.</span>
     </div>
   );
 }

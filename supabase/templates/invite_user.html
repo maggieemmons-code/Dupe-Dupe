@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light only">
+  <title>Replicate the look.</title>
+</head>
+<body style="margin: 0; padding: 0; background: #F2F2F2;">
+  <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent;">Maggie invited you to Dupe Dupe. Tap to accept.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F2F2F2" style="background: #F2F2F2;">
+    <tr>
+      <td align="center" style="padding: 32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 480px;">
+          <tr>
+            <td align="center" style="padding: 0 0 20px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 800; letter-spacing: 5px; color: #0A0A0A;">DUPE DUPE</td>
+          </tr>
+          <tr>
+            <td bgcolor="#FFFFFF" style="background: #FFFFFF; border-radius: 24px; padding: 36px 32px 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding: 0 0 10px; font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #6B6B6B;">You're invited</td>
+              </tr>
+              <tr>
+                <td style="padding: 0 0 14px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 30px; font-weight: 800; line-height: 34px; letter-spacing: -0.5px; color: #0A0A0A;">Replicate the look.</td>
+              </tr>
+              <tr>
+                <td style="padding: 0 0 24px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 16px; line-height: 24px; color: #4A4A4A;">Maggie invited you to Dupe Dupe, a private app for a small group of friends. Drop in a piece you love, and it finds new dupes under your budget plus secondhand matches, judged on look and fit.<br><br>Tap below to accept and sign in. The link works once.</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0 28px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td align="center" bgcolor="#0A0A0A" style="border-radius: 999px;">
+                        <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite" target="_blank" style="display: inline-block; padding: 16px 32px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; line-height: 20px; color: #FFFFFF; text-decoration: none; border-radius: 999px;">Accept your invite</a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 0 0 28px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 20px; color: #6B6B6B;">
+                  Button not working? Copy this link into your browser:<br>
+                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite" target="_blank" style="color: #0A0A0A; text-decoration: underline; word-break: break-all;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite</a>
+                </td>
+              </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding: 20px 24px 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 12px; line-height: 18px; color: #6B6B6B;">
+              You're getting this because Maggie added your email to Dupe Dupe. Didn't ask? You can ignore this email.<br>
+              Dupe Dupe is invite only. Sent to {{ .Email }} from login@dupedupe.studio.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

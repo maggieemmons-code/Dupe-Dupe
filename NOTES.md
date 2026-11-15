@@ -86,3 +86,12 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - The brief builder also sometimes adds item keys the table lacks ("sources"); saving now keeps only `ITEM_FIELDS`.
 - Results after the fixes: Sei gown: her Dessy pick was the judge's #1 (L83), the only one shown. Rosabella coat: top 3 were the same shape (Windsor removable-fur coat, Mango faux leather with fur trim); her Windsor pick was gathered but the screener passed on it. Amaya maxi: none of her 3 gathered; top 3 were strapless cream maxis (Meshki, LPA, Petal & Pup). Her smaller-brand picks (Club L, Selfie Leslie, Rosier, Cult Mia, Dolls Kill, Akira) are mostly never gathered: a gathering gap, not a judging one.
 - Test runs create searches in Maggie's account (they show under Recent searches).
+
+### Test set, all 10 items (Nov 15)
+
+- Items 4–10 added (`tests/test-set.json`). Approved more stores from her picks: Femme LA, LilySilk, Lucky Vintage, Allegra K, Babyboo, Terry Costa, Nookie, JD June.
+- **Brief bug, fixed:** Claude sent the visual brief as JSON text missing its last closing brace, so the anchors were dropped (boots had none). `parseToolInput` now repairs unbalanced brackets, and the brief builder asks once more when anchors are missing (`scripts/debug-brief.ts` prints the raw tool reply).
+- **Price floor:** 15% of the original's price hid her own $150 Cassie boot for a $2,350 original. Capped at $75 first; then Maggie: "allow the user to set the price floor, because a really high price item would skew the floor." Now the low end is only what the friend sets (`searches.budget_min`), prefilled from her last search; nothing is worked out from the original's price.
+- **Same-brand results stay** (Max Mara Poldo's top 3 were cheaper Max Mara and S Max Mara coats). Maggie didn't answer; kept as the default.
+- **Where her 26 good dupes went:** found 5 (Dessy, LilySilk, Windsor, Nordstrom Cassie, plus the Dessy copy). Judged well: Dessy (#1, L83), LilySilk (L87 F86). Turned down by the screener: Windsor coat, Cassie boot. Never gathered: 20, mostly smaller brands (Club L, Selfie Leslie, Rosier, Cult Mia, Dolls Kill, Akira, Femme LA, H&M, Theory, Aritzia, Allegra K, Babyboo, Terry Costa, Mac Duggal) and two Nookie gowns at Revolve. The Mulberry bag's picks are all secondhand (phase 5). **Gathering is the main gap; the screener is second.**
+- The JD June brief had no price ($?), so no budget; the Mulberry link names no color and Google's first listing was pink.
