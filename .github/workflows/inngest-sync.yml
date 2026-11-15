@@ -1,13 +1,14 @@
-# After each production deploy on Vercel, tell Inngest about the new version of the
-# search job. The Vercel integration didn't do this on its own (NOTES.md › Phase 3),
-# so searches kept running old code until someone ran this by hand.
+# After each deploy on Vercel, tell Inngest about the new version of the search job.
+# The Vercel integration didn't do this on its own (NOTES.md › Phase 3), so searches
+# kept running old code until someone ran this by hand.
+# Vercel reports to GitHub as a commit status (context "Vercel"), not a deployment.
 name: Sync Inngest after deploy
 
-on: deployment_status
+on: status
 
 jobs:
   sync:
-    if: github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production'
+    if: github.event.context == 'Vercel' && github.event.state == 'success' && contains(github.event.branches.*.name, 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Register the app with Inngest
