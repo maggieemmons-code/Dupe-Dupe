@@ -91,6 +91,7 @@ test("another piece from the same brand stays", () => {
 test("category pages are dropped", () => {
   assert.equal(reason(row({ price: null, source: "lens", store: "Nordstrom", title: "Shop Pink Mulberry Online" })), "Not a product page");
   assert.equal(reason(row({ price: null, source: "lens", store: "Windsor", title: "Women's Black Fall Jackets" })), "Not a product page");
+  assert.equal(reason(row({ price: null, source: "lens", store: "John Lewis", title: "View all Women's Accessories – Pink, Bayswater" })), "Not a product page");
   assert.equal(reason(row({ price: null, source: "lens", store: "Revolve", title: "White Button Down Bodysuits" })), "Not a product page");
   assert.equal(reason(row({ price: null, source: "lens", store: "Revolve", title: "Red gown", link: "https://www.revolve.com/collections/gowns" })), "Not a product page");
   assert.equal(reason(row({ price: null, source: "lens", store: "Meshki", title: "Hilda Embellished Strapless Maxi Dress - White | MESHKI US" })), null);
@@ -98,6 +99,7 @@ test("category pages are dropped", () => {
 
 test("foreign storefronts are dropped", () => {
   assert.equal(reason(row({ price: null, source: "lens", store: "Max Mara KSA", title: "Manuela Icon Coat" })), "Store outside the US");
+  assert.equal(reason(row({ price: null, source: "lens", store: "Ubuy Ecuador", title: "Tapata Womens Bodysuit" })), "Store outside the US");
   assert.equal(reason(row({ price: null, source: "lens", store: "Rakuten Fashion - 楽天市場", title: "Mulberry – 【マルベリー公式】ベイズウォーター" })), "Store outside the US");
   assert.equal(reason(row({ price: null, source: "lens", store: "Mitsukoshi", store_domain: "isetan.mistore.jp", title: "Bag" })), "Store outside the US");
   assert.equal(reason(row({ price: 200, store: "Club L London", store_domain: "clubllondon.us", title: "Alina White Bandeau Maxi Dress" })), null);

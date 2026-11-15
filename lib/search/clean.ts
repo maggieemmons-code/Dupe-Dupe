@@ -134,7 +134,7 @@ function isOriginal(r: CleanRow, ctx: CleanContext) {
 }
 
 const FOREIGN_TLD = /\.(jp|cn|kr|tw|ru|in|sa|ae|qa|kw|do|br|mx|tr|id|th|vn|hk|my|ph|pk|eg)$/;
-const FOREIGN_NAME = /\b(ksa|uae|saudi|dominican republic|india|japan|korea|mexico|brazil|turkey|qatar|kuwait|egypt|nykaa|myntra|ajio|namshi|rakuten)\b/i;
+const FOREIGN_NAME = /\b(ksa|uae|saudi|dominican republic|india|japan|korea|mexico|brazil|turkey|qatar|kuwait|egypt|nykaa|myntra|ajio|namshi|rakuten|ecuador|ubuy|trenbe|peru|chile|colombia|argentina)\b/i;
 /** Letters from scripts other than Latin: a storefront for another country. */
 const NON_LATIN = /[\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/;
 
@@ -155,7 +155,7 @@ function isCategoryPage(r: CleanRow) {
   if (/\/(collections|category|categories|c|shop|search|brands?|designers?)\/[^/]*\/?$/.test(path) && !/\/products?\//.test(path)) return true;
   if (r.price != null) return false; // a priced item is almost always one product
   const t = r.title.trim();
-  if (/^(shop|discover|explore)\b/i.test(t) || /\b(online|collection|new arrivals)\s*$/i.test(t)) return true;
+  if (/^(shop|discover|explore|browse|view all)\b/i.test(t) || /\b(online|collection|new arrivals)\s*$/i.test(t)) return true;
   // "White Button Down Bodysuits", "The Sei Halter Dresses – Women": a plural garment noun as the main word.
   const main = t.split(/\s[–|-]\s/)[0];
   return PLURAL_GARMENT.test(main) && !/\b(set|pack|two|2)\b/i.test(main);

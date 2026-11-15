@@ -35,9 +35,11 @@ const SERP_FLOOR = 30;
 /**
  * How many screened picks go on to the judge. Maggie, Nov 15: "I'd rather pay for
  * more searches than get bad results"; at 12 the screener cut two of her own good
- * test-set picks before the judge saw them.
+ * test-set picks before the judge saw them. The best-rated 30 (3/5 or better) go on.
  */
-const MAX_RESULTS = 20;
+const MAX_RESULTS = 30;
+/** The lowest screener rating (1–5) that can go on to the judge. */
+const MIN_SCREEN_SCORE = 3;
 /** Google Lens runs on this many of the original's photos (visual matches matter most). */
 const LENS_PHOTOS = 2;
 /**
@@ -50,7 +52,7 @@ const LENS_PHOTOS = 2;
 const MAX_PHRASINGS = 4;
 const STORE_SEARCHES = ["Revolve", "Nordstrom"];
 const BATCH = 20;
-const MAX_BATCHES = 4;
+const MAX_BATCHES = 10;
 /** Paid product lookups (1 SerpApi search each) per search, for the top picks (Maggie, Nov 15: top picks, open to upgrading). */
 const MAX_LOOKUPS = 12;
 /** Candidates per judge call (PLAN.md). */
@@ -254,62 +256,62 @@ export const runSearch = inngest.createFunction(
       return order.slice(0, BATCH * MAX_BATCHES);
     });
 
-    /* 4. Screen new items, 20 at a time, until there are enough. Picks show up on the phone as each batch finishes. */
-    let picked = 0;
-    for (let b = 0; b < MAX_BATCHES && picked < MAX_RESULTS; b++) {
-      const ids = survivors.slice(b * BATCH, (b + 1) * BATCH);
-      if (!ids.length) break;
-      const room = Math.min(10, MAX_RESULTS - picked);
-      const got = await step.run(`screen-${b + 1}`, async () => {
-        const { data: rows } = await db
+    /*
+     * 4. Screen: the screener rates every candidate 1 to 5, 20 at a time, all batches at
+     *    once; then the best-rated across all batches go to the judge. (Picking batch by
+     *    batch until full cut Maggie's own good picks that came in later batches.)
+     */
+    const batchIds: string[][] = [];
+    for (let b = 0; b < MAX_BATCHES && b * BATCH < survivors.length; b++) batchIds.push(survivors.slice(b * BATCH, (b + 1) * BATCH));
+    const ratings = (
+      await Promise.all(
+        batchIds.map((ids, b) =>
+          step.run(`screen-${b + 1}`, async () => {
+            const { data: rows } = await db
+              .from("candidates")
+              .select("id, title, brand, store, price, thumb_url, photo_url")
+              .in("id", ids)
+              .eq("user_id", userId);
+            const byId = new Map((rows ?? []).map((r) => [r.id, r]));
+            const ordered = ids.map((id) => byId.get(id)).filter((r): r is NonNullable<typeof r> => !!r);
+            const [original, ...thumbs] = await Promise.all([
+              originalPhoto(ctx.photoPath),
+              ...ordered.map((r) => downloadThumb(r.thumb_url ?? r.photo_url ?? "")),
+            ]);
+            const items: ScreenItem[] = ordered.map((r, i) => ({ n: i + 1, title: r.title, brand: r.brand, store: r.store, price: r.price, photo: thumbs[i] }));
+            try {
+              const result = await runScreener({ name: ctx.name, fields: ctx.fields, visualBrief: ctx.visualBrief, photo: original }, items);
+              await logJobCall({ userId, searchId, service: "claude", stage: "screen", units: result.usage, ok: true });
+              return result.picks.map((p) => ({ id: ordered[p.n - 1].id, score: p.score, color: p.color_match, note: p.note, order: b * BATCH + p.n }));
+            } catch (e) {
+              await logJobCall({ userId, searchId, service: "claude", stage: "screen", ok: false, error: String(e) });
+              if (!lastTry) throw e;
+              return [];
+            }
+          }),
+        ),
+      )
+    ).flat();
+
+    const picked = await step.run("screen-pick", async () => {
+      const best = ratings
+        .filter((r) => r.score >= MIN_SCREEN_SCORE)
+        .sort((a, b) => b.score - a.score || a.order - b.order)
+        .slice(0, MAX_RESULTS);
+      for (const [i, r] of best.entries()) {
+        await db
           .from("candidates")
-          .select("id, title, brand, store, price, thumb_url, photo_url")
-          .in("id", ids)
-          .eq("user_id", userId);
-        const byId = new Map((rows ?? []).map((r) => [r.id, r]));
-        const ordered = ids.map((id) => byId.get(id)).filter((r): r is NonNullable<typeof r> => !!r);
-
-        const [original, ...thumbs] = await Promise.all([
-          originalPhoto(ctx.photoPath),
-          ...ordered.map((r) => downloadThumb(r.thumb_url ?? r.photo_url ?? "")),
-        ]);
-        const items: ScreenItem[] = ordered.map((r, i) => ({
-          n: i + 1,
-          title: r.title,
-          brand: r.brand,
-          store: r.store,
-          price: r.price,
-          photo: thumbs[i],
-        }));
-
-        let result;
-        try {
-          result = await runScreener(
-            { name: ctx.name, fields: ctx.fields, visualBrief: ctx.visualBrief, photo: original },
-            items,
-            room,
-          );
-          await logJobCall({ userId, searchId, service: "claude", stage: "screen", units: result.usage, ok: true });
-        } catch (e) {
-          await logJobCall({ userId, searchId, service: "claude", stage: "screen", ok: false, error: String(e) });
-          throw e;
-        }
-
-        const pickedIds = new Set<string>();
-        for (const [i, p] of result.picks.entries()) {
-          const row = ordered[p.n - 1];
-          pickedIds.add(row.id);
-          await db
-            .from("candidates")
-            .update({ stage: "screened", screen_note: p.note, color_match: p.color_match, screen_rank: picked + i + 1 })
-            .eq("id", row.id);
-        }
-        const passed = ordered.filter((r) => !pickedIds.has(r.id)).map((r) => r.id);
-        if (passed.length) await db.from("candidates").update({ drop_reason: "Screener passed" }).in("id", passed);
-        return result.picks.length;
-      });
-      picked += got;
-    }
+          .update({ stage: "screened", screen_note: r.note, color_match: r.color, screen_rank: i + 1 })
+          .eq("id", r.id);
+      }
+      const chosen = new Set(best.map((r) => r.id));
+      const byScore = new Map<number, string[]>();
+      for (const r of ratings) if (!chosen.has(r.id)) byScore.set(r.score, [...(byScore.get(r.score) ?? []), r.id]);
+      for (const [score, ids] of byScore) {
+        await db.from("candidates").update({ drop_reason: `Screener rated ${score}/5` }).in("id", ids);
+      }
+      return best.length;
+    });
 
     /* 5. Enrich: look up the top picks' product details (fabric words, reviews, store link), then read store pages. */
     const picks = await step.run("enrich-start", async () => {
@@ -492,10 +494,10 @@ export const runSearch = inngest.createFunction(
 
     /* 7. Done. */
     await step.run("finish", async () => {
-      // Cleaned items the screener never reached (it stops once it has enough).
+      // Cleaned items beyond the screener's batches.
       await db
         .from("candidates")
-        .update({ drop_reason: "Not screened, enough picks" })
+        .update({ drop_reason: "Not screened, too many candidates" })
         .eq("search_id", searchId)
         .eq("stage", "cleaned")
         .is("drop_reason", null);

@@ -60,11 +60,11 @@ async function main() {
     if (!batch.length) break;
     const thumbs = await Promise.all(batch.map((r) => downloadThumb(r.thumb ?? r.photo_url ?? "")));
     const items = batch.map((r, n) => ({ n: n + 1, title: r.title, brand: "", store: r.store, price: r.price, photo: thumbs[n] }));
-    const { picks, usage } = await runScreener({ name: "Sau Lee Joanna Jacquard Gown", fields, visualBrief, photo: original }, items, Math.min(6, 10 - picked));
+    const { picks, usage } = await runScreener({ name: "Sau Lee Joanna Jacquard Gown", fields, visualBrief, photo: original }, items);
     console.log(`\nBatch ${b + 1}: ${batch.length} items, ${thumbs.filter(Boolean).length} photos, ${usage.input_tokens} in / ${usage.output_tokens} out tokens`);
-    for (const p of picks) {
+    for (const p of picks.filter((x) => x.score >= 3)) {
       const r = batch[p.n - 1];
-      console.log(`  ✓ [${r.source}] ${r.store} · $${r.price} · ${r.title.slice(0, 60)} · ${p.color_match} · ${p.note}`);
+      console.log(`  ✓ [${r.source}] ${r.store} · $${r.price} · ${r.title.slice(0, 60)} · ${p.score}/5 · ${p.color_match} · ${p.note}`);
     }
     picked += picks.length;
   }

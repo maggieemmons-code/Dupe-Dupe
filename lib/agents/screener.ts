@@ -27,29 +27,30 @@ export type ScreenOriginal = {
   photo: Buffer | null;
 };
 
-export type ScreenPick = { n: number; color_match: "same" | "close" | "different" | "unclear"; note: string };
+/** One rating per candidate; code then sends the best-rated across all batches to the judge. */
+export type ScreenPick = { n: number; score: number; color_match: "same" | "close" | "different" | "unclear"; note: string };
 
 const SUBMIT_PICKS_TOOL = {
-  name: "submit_picks",
-  description: "Submit the candidates that could pass for the original, best first.",
+  name: "submit_ratings",
+  description: "Rate every candidate.",
   input_schema: {
     type: "object" as const,
-    required: ["picks"],
+    required: ["ratings"],
     properties: {
-      picks: {
+      ratings: {
         type: "array",
-        maxItems: 10,
         items: {
           type: "object",
-          required: ["n", "color_match", "note"],
+          required: ["n", "score", "color_match", "note"],
           properties: {
             n: { type: "integer", description: "The candidate's number" },
+            score: { type: "integer", minimum: 1, maximum: 5, description: "5 could pass for it; 4 close; 3 similar with clear differences; 2 weak; 1 clear miss" },
             color_match: {
               type: "string",
               enum: ["same", "close", "different", "unclear"],
               description: "Its color against the original's: same family and shade, a close shade, a different color, or can't tell",
             },
-            note: { type: "string", description: "Up to 12 words: what matches, then the biggest difference" },
+            note: { type: "string", description: "Up to 12 words: what matches, then the biggest difference (empty for scores 1 and 2)" },
           },
         },
       },
@@ -61,17 +62,20 @@ const SYSTEM_PROMPT = `You are a fashion buyer screening search results for a du
 
 You see the original (its photo, details and the details that make the piece) and a numbered list of candidates, each with its title, store, price and a small photo.
 
-Pass every candidate a shopper might plausibly accept as a dupe: the same kind of garment with a similar silhouette, neckline and color family. A stricter judge checks each one closely next, including fabric and quality, so when in doubt, pass it. Judge mostly from the photo; titles are often stuffed with keywords.
+Rate EVERY candidate from 1 to 5 on how well it could pass for the original at a glance:
+5 = could pass for it: same kind of garment, silhouette, neckline, color family and the details that make the piece.
+4 = close: a shopper would happily consider it.
+3 = similar, with clear differences.
+2 = weak: the same kind of garment, but it misses what makes the piece.
+1 = clear miss: a different kind of garment, a clearly different color family or silhouette, a missing "must match" detail, a costume or set, the original piece itself, a page showing many products, or a photo you can't make out.
 
-Skip only clear misses: a different kind of garment, a clearly different silhouette or color family, a "must match" detail that is plainly missing, a costume or a set, or a photo you can't make out.
+A stricter judge checks the best-rated ones closely next, including fabric and quality. Judge mostly from the photo; titles are often stuffed with keywords. Use the full range: don't rate everything 3.
 
-Pick at most {{max}}, best first.
+Rate only by number. Never invent a product, a price or a link.
 
-Pick only by number. Never invent a product, a price or a link.
+Call submit_ratings exactly once, with one rating for every candidate.`;
 
-Call submit_picks exactly once.`;
-
-export async function runScreener(original: ScreenOriginal, items: ScreenItem[], maxPicks: number) {
+export async function runScreener(original: ScreenOriginal, items: ScreenItem[]) {
   const model = process.env.ANTHROPIC_FAST_MODEL;
   if (!model) throw new Error("ANTHROPIC_FAST_MODEL is not set");
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
@@ -98,8 +102,8 @@ export async function runScreener(original: ScreenOriginal, items: ScreenItem[],
 
   const request = {
     model,
-    max_tokens: 2000,
-    system: SYSTEM_PROMPT.replace("{{max}}", String(maxPicks)),
+    max_tokens: 4000,
+    system: SYSTEM_PROMPT,
     tools: [SUBMIT_PICKS_TOOL],
     tool_choice: { type: "auto" as const },
     betas: ["server-side-fallback-2026-07-01"],
@@ -118,21 +122,23 @@ export async function runScreener(original: ScreenOriginal, items: ScreenItem[],
     };
     if (response.stop_reason === "refusal") throw new Error("The screener declined this request");
     const call = response.content.find(
-      (b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use" && b.name === "submit_picks",
+      (b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use" && b.name === "submit_ratings",
     );
-    const raw = parseToolInput<{ picks?: ScreenPick[] }>(call?.input)?.picks;
-    if (Array.isArray(raw)) {
+    const raw = parseToolInput<{ ratings?: ScreenPick[] }>(call?.input)?.ratings;
+    if (Array.isArray(raw) && raw.length) {
       const seen = new Set<number>();
       const picks = raw
         .filter((p) => valid.has(p.n) && !seen.has(p.n) && seen.add(p.n))
-        .slice(0, maxPicks)
         .map((p) => ({
           n: p.n,
+          score: Math.max(1, Math.min(5, Math.round(Number(p.score) || 1))),
           color_match: (["same", "close", "different", "unclear"] as const).includes(p.color_match) ? p.color_match : "unclear",
           note: String(p.note ?? "").slice(0, 120),
         }));
+      // Anything left unrated counts as a miss.
+      for (const n of valid) if (!seen.has(n)) picks.push({ n, score: 1, color_match: "unclear", note: "" });
       return { picks, usage };
     }
   }
-  throw new Error("The screener did not return picks");
+  throw new Error("The screener did not return ratings");
 }
