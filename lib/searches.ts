@@ -30,6 +30,8 @@ export type SearchRow = {
   fit_notes: string;
   field_sources: Partial<Record<ItemField, { from: string; note?: string }>>;
   budget: number | null;
+  /** Low end of the price range: null = default floor, 0 = none (lib/search/priceFloor.ts). */
+  budget_min: number | null;
   sizes: string[];
   view: "all" | "new" | "used";
   visual_brief: { anchors?: Anchor[] } & Record<string, unknown> | null;

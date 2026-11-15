@@ -238,7 +238,7 @@ export async function saveAnchors(searchId: string, anchors: Anchor[]): Promise<
 /** Saves view, budget and sizes. Sizes also become the friend's default if they had none. */
 export async function saveChoices(
   searchId: string,
-  choices: { view?: "all" | "new" | "used"; budget?: string; sizes?: string[] },
+  choices: { view?: "all" | "new" | "used"; budget?: string; budgetMin?: number | null; sizes?: string[] },
 ): Promise<Result> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Sign in again to continue." };
@@ -249,6 +249,10 @@ export async function saveChoices(
   if (choices.budget !== undefined) {
     const n = parseFloat(choices.budget.replace(/[^0-9.]/g, ""));
     update.budget = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  }
+  if (choices.budgetMin !== undefined) {
+    const n = Number(choices.budgetMin);
+    update.budget_min = choices.budgetMin === null ? null : Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
   }
   if (choices.sizes) update.sizes = choices.sizes.slice(0, 12);
 

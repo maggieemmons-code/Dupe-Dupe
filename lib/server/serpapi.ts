@@ -146,9 +146,10 @@ type ShoppingResult = {
   immersive_product_page_token?: string;
 };
 
-export async function shoppingSearch(q: string, maxPrice: number | null): Promise<Gathered[]> {
+export async function shoppingSearch(q: string, maxPrice: number | null, minPrice: number | null = null): Promise<Gathered[]> {
   const params: Record<string, string> = { engine: "google_shopping", q, gl: "us", hl: "en" };
   if (maxPrice) params.max_price = String(Math.round(maxPrice));
+  if (minPrice) params.min_price = String(Math.round(minPrice));
   const body = await serp(params);
   // Only Google's unpaid listings: paid Shopping ads come in separate blocks we never read,
   // and anything still marked sponsored is skipped (PLAN.md › Affiliate links › Integrity rules).
@@ -235,7 +236,7 @@ type AmazonResult = {
   sponsored?: boolean;
 };
 
-export async function amazonSearch(q: string, maxPrice: number | null): Promise<Gathered[]> {
+export async function amazonSearch(q: string, maxPrice: number | null, minPrice: number | null = null): Promise<Gathered[]> {
   const body = await serp({ engine: "amazon", k: q, amazon_domain: "amazon.com" });
   // Organic results only; sponsored placements are skipped.
   const results = ((body.organic_results as AmazonResult[] | undefined) ?? []).filter((r) => !isSponsored(r));
@@ -270,7 +271,8 @@ export async function amazonSearch(q: string, maxPrice: number | null): Promise<
     })
     .filter((x): x is Gathered => !!x)
     // Amazon has no reliable price filter in the request, so it's applied here too (and again in cleaning).
-    .filter((x) => !maxPrice || x.price == null || x.price <= maxPrice);
+    .filter((x) => !maxPrice || x.price == null || x.price <= maxPrice)
+    .filter((x) => !minPrice || x.price == null || x.price >= minPrice);
 }
 
 /* ---------- helpers ---------- */

@@ -9,6 +9,7 @@ import { confirmSearch } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 import { searchName, type SearchRow } from "@/lib/searches";
 import { money, imageSource, type CandidateRow } from "@/lib/candidates";
+import { lowEnd } from "@/lib/search/priceFloor";
 import styles from "./results.module.css";
 import ui from "../../ui.module.css";
 
@@ -160,7 +161,14 @@ export default function Results({
               Lowest price
             </button>
           </div>
-          {search.budget != null && <span className={styles.budget}>Under {money(search.budget)}</span>}
+          {search.budget != null && (
+            <span className={styles.budget}>
+              {(() => {
+                const floor = lowEnd(search);
+                return floor ? `${money(floor)}–${money(search.budget)}` : `Under ${money(search.budget)}`;
+              })()}
+            </span>
+          )}
         </div>
       )}
 

@@ -108,7 +108,7 @@ A search runs as a background job in six stages: brief, gather, clean, screen, e
    Every item gathered is saved to the `candidates` table, and each later stage records how far it got and why it was dropped.
 3. **Clean** (code, no AI). Every candidate becomes one shape: source, link, title, brand, price, condition, size, color, photo link, store. Then code, not an agent:
    - shows only approved stores (`lib/stores.ts`: established retailers and real brands' own sites), never blocked ones (ultra-cheap fast fashion and scam-prone marketplaces such as Shein, Temu, AliExpress, Fashion Nova), and Amazon items only with 4 stars or more from at least 100 reviews (Maggie, Nov 15). Unapproved stores are kept with a drop reason so Maggie can approve good ones;
-   - drops hidden stores, new items over budget and items already rated thumbs down;
+   - drops hidden stores, new items outside the friend's price range and items already rated thumbs down. The budget is a range set with a two-handle slider on Review: the low end starts at 15% of the original's price, because very cheap pieces rarely look high end, and the friend can drag either end (Maggie, Nov 15);
    - filters secondhand listings to the friend's sizes, keeping listings whose size is unknown;
    - merges the same product sold by several stores into one candidate, showing the cheapest.
 4. **Screen** (two pickers, Haiku 5.5). Each picker sees titles, prices and small thumbnails, 20 at a time, checks them against the visual brief and passes up to 10 new and 10 secondhand candidates. Thumbnails keep it from picking blind when titles say little, which is common on Poshmark.
@@ -275,9 +275,9 @@ Ten phases, each small enough for one or two Claude Code sessions and each endin
 | 1. Sign-in | Supabase project, Resend connected to the domain and set as Supabase's email sender, email-link sign-in, `invites` and `profiles` tables, row-level security | 5 test invites all land in the inbox, not spam, within 2 minutes; an uninvited email is turned away |
 | 2. Start and brief | New look's fonts and colors from `DESIGN.md`, Sign in restyled, Find screen (home) with photo, link and describe-it starts, photo upload and shrink, `searches` table, brief builder (plain fields, both briefs, query matrix), Review screen with editable signature details and Must match switches | The Sau Lee Joanna gown link fills in 100% polyester jacquard and true to size, and its anchors include the off-shoulder neckline, burnt red jacquard and boned bodice |
 | 3. Lens and new dupes | Inngest job with a step per stage and status updates, SerpApi Lens and Shopping, the candidates table with stage tracking, cleaning step with size filter and duplicate merging, new-items screener with thumbnails, result cards with photos in the `DESIGN.md` card style, Item detail page, the /go click route that logs every outbound click | A Sau Lee search shows at least 6 new candidates with photos and real prices |
-| 4. Judge | Judge with both photos and both briefs, the fixed checklist, look and fit scores and the three verdicts computed in code from it, caveats, sort, the three views | On the test set, Maggie agrees with the judge's top 3 at least 7 times in 10, and no rejected item breaks a stated dealbreaker |
+| 4. Judge | Listing page reads for the top new picks before judging, so the judge sees the real fabric tag (moved up from phase 6, Maggie, Nov 15); judge with both photos and both briefs, the fixed checklist including how polished the piece looks, look and fit scores and the three verdicts computed in code from it, caveats, sort, the three views | On the test set, Maggie agrees with the judge's top 3 at least 7 times in 10, and no rejected item breaks a stated dealbreaker |
 | 5. Secondhand | eBay (API or page reading), TinyFish resale pages with peer-brand queries, secondhand screener | At least 6 real secondhand listings with working links; no invented prices |
-| 6. Enrich and retry | Listing page reads for the top 20, sold-listing check, fabric tiers, unknown fabric as a caveat, stock-photo flag, one automatic retry | Fabric tier shows on at least 70% of approved results; a search built to come back thin retries exactly once |
+| 6. Enrich and retry | Listing page reads extended to secondhand and the top 20, sold-listing check, fabric tiers, unknown fabric as a caveat, stock-photo flag, one automatic retry | Fabric tier shows on at least 70% of approved results; a search built to come back thin retries exactly once |
 | 7. Taste | Ratings with one-tap reasons and scope, Swipe deck with the reason pop-up, instant re-rank, taste profile with weights and rules, Your eye screen (rules as tags, size dials, appearance setting), 3-question setup, store and brand favorites and hidden, saved searches, Saved tab, edit and rerun with out-of-date notice and brief rebuild, prototype data import | Tapping "wrong color" re-ranks the screen in under a second; after 2 matching ratings a rule appears on Your eye and changes the next search's brief |
 | 8. Guardrails | Daily caps, monthly budget stop, caching, `api_calls` logging, Sentry, usage screen, privacy note, account deletion | Hitting the cap shows a friendly message; spend on the usage screen matches the services' own dashboards within 10% |
 | 9. Friends | Invite 5 friends, fix what they hit, then invite the rest | 20 friends signed in; Goals measures tracking |
@@ -555,6 +555,7 @@ Runs on `ANTHROPIC_JUDGE_MODEL` (Sonnet 5.5), 5 candidates per call. The judge f
           "sleeves": {"enum": ["match", "close", "different", "not_applicable"]},
           "length": {"enum": ["match", "close", "different", "not_applicable"]},
           "sheen": {"enum": ["match", "close", "different"]},
+          "polish": {"enum": ["as_polished", "slightly_less", "looks_cheap"], "description": "Would it pass for the original's quality: fabric weight and drape, finish, construction"},
           "fabric_tier": {"enum": ["target", "acceptable_swap", "dealbreaker", "unknown"]},
           "fabric_evidence": {"type": "string", "description": "The exact words from the listing, or empty"},
           "size_available": {"enum": ["yes", "no", "unknown"]},
@@ -580,6 +581,7 @@ For every candidate:
 - color, silhouette, neckline, sleeves, length, sheen: match, close or different. "close" means a shopper would accept it without being told. Use the brief's acceptable and dealbreaker shades for color.
 - fabric_tier: place the fabric using ONLY words in the listing text. Quote them in fabric_evidence. If the listing doesn't state the fabric, answer unknown. Never infer fabric from the photo alone.
 - size_available: from the listing's sizes, compared with the shopper's sizes.
+- polish: would a shopper believe it cost about what the original did? Judge fabric weight and drape, finish (seams, lining, hardware) and construction from the photo and listing. as_polished, slightly_less, or looks_cheap.
 - stock_photo_suspected: true if the candidate's photo appears to be the original brand's own product image rather than a photo of this item.
 - biggest_difference: one plain sentence a shopper would understand.
 - confidence: low when the photo is small, cropped or unclear, or the listing says little.
@@ -605,6 +607,7 @@ Starting weights, before a friend's taste profile adjusts them. Each weight stay
 | Length | Look | 1 |
 | Sleeves | Look | 1 |
 | Sheen | Look and fit | 1 |
+| Polish (looks as high end as the original; Maggie, Nov 15) | Look | 2 |
 | Fabric tier | Fit | 3 |
 | Size available | Fit | 1.5 |
 

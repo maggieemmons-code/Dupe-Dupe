@@ -25,6 +25,8 @@ export type CleanRow = {
 
 export type CleanContext = {
   budget: number | null;
+  /** New items under this price are hidden (lib/search/priceFloor.ts). */
+  priceFloor: number | null;
   brand: string;
   styleName: string;
   sizes: string[];
@@ -69,6 +71,7 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
     }
     if (r.price == null) return "No price shown";
     if (ctx.budget && r.price > ctx.budget) return "Over budget";
+    if (ctx.priceFloor && r.price < ctx.priceFloor) return "Under the price floor";
     if (r.in_stock === false) return "Out of stock";
     return null;
   }

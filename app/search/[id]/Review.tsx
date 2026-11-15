@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   CATEGORIES,
   COLORS,
@@ -23,6 +23,8 @@ import {
 } from "@/lib/fields";
 import { SIZES, searchName, type SearchRow } from "@/lib/searches";
 import { buildBrief, retryBrief, saveAnchors, saveChoices, saveFields, confirmSearch } from "./actions";
+import PriceRange from "./PriceRange";
+import { lowEnd, sliderMax } from "@/lib/search/priceFloor";
 import styles from "./review.module.css";
 import ui from "../../ui.module.css";
 
@@ -362,7 +364,6 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
 
   /* choices */
   const [view, setView] = useState(search.view);
-  const [budget, setBudget] = useState(search.budget != null ? String(search.budget) : "");
   const [sizes, setSizes] = useState<string[]>(search.sizes);
   const [sizesOpen, setSizesOpen] = useState(false);
 
@@ -374,6 +375,16 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
   }
 
   const router = useRouter();
+  const savePrice = useCallback(
+    (low: number, high: number | null) => {
+      startTransition(async () => {
+        const r = await saveChoices(search.id, { budget: high == null ? "" : String(high), budgetMin: low });
+        if (!r.ok) setError(r.error);
+      });
+    },
+    [search.id],
+  );
+
   const [confirmed, setConfirmed] = useState(search.status === "queued");
   const guesses = ROWS.filter((r) => sources[r.field]?.from === "guess" && shown(r, values)).length;
 
@@ -417,31 +428,19 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
         </div>
 
         <div className={styles.tiles}>
-          <button className={styles.tile} onClick={() => setSizesOpen(!sizesOpen)} aria-expanded={sizesOpen}>
+          <button className={styles.tile} style={{ gridColumn: "1 / -1" }} onClick={() => setSizesOpen(!sizesOpen)} aria-expanded={sizesOpen}>
             <span className={styles.tileLabel}>Your sizes{sizes.length ? " · for this search" : ""}</span>
             <span className={sizes.length ? styles.tileValue : styles.tileValueMissing}>{sizes.length ? sizes.join(" · ") : "Missing"}</span>
             <span className={styles.tileAction}>{sizes.length ? "Change" : "Add your size"}</span>
           </button>
-          <div className={styles.tile}>
-            <label htmlFor="budget" className={styles.tileLabel}>
-              Most you&apos;d spend · new dupes
-            </label>
-            <span className={styles.budget}>
-              $
-              <input
-                id="budget"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="—"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
-                onBlur={() => save({ budget })}
-              />
-            </span>
-            <span className={styles.tileHint}>{search.budget != null ? "Your last budget" : "Leave blank for no cap"}</span>
-          </div>
         </div>
+
+        <PriceRange
+          low={lowEnd(search) ?? 0}
+          high={search.budget}
+          scaleMax={sliderMax(search.retail_price, search.budget)}
+          onSave={savePrice}
+        />
 
         {sizesOpen && (
           <div className={styles.sizePicker}>

@@ -7,6 +7,7 @@ import { downloadThumb } from "@/lib/server/linkPhotos";
 import { cleanCandidates, type CleanRow } from "@/lib/search/clean";
 import { runScreener, type ScreenItem } from "@/lib/agents/screener";
 import { searchName } from "@/lib/searches";
+import { lowEnd } from "@/lib/search/priceFloor";
 
 /*
  * The search job (PLAN.md › Search pipeline). One Inngest step per stage, so a
@@ -34,6 +35,7 @@ type Ctx = {
   lensHint: string;
   lookAlike: string[];
   budget: number | null;
+  priceFloor: number | null;
   brand: string;
   styleName: string;
   sizes: string[];
@@ -104,6 +106,7 @@ export const runSearch = inngest.createFunction(
         lensHint: (q.lens_hint || fallback).slice(0, 80),
         lookAlike: (q.look_alike ?? []).filter(Boolean).length ? q.look_alike!.filter(Boolean) : [fallback || searchName(s)],
         budget: s.budget ?? null,
+        priceFloor: lowEnd({ budget_min: s.budget_min ?? null, retail_price: s.retail_price ?? null, budget: s.budget ?? null }),
         brand: s.brand ?? "",
         styleName: s.style_name ?? "",
         sizes: s.sizes ?? [],
@@ -136,9 +139,9 @@ export const runSearch = inngest.createFunction(
             return lensSearch(data.signedUrl, ctx.lensHint);
           })
         : Promise.resolve(null),
-      gather("shopping-1", "Google Shopping", () => shoppingSearch(ctx.lookAlike[0], ctx.budget)),
-      gather("shopping-store", "Google Shopping", () => shoppingSearch(`${ctx.lookAlike[0]} ${STORE_SEARCH.toLowerCase()}`, ctx.budget)),
-      gather("amazon", "Amazon", () => amazonSearch(ctx.lookAlike[0], ctx.budget)),
+      gather("shopping-1", "Google Shopping", () => shoppingSearch(ctx.lookAlike[0], ctx.budget, ctx.priceFloor)),
+      gather("shopping-store", "Google Shopping", () => shoppingSearch(`${ctx.lookAlike[0]} ${STORE_SEARCH.toLowerCase()}`, ctx.budget, ctx.priceFloor)),
+      gather("amazon", "Amazon", () => amazonSearch(ctx.lookAlike[0], ctx.budget, ctx.priceFloor)),
     ]);
 
     const missing = [...new Set(sources.filter((s) => s?.failed).map((s) => s!.label))];
@@ -154,6 +157,7 @@ export const runSearch = inngest.createFunction(
       const all = (rows ?? []) as (CleanRow & { position: number | null; query: string })[];
       const results = cleanCandidates(all, {
         budget: ctx.budget,
+        priceFloor: ctx.priceFloor,
         brand: ctx.brand,
         styleName: ctx.styleName,
         sizes: ctx.sizes,

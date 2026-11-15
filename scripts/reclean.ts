@@ -5,6 +5,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { cleanCandidates, type CleanRow } from "../lib/search/clean";
+import { lowEnd } from "../lib/search/priceFloor";
 
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!.trim(), {
   auth: { persistSession: false },
@@ -12,7 +13,7 @@ const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPAB
 
 async function main() {
   const id = process.argv[2];
-  const { data: s } = await db.from("searches").select("brand, style_name, budget, sizes").eq("id", id).single();
+  const { data: s } = await db.from("searches").select("brand, style_name, budget, budget_min, sizes, retail_price").eq("id", id).single();
   const { data } = await db
     .from("candidates")
     .select("id, kind, source, title, store, store_domain, link, photo_url, price, in_stock, size, rating, reviews")
@@ -20,6 +21,7 @@ async function main() {
   const rows = (data ?? []) as CleanRow[];
   const results = cleanCandidates(rows, {
     budget: s?.budget ?? null,
+    priceFloor: lowEnd({ budget_min: s?.budget_min ?? null, retail_price: s?.retail_price ?? null, budget: s?.budget ?? null }),
     brand: s?.brand ?? "",
     styleName: s?.style_name ?? "",
     sizes: s?.sizes ?? [],

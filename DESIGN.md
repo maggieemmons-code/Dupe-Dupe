@@ -122,7 +122,7 @@ Every field on Review arrives filled in as well as the app can manage, so most f
 
 - **Item fields** come from the brief builder reading the link, the photos and any typed text.
 - **Sizes** come from the friend's saved sizes for that category (a gown uses their dress size).
-- **Budget** starts at the top of the friend's price sweet spot from Your eye, or their last budget if they changed it.
+- **Price range** is a two-handle slider from $0 to the original's price (Maggie, Nov 15). The high end starts at the top of the friend's price sweet spot from Your eye, or their last budget; the low end starts at 15% of the original's price, since very cheap pieces rarely look high end. Either end can be dragged; the top of the scale means no limit.
 - **View** starts at the friend's default view.
 - Each field shows a small source tag under its value: **Link**, **Photo**, **Profile**, **Guess** (black, with "Please check" or the reason) or **Missing** (with what adding it would do). A guess is never shown as if it were read from the source.
 
