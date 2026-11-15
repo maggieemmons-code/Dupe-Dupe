@@ -7,17 +7,17 @@ A private, invite-only web app for Maggie and up to 20 friends. A friend drops i
 - **`prototype.html` is the prompts and behavior reference.** Reuse its prompts and interaction details unless `PLAN.md` or `DESIGN.md` says otherwise. Its swing-tag look is retired.
 - Maggie is a first-time builder. She doesn't write code; she reads plans and tests on her phone.
 
-## Current phase: 3 (Lens and new dupes)
+## Current phase: 4 (Judge)
 
-**Builds:** Inngest job with a step per stage and status updates, SerpApi Lens and Shopping, the `candidates` table with stage tracking, cleaning step with size filter and duplicate merging, new-items screener with thumbnails (Haiku, `ANTHROPIC_FAST_MODEL`), result cards with photos (`design/screens/Results.dc.html`, `Card.dc.html`), and the `/go` click route that logs every outbound click.
+**Builds:** the judge on `ANTHROPIC_JUDGE_MODEL` with both photos and both briefs, 5 candidates per call, filling the fixed checklist (`PLAN.md` › Appendix › Judge); look and fit scores and the three verdicts (approved, caveat, rejected) computed in code from the checklist (`PLAN.md` › Scoring and verdicts); caveats in plain words; sort by look, fit or price; the All / New / Secondhand views; scores and the See why breakdown on cards and Item detail (`design/screens/Results.dc.html`, `Detail.dc.html`).
 
-**Done when:** a Sau Lee search shows at least 6 new candidates with photos and real prices.
+**Done when:** on the test set, Maggie agrees with the judge's top 3 at least 7 times in 10, and no rejected item breaks a stated dealbreaker.
 
-**Needs before coding:** an Inngest account and its keys (`INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, plus connecting Inngest to the Vercel project), and a SerpApi key (`SERPAPI_API_KEY`) with usage alerts on. Maggie pastes key values into `.env.local` and Vercel herself; Vercel only picks up changed settings on the next deployment.
+**Needs before coding:** Maggie's test set (`PLAN.md` › Testing): 10 items across categories and prices, starting with the Sau Lee gown, each with its link and her own short list of 3 matches she'd call good.
 
-**Status (Nov 14):** built and passing on Maggie's Mac (Sau Lee: 9 shown, 7 with live prices, all with photos). Added at her request: Amazon as a source, and Shop buttons that look up the store's own page for Google Shopping results. Waiting on the live-site check after push. Details in `NOTES.md` › Phase 3.
+**Watch for:** no forced `tool_choice` and no strict mode for the judge's schema (`NOTES.md` › Phase 2). Until enrichment (phase 6), listings rarely state fabric or sizes, so fit scores lean on "unknown" and most results carry a "Fabric not listed" caveat. Keep checklists saved so weights can re-score old searches without calling the judge again.
 
-**Watch for:** Claude Sonnet 5.5 and Haiku 5.5 behavior with tools is in `NOTES.md` › Phase 2 (no forced `tool_choice`; large schemas can't use strict mode). Lens takes the search's first photo by a 10-minute signed link; link-only searches now have product photos saved from the page.
+**Phase 3 passed on 2026-11-15:** on the live site, the Sau Lee search showed 9 new dupes with photos (7 with live prices), cards appeared on their own as the search ran, and Shop opened the store's own page. Added at Maggie's request: Amazon as a source, and a store lookup on the first Shop tap for Google Shopping results. Inngest needed a manual app sync after the first deploy. Details in `NOTES.md` › Phase 3.
 
 **Phase 2 passed on 2026-11-15:** on the live site, the Sau Lee link (https://www.sau-lee.com/products/joanna-gown-red-date) fills in 100% polyester jacquard, true to size, $750, the product photos, and anchors covering the off-shoulder neckline, red jacquard and the structured (boned) bodice. Changes Maggie asked for along the way: every detail is a pick from a list (`lib/fields.ts`), stretch is inferred from fabric, product photos on the link are read, Review order is original → Search for → The details (Signature details first, each rewordable). Details in `NOTES.md` › Phase 2.
 
