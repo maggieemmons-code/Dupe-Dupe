@@ -115,3 +115,14 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - Weights: silhouette 2.5, length 1.5, polish 2.5, anchor 2.5, color 1.5, fabric 2 (others default).
 - **Fabric must match** switch on Review (`composition_brief.must_match`, off by default): off, a dealbreaker fabric is a caveat ("Different fabric: …"); on, it rejects.
 - Rules reach the brief builder, screener and judge through `tasteText()`; weights reach scoring, See why and `scripts/rescore.ts` through `tasteWeights()`.
+
+### Calibration (Nov 15)
+
+- Maggie asked for a one-time review by a stronger model (Claude Fable) of where her picks lose; the app's own models are unchanged. `scripts/calibration-packet.ts` builds `calibration-packet/` (git-ignored): a prompt and one labeled picture per test item (original, her picks, what beat them), which she pasted into Fable. `scripts/calibrate.ts` does the same through the API (`ANTHROPIC_REVIEW_MODEL`).
+- **Fable's finding:** the judge wrote real differences and still marked "match"; the screener punished photo angles (back views, tucked-in tops); nothing gated pieces that aren't dupes. She approved all fixes:
+  - Code gates (`score.ts`, `clean.ts`): the original's brand (all its pieces), its photos, resale/used, price at or above the original → rejected/dropped; no price can't be approved ("Price at store"); a failed Must match rejects only for a visible shape, a material or hidden detail only when Fabric must match is on; `cannot_see` scores 0.5.
+  - Judge: "would be taken for the original when worn"; list differences first and keep fields consistent with them (also enforced in code by `holdToNotes`); pass/partial/fail defined by parts and scale; silhouette defined; new fields `differences`, `extras` (counted once), `surface` (replaces `sheen`, read old checklists' sheen), `polish: cannot_tell`, `same_brand_as_original`, `used_or_resale`.
+  - Screener: rate the piece not the photo; outline and proportions first; extras in titles don't count unless they change the outline; when torn, the higher rating.
+  - Four taste rules reworded; weights anchor 1.5, silhouette 3, neckline 1.5, length 2, sleeves 1, color 1.5, surface 2, extras 1, polish 1.5, fabric 2, size 1.5.
+- A second review (pasted Nov 15) added: decide each signature detail's kind once per search (`lib/search/anchorKind.ts`, code, not per judge batch); tie-breaks for the judge's slots (priced, then Lens); merge one style name at the same price across stores; strip "Amazon.com:" from titles; re-ask the judge for candidates it skips; link sites (Editorialist, Lyst, ModeSens, ShopStyle…) aren't stores (Maggie: "a link serving website, not an actual store").
+- **Holdout:** test items 5, 6, 7 and 10 were never shown to a review and are never used for tuning (`holdout: true` in `tests/test-set.json`).

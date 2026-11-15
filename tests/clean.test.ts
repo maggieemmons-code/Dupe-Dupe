@@ -83,9 +83,37 @@ test("the original sold at another store is dropped", () => {
   assert.equal(reason(row({ price: null, source: "lens", store: "Revolve", title: "Bronx Banco Florentina Strapless Velvet Gown in Burgundy" }), bb), "Your original");
 });
 
-test("another piece from the same brand stays", () => {
+test("another piece from the original's brand is dropped", () => {
   const sei = { ...ctx, brand: "The Sei", styleName: "Halter Drape Bias Gown", budget: 640 };
-  assert.equal(reason(row({ price: 400, store: "Editorialist", title: "The Sei Cowl Bias Gown In Slate Blue" }), sei), null);
+  assert.equal(reason(row({ price: 400, store: "Revolve", title: "The Sei Cowl Bias Gown In Slate Blue" }), sei), "From the original's own brand");
+  const mm = { ...ctx, brand: "Max Mara", styleName: "Poldo", budget: 1134 };
+  assert.equal(reason(row({ price: 800, store: "Nordstrom", title: "S Max Mara Esturia Wool Coat" }), mm), "From the original's own brand");
+  const bb = { ...ctx, brand: "Bronx and Banco", styleName: "Florentina" };
+  assert.equal(reason(row({ price: 200, store: "Revolve", title: "Bronx Banco Lola Gown" }), bb), "From the original's own brand");
+  // Brand words scattered through a title aren't the brand.
+  const moa = { ...ctx, brand: "Mother of All", styleName: "Amaya" };
+  assert.equal(reason(row({ price: 200, store: "Nordstrom", title: "Mother of the Bride Gown for All Seasons" }), moa), null);
+});
+
+test("link sites aren't stores", () => {
+  assert.equal(reason(row({ store: "Editorialist", store_domain: "editorialist.com" })), "Not a store");
+  assert.equal(reason(row({ store: "Lyst", store_domain: "lyst.com" })), "Not a store");
+});
+
+test("resale listings are dropped from new dupes", () => {
+  assert.equal(reason(row({ title: "Safiyaa Wedding Dress Save 49%" })), "Used or resale listing");
+  assert.equal(reason(row({ title: "Pre-owned Strapless Gown" })), "Used or resale listing");
+});
+
+test("a piece costing as much as the original is dropped", () => {
+  assert.equal(reason(row({ price: 300 }), { ...ctx, budget: null, retailPrice: 300 }), "Costs as much as the original");
+});
+
+test("one product at several stores merges", () => {
+  const a = row({ title: "Commando Women's Classic Oxford Shirt Bodysuit - White - Size S", price: 238, store: "Saks Fifth Avenue" });
+  const b = row({ title: "women's classic oxford shirt bodysuit - white", price: 238, store: "Reversible" });
+  const out = cleanCandidates([a, b], { ...ctx, budget: 300, priceFloor: null });
+  assert.ok(out.some((x) => x.duplicate_of));
 });
 
 test("category pages are dropped", () => {
@@ -103,4 +131,11 @@ test("foreign storefronts are dropped", () => {
   assert.equal(reason(row({ price: null, source: "lens", store: "Rakuten Fashion - 楽天市場", title: "Mulberry – 【マルベリー公式】ベイズウォーター" })), "Store outside the US");
   assert.equal(reason(row({ price: null, source: "lens", store: "Mitsukoshi", store_domain: "isetan.mistore.jp", title: "Bag" })), "Store outside the US");
   assert.equal(reason(row({ price: 200, store: "Club L London", store_domain: "clubllondon.us", title: "Alina White Bandeau Maxi Dress" })), null);
+});
+
+test("one style name at the same price merges", () => {
+  const a = row({ title: "Cassie Knee High Boot", price: 150, store: "Nordstrom" });
+  const b = row({ title: "Women's Cassie Boots", price: 149.95, store: "Nordstrom Rack" });
+  const out = cleanCandidates([a, b], { ...ctx, budget: 300, priceFloor: null });
+  assert.ok(out.some((x) => x.duplicate_of));
 });

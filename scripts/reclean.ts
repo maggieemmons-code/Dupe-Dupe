@@ -22,6 +22,7 @@ async function main() {
   const results = cleanCandidates(rows, {
     budget: s?.budget ?? null,
     priceFloor: lowEnd({ budget_min: s?.budget_min ?? null }),
+    retailPrice: s?.retail_price ?? null,
     brand: s?.brand ?? "",
     styleName: s?.style_name ?? "",
     sizes: s?.sizes ?? [],

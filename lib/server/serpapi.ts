@@ -125,7 +125,7 @@ export async function lensSearch(photoUrl: string, hint: string): Promise<{ item
         source: "lens" as const,
         query,
         position: m.position ?? null,
-        title: cleanTitle(m.title ?? "", m.source ?? ""),
+        title: stripStorePrefix(cleanTitle(m.title ?? "", m.source ?? "")),
         brand: "",
         store: m.source ?? domain,
         store_domain: domain,
@@ -427,7 +427,7 @@ export async function amazonSearch(q: string, maxPrice: number | null, minPrice:
         source: "amazon" as const,
         query: q,
         position: r.position ?? null,
-        title: r.title ?? "",
+        title: stripStorePrefix(r.title ?? ""),
         brand: r.brand ?? "",
         store: "Amazon",
         store_domain: "amazon.com",
@@ -452,6 +452,11 @@ export async function amazonSearch(q: string, maxPrice: number | null, minPrice:
 
 /* ---------- helpers ---------- */
 
+/** "Amazon.com: Women's …" → "Women's …". */
+function stripStorePrefix(title: string) {
+  return title.replace(/^\s*(amazon\.com|amazon|walmart\.com|ebay)\s*:\s*/i, "").trim();
+}
+
 /** True for anything a source marks as paid placement. */
 function isSponsored(item: object) {
   const r = item as { sponsored?: unknown; tag?: unknown; extensions?: unknown; badges?: unknown };
@@ -463,12 +468,15 @@ function isSponsored(item: object) {
 const SECONDHAND = [
   "therealreal", "poshmark", "depop", "ebay", "vestiairecollective", "vestiaire", "thredup", "grailed",
   "tradesy", "rebag", "fashionphile", "mercari", "theluxurycloset", "shoppickle", "pickle", "thevolte",
-  "the volte", "the realreal", "vinted", "kidizen", "curtsy",
+  "the volte", "the realreal", "vinted", "kidizen", "curtsy", "stillwhite", "nearly newlywed", "still white",
 ];
 const RENTAL = ["renttherunway", "rent the runway", "thefitzroy", "the fitzroy", "nuuly", "hurr", "byrotation", "armoire", "rental"];
 const NOT_A_STORE = [
   "instagram", "tiktok", "pinterest", "facebook", "youtube", "reddit", "twitter", "x.com", "threads.net",
   "wikipedia", "tumblr", "weheartit",
+  // Link sites that send shoppers to other stores and don't sell anything themselves (Maggie, Nov 15)
+  "editorialist", "lyst", "modesens", "shopstyle", "fashiola", "stylemi", "lovethesales", "clothbase", "shopmy",
+  "glamiris", "spottedfashion", "wheretoget",
 ];
 
 function kindFor(domain: string, store: string): "new" | "secondhand" {

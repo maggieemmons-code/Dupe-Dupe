@@ -27,6 +27,8 @@ export type CleanContext = {
   budget: number | null;
   /** New items under this price are hidden (lib/search/priceFloor.ts). */
   priceFloor: number | null;
+  /** The original's price: anything at or above it isn't a dupe. */
+  retailPrice?: number | null;
   brand: string;
   styleName: string;
   sizes: string[];
@@ -58,6 +60,8 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
       return "Amazon: under 4 stars or 100 reviews";
     }
     if (isOriginal(r, ctx)) return "Your original";
+    if (isSameBrand(r, ctx)) return "From the original's own brand";
+    if (RESALE_WORDS.test(r.title)) return "Used or resale listing";
     if (isForeign(r)) return "Store outside the US";
     if (isCategoryPage(r)) return "Not a product page";
     if (r.kind === "secondhand") {
@@ -66,6 +70,7 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
       return null;
     }
     if (r.price == null && r.source !== "lens") return "No price shown";
+    if (r.price != null && ctx.retailPrice && r.price >= ctx.retailPrice) return "Costs as much as the original";
     if (r.price != null && ctx.budget && r.price > ctx.budget) return "Over budget";
     if (r.price != null && ctx.priceFloor && r.price < ctx.priceFloor) return "Under the price floor";
     if (r.in_stock === false) return "Out of stock";
@@ -133,6 +138,31 @@ function isOriginal(r: CleanRow, ctx: CleanContext) {
   return style.length >= 2 && style.filter((w) => title.has(w)).length >= Math.ceil(style.length * 0.75);
 }
 
+/**
+ * Maggie, Nov 15 (after a calibration review): the original brand's other pieces
+ * aren't dupes. The brand's words must appear together, as whole words, in the
+ * title, store or web address ("Bronx Banco" matches "Bronx and Banco").
+ */
+function isSameBrand(r: CleanRow, ctx: CleanContext) {
+  const stop = new Set(["the", "and", "of", "by"]);
+  const brand = [...wordSet(ctx.brand)].filter((w) => !stop.has(w));
+  if (!brand.length) return false;
+  const seq = (t: string) =>
+    t
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .split(" ")
+      .filter((w) => w && !stop.has(w));
+  const contains = (tokens: string[]) => tokens.some((_, i) => brand.every((b, k) => tokens[i + k] === b));
+  const domain = r.store_domain.toLowerCase().replace(/^www\./, "").split(".")[0];
+  return contains(seq(r.title)) || contains(seq(r.store)) || (domain.length > 3 && domain === brand.join(""));
+}
+
+/** Pre-owned listings belong in secondhand (phase 5), not new dupes. */
+const RESALE_WORDS = /\b(pre[- ]?owned|pre[- ]?loved|second[- ]?hand|consignment|gently used|used condition)\b|\bsave \d+%/i;
+
 const FOREIGN_TLD = /\.(jp|cn|kr|tw|ru|in|sa|ae|qa|kw|do|br|mx|tr|id|th|vn|hk|my|ph|pk|eg)$/;
 const FOREIGN_NAME = /\b(ksa|uae|saudi|dominican republic|india|japan|korea|mexico|brazil|turkey|qatar|kuwait|egypt|nykaa|myntra|ajio|namshi|rakuten|ecuador|ubuy|trenbe|peru|chile|colombia|argentina)\b/i;
 /** Letters from scripts other than Latin: a storefront for another country. */
@@ -161,16 +191,39 @@ function isCategoryPage(r: CleanRow) {
   return PLURAL_GARMENT.test(main) && !/\b(set|pack|two|2)\b/i.test(main);
 }
 
+/** "Gown in Red - size XL", "… 8 / Red", "… | REVOLVE": the parts that differ between listings of one product. */
+function productName(r: CleanRow) {
+  return r.title
+    .replace(/\s[–|]\s.*$/, "")
+    .replace(/\b(size|sz)\s*[a-z0-9]{1,4}\b/gi, " ")
+    .replace(/\b(x{0,3}s|x{0,3}l|m|\d{1,2})\s*\/\s*[a-z]+\s*$/i, " ")
+    .replace(new RegExp(`\\b${r.store.replace(/[^a-z0-9 ]/gi, "")}\\b`, "i"), " ");
+}
+
 function sameProduct(a: CleanRow, b: CleanRow) {
   if (a.link === b.link) return true;
   if (a.photo_url && a.photo_url === b.photo_url) return true;
-  const wa = words(a.title);
-  const wb = words(b.title);
+  // One style name at the same price ("Cassie Knee High Boot" and "Women's Cassie Boots", both $150).
+  if (a.price != null && b.price != null && Math.abs(a.price - b.price) <= 0.05 * Math.max(a.price, b.price)) {
+    const sa = styleWords(a.title);
+    const sb = styleWords(b.title);
+    if ([...sa].some((w) => sb.has(w))) return true;
+  }
+  const wa = words(productName(a));
+  const wb = words(productName(b));
   if (wa.size < 3 || wb.size < 3) return false;
   let shared = 0;
   for (const w of wa) if (wb.has(w)) shared++;
-  return shared / Math.min(wa.size, wb.size) >= 0.85 && shared / Math.max(wa.size, wb.size) >= 0.7;
+  // Nearly all words of the shorter name appear in the longer one (one product, several stores).
+  return shared >= 4 && shared / Math.min(wa.size, wb.size) >= 0.85 && shared / Math.max(wa.size, wb.size) >= 0.6;
 }
+
+/** Words that name a style rather than describe a garment: "Cassie", "Rosabella", "Hilda". */
+function styleWords(t: string) {
+  return new Set([...wordSet(t)].filter((w) => w.length >= 4 && !GENERIC.has(w) && !DESCRIPTIVE.test(w)));
+}
+const DESCRIPTIVE =
+  /^(knee|high|ankle|tall|short|long|black|white|ivory|cream|nude|blush|wine|navy|beige|brown|camel|green|silver|gold|womens?|ladies|evening|formal|party|prom|wedding|bridal|guest|elegant|sexy|classic|button|down|up|sleeve|sleeveless|shoulder|corset|bandeau|tube|maxi|midi|mini|floor|slim|fitted|belted|wrap|faux|leather|vegan|suede|satin|silk|velvet|sequin|beaded|pearl|lace|wool|cotton|poplin|blend|stretch|knit|crepe|chiffon|coat|jacket|blazer|gown|dress|boot|boots|shoe|shoes|heel|heels|pump|bodysuit|shirt|blouse|skirt|pants|trench|size|plus|petite|with|from|this|that)$/;
 
 const STOP = new Set(["the", "a", "an", "in", "of", "for", "and", "with", "by", "women", "womens", "s", "dress", "new"]);
 

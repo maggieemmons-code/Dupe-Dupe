@@ -18,7 +18,8 @@ const perfect: Checklist = {
   neckline: "match",
   sleeves: "match",
   length: "match",
-  sheen: "match",
+  surface: "match",
+  extras: "none",
   polish: "as_polished",
   fabric_tier: "target",
   fabric_evidence: "100% polyester jacquard",
@@ -36,8 +37,8 @@ test("the same checklist always gives the same score", () => {
   assert.deepEqual(score(perfect, anchors), score(structuredClone(perfect), anchors));
 });
 
-test("failing a Must match detail is rejected, whatever else matches", () => {
-  const c = { ...perfect, anchors: [{ id: "a1", result: "fail" as const }, { id: "a2", result: "pass" as const }] };
+test("failing a Must match shape is rejected, whatever else matches", () => {
+  const c = { ...perfect, anchors: [{ id: "a1", result: "fail" as const, kind: "shape" as const }, { id: "a2", result: "pass" as const }] };
   assert.equal(score(c, anchors).verdict, "rejected");
 });
 
@@ -84,18 +85,55 @@ test("look under 40 is rejected", () => {
     neckline: "close",
     sleeves: "different",
     length: "different",
-    sheen: "different",
+    surface: "different",
+    extras: "changes_look",
     polish: "looks_cheap",
   };
   assert.equal(score(c, anchors).verdict, "rejected");
 });
 
-test("not applicable and cannot see are left out of the total", () => {
-  const c = { ...perfect, sleeves: "not_applicable" as const, anchors: [{ id: "a1", result: "pass" as const }, { id: "a2", result: "cannot_see" as const }] };
-  assert.equal(score(c, anchors).look, 100);
+test("not applicable is left out; a hidden detail counts half", () => {
+  const na = { ...perfect, sleeves: "not_applicable" as const };
+  assert.equal(score(na, anchors).look, 100);
+  const hidden = { ...perfect, anchors: [{ id: "a1", result: "pass" as const }, { id: "a2", result: "cannot_see" as const }] };
+  assert.ok(score(hidden, anchors).look < 100);
+});
+
+test("gates: the original's brand, its photos, resale, and a price at or above the original", () => {
+  assert.equal(score({ ...perfect, same_brand_as_original: true }, anchors).verdict, "rejected");
+  assert.equal(score({ ...perfect, stock_photo_suspected: true }, anchors).verdict, "rejected");
+  assert.equal(score({ ...perfect, used_or_resale: true }, anchors).verdict, "rejected");
+  assert.equal(score(perfect, anchors, undefined, { price: 500, retailPrice: 500 }).verdict, "rejected");
+  assert.equal(score(perfect, anchors, undefined, { price: 200, retailPrice: 500 }).verdict, "approved");
+});
+
+test("a missed must-match material is a caveat unless Fabric must match is on", () => {
+  const c = { ...perfect, anchors: [{ id: "a1", result: "fail" as const, kind: "material" as const }, { id: "a2", result: "pass" as const }] };
+  assert.equal(score(c, anchors).verdict, "caveat");
+  assert.equal(score(c, anchors, undefined, { fabricMustMatch: true }).verdict, "rejected");
+  const shape = { ...perfect, anchors: [{ id: "a1", result: "fail" as const, kind: "shape" as const }, { id: "a2", result: "pass" as const }] };
+  assert.equal(score(shape, anchors).verdict, "rejected");
+});
+
+test("no price can't be approved", () => {
+  const v = score(perfect, anchors, undefined, { price: null });
+  assert.equal(v.verdict, "caveat");
+  assert.match(v.caveat ?? "", /Price at store/);
+});
+
+test("extras that change the look lower it once and are noted", () => {
+  const v = score({ ...perfect, extras: "changes_look" }, anchors);
+  assert.ok(v.look < 100);
+  assert.match(v.caveat ?? "", /Added details/);
 });
 
 test("details the judge adds on its own don't count", () => {
   const c = { ...perfect, anchors: [...perfect.anchors, { id: "made-up", result: "fail" as const }] };
   assert.deepEqual(score(c, anchors), score(perfect, anchors));
+});
+
+test("a detail's kind comes from the search, not the judge", () => {
+  const defs = [{ id: "a1", label: "Deep burgundy velvet", dealbreaker: true, kind: "material" as const }, anchors[1]];
+  const c = { ...perfect, anchors: [{ id: "a1", result: "fail" as const, kind: "shape" as const }, { id: "a2", result: "pass" as const }] };
+  assert.equal(score(c, defs).verdict, "caveat");
 });

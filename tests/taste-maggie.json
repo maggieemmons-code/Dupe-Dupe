@@ -1,61 +1,95 @@
 {
-  "about": "Maggie's eye, from her test set and her edits on Nov 15 (draft in tests/taste-draft.json). Saved to taste_profiles by scripts/save-taste.ts.",
+  "about": "Maggie's eye, from her test set, her edits and the calibration review she approved on Nov 15. Saved to taste_profiles by scripts/save-taste.ts.",
   "rules": [
     {
-      "rule": "Extra details the original doesn't have (a slit, a pleated bust, ruching, a cut-out) count against a piece only when they change the overall look. When the shape, fabric and proportions are strong, they're a small difference, not a deal-breaker.",
+      "rule": "Extra details the original doesn't have (a slit, a pleated bust, ruching, a cut-out) are counted once, as an extra. They lower other parts only when they change the outline.",
       "kind": "matters_less",
-      "evidence": [1, 2, 9, 10],
-      "source": "test set, edited by Maggie"
+      "evidence": [
+        1,
+        2,
+        9,
+        10
+      ],
+      "source": "test set, edited by Maggie, reworded by calibration review"
     },
     {
       "rule": "The fabric's look carries the piece: prefer fabrics that hang, drape or lie flat the way the original's does. Avoid thin or costume-shiny fabrics.",
       "kind": "prefer",
-      "evidence": [1, 2, 3, 8],
+      "evidence": [
+        1,
+        2,
+        3,
+        8
+      ],
       "source": "test set"
     },
     {
-      "rule": "Keep the original's proportions and length: a short, cinched jacket stays short and cinched, a floor-length gown stays floor-length.",
+      "rule": "Keep the original's proportions, length and the scale of its details: short and cinched stays short and cinched, floor-length stays floor-length, big trim stays big, a slim heel stays slim.",
       "kind": "matters_more",
-      "evidence": [3, 7],
-      "source": "test set"
+      "evidence": [
+        3,
+        4,
+        7
+      ],
+      "source": "test set, reworded by calibration review"
     },
     {
-      "rule": "A matching word (velvet, bodysuit, leather) doesn't beat a better look: a piece that gets the look another way can be the better dupe.",
+      "rule": "A matching word in a title (velvet, bodysuit, leather) earns nothing by itself. Judge material by how the surface looks and hidden construction by how the piece looks worn.",
       "kind": "matters_less",
-      "evidence": [3, 8, 9],
-      "source": "test set"
+      "evidence": [
+        3,
+        8,
+        9
+      ],
+      "source": "test set, reworded by calibration review"
     },
     {
-      "rule": "The original's own photos and listings, and pieces from the original's own listing pages, aren't dupes.",
+      "rule": "The original brand's own pieces (the same piece in another color or another style from the label), the original's own photos and used or resale listings aren't dupes.",
       "kind": "avoid",
-      "evidence": [2, 4, 8],
-      "source": "test set"
+      "evidence": [
+        2,
+        4,
+        8
+      ],
+      "source": "test set, reworded by calibration review"
     },
     {
       "rule": "Embellishment should be fairly literal: beading should read as beading and pearls as pearls. Sequins standing in for beading often, but not always, look cheaper.",
       "kind": "matters_more",
-      "evidence": [10],
+      "evidence": [
+        10
+      ],
       "source": "Maggie"
     },
     {
       "rule": "For shoes, the toe shape, heel and overall profile should look close to one-for-one. Less literal options are still welcome when the profile matches, such as pebbled instead of smooth leather.",
       "kind": "matters_more",
-      "evidence": [4],
+      "evidence": [
+        4
+      ],
       "source": "Maggie"
     },
     {
       "rule": "Looks come first. Similar fabric quality is a plus, not a requirement: lining, tailoring or a specific fiber (cashmere, wool, silk) only decides a match when the shopper switches Fabric must match on.",
       "kind": "matters_less",
-      "evidence": [6, 7],
+      "evidence": [
+        6,
+        7
+      ],
       "source": "Maggie"
     }
   ],
   "weights": {
-    "silhouette": 2.5,
-    "length": 1.5,
-    "polish": 2.5,
-    "anchor": 2.5,
+    "anchor": 1.5,
+    "silhouette": 3,
+    "neckline": 1.5,
+    "length": 2,
+    "sleeves": 1,
     "color": 1.5,
-    "fabric": 2
+    "surface": 2,
+    "extras": 1,
+    "polish": 1.5,
+    "fabric": 2,
+    "size": 1.5
   }
 }

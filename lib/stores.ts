@@ -27,7 +27,7 @@ const APPROVED_ENTRIES = [
   // Multi-brand fashion sites
   "revolve.com | REVOLVE", "fwrd.com | FWRD", "shopbop.com | Shopbop", "net-a-porter.com | NET-A-PORTER", "mytheresa.com | Mytheresa",
   "farfetch.com | FARFETCH", "ssense.com | SSENSE", "modaoperandi.com | Moda Operandi", "matchesfashion.com | MATCHES",
-  "asos.com | ASOS", "lyst.com | Lyst", "editorialist.com | Editorialist", "anthropologie.com | Anthropologie", "freepeople.com | Free People",
+  "asos.com | ASOS", "anthropologie.com | Anthropologie", "freepeople.com | Free People",
   "urbanoutfitters.com | Urban Outfitters", "bhldn.com | BHLDN", "tuckernuck.com | Tuckernuck", "intermixonline.com | Intermix",
   "shopredone.com | RE/DONE", "theoutnet.com | THE OUTNET", "zappos.com | Zappos", "dsw.com | DSW",
   // Mall and high-street brands

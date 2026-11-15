@@ -16,6 +16,7 @@ import { usefulPageText } from "@/lib/search/listingText";
 import { usdPriceFromPage } from "@/lib/server/price";
 import { runJudge, type JudgeCandidate } from "@/lib/agents/judge";
 import { score, type AnchorDef, type Weights } from "@/lib/search/score";
+import { anchorKind } from "@/lib/search/anchorKind";
 import { loadTaste } from "@/lib/server/taste";
 import { tasteText, tasteWeights } from "@/lib/taste";
 import { downloadThumb } from "@/lib/server/linkPhotos";
@@ -79,6 +80,7 @@ type Ctx = {
   anchors: AnchorDef[];
   tasteRules: string;
   weights: Weights;
+  retailPrice: number | null;
   fabricMustMatch: boolean;
 };
 
@@ -166,12 +168,15 @@ export const runSearch = inngest.createFunction(
         fields: pickFields(s),
         visualBrief: s.visual_brief,
         compositionBrief: s.composition_brief,
-        anchors: ((s.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id),
+        anchors: ((s.visual_brief?.anchors ?? []) as AnchorDef[])
+          .filter((a) => a && a.id)
+          .map((a) => ({ ...a, kind: a.kind ?? anchorKind(a.label) })),
         ...(await (async () => {
           const taste = await loadTaste(db, userId);
           return { tasteRules: tasteText(taste), weights: tasteWeights(taste) };
         })()),
         fabricMustMatch: s.composition_brief?.must_match === true,
+        retailPrice: s.retail_price ?? null,
       };
     });
     if (!ctx) return { skipped: true };
@@ -229,6 +234,7 @@ export const runSearch = inngest.createFunction(
       const results = cleanCandidates(all, {
         budget: ctx.budget,
         priceFloor: ctx.priceFloor,
+        retailPrice: ctx.retailPrice,
         brand: ctx.brand,
         styleName: ctx.styleName,
         sizes: ctx.sizes,
@@ -280,7 +286,7 @@ export const runSearch = inngest.createFunction(
           step.run(`screen-${b + 1}`, async () => {
             const { data: rows } = await db
               .from("candidates")
-              .select("id, title, brand, store, price, thumb_url, photo_url")
+              .select("id, title, brand, store, price, source, thumb_url, photo_url")
               .in("id", ids)
               .eq("user_id", userId);
             const byId = new Map((rows ?? []).map((r) => [r.id, r]));
@@ -294,7 +300,15 @@ export const runSearch = inngest.createFunction(
             try {
               const result = await runScreener({ name: ctx.name, fields: ctx.fields, visualBrief: ctx.visualBrief, photo: original }, items, ctx.tasteRules);
               await logJobCall({ userId, searchId, service: "claude", stage: "screen", units: result.usage, ok: true });
-              return result.picks.map((p) => ({ id: ordered[p.n - 1].id, score: p.score, color: p.color_match, note: p.note, order: b * BATCH + p.n }));
+              return result.picks.map((p) => ({
+                id: ordered[p.n - 1].id,
+                score: p.score,
+                color: p.color_match,
+                note: p.note,
+                order: b * BATCH + p.n,
+                priced: ordered[p.n - 1].price != null,
+                lens: ordered[p.n - 1].source === "lens",
+              }));
             } catch (e) {
               await logJobCall({ userId, searchId, service: "claude", stage: "screen", ok: false, error: String(e) });
               if (!lastTry) throw e;
@@ -308,7 +322,8 @@ export const runSearch = inngest.createFunction(
     const picked = await step.run("screen-pick", async () => {
       const best = ratings
         .filter((r) => r.score >= MIN_SCREEN_SCORE)
-        .sort((a, b) => b.score - a.score || a.order - b.order)
+        // Ties: priced pieces first (a friend can see they're within reach), then Lens's visual matches.
+        .sort((a, b) => b.score - a.score || Number(b.priced) - Number(a.priced) || Number(b.lens) - Number(a.lens) || a.order - b.order)
         .slice(0, MAX_RESULTS);
       for (const [i, r] of best.entries()) {
         await db
@@ -455,22 +470,26 @@ export const runSearch = inngest.createFunction(
             listingText: r.listing_text ?? "",
           }));
 
+          const judgeOriginal = {
+            name: ctx.name,
+            anchors: ctx.anchors,
+            photo: original,
+            fields: ctx.fields,
+            visualBrief: ctx.visualBrief,
+            compositionBrief: ctx.compositionBrief,
+            sizes: ctx.sizes,
+          };
           let result;
           try {
-            result = await runJudge(
-              {
-                name: ctx.name,
-                anchors: ctx.anchors,
-                photo: original,
-                fields: ctx.fields,
-                visualBrief: ctx.visualBrief,
-                compositionBrief: ctx.compositionBrief,
-                sizes: ctx.sizes,
-              },
-              candidates,
-              ctx.tasteRules,
-            );
+            result = await runJudge(judgeOriginal, candidates, ctx.tasteRules);
             await logJobCall({ userId, searchId, service: "claude", stage: "judge", units: result.usage, ok: true });
+            // The judge sometimes leaves a candidate out of its answer: ask once more for those.
+            const skipped = candidates.filter((c) => !result!.checklists.has(c.id));
+            if (skipped.length) {
+              const again = await runJudge(judgeOriginal, skipped, ctx.tasteRules);
+              await logJobCall({ userId, searchId, service: "claude", stage: "judge-retry", units: again.usage, ok: true });
+              for (const [id, c] of again.checklists) result.checklists.set(id, c);
+            }
           } catch (e) {
             await logJobCall({ userId, searchId, service: "claude", stage: "judge", ok: false, error: String(e) });
             if (!lastTry) throw e;
@@ -481,7 +500,7 @@ export const runSearch = inngest.createFunction(
           for (const [i, r] of rows.entries()) {
             const c = result.checklists.get(`c${i + 1}`);
             if (!c) continue;
-            const v = score(c, ctx.anchors, ctx.weights, { fabricMustMatch: ctx.fabricMustMatch });
+            const v = score(c, ctx.anchors, ctx.weights, { fabricMustMatch: ctx.fabricMustMatch, price: r.price, retailPrice: ctx.retailPrice });
             await db
               .from("candidates")
               .update({

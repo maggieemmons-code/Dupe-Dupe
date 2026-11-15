@@ -67,9 +67,15 @@ Rate EVERY candidate from 1 to 5 on how well it could pass for the original at a
 4 = close: a shopper would happily consider it.
 3 = similar, with clear differences.
 2 = weak: the same kind of garment, but it misses what makes the piece.
-1 = clear miss: a different kind of garment, a clearly different color family or silhouette, a missing "must match" detail, a costume or set, the original piece itself, a page showing many products, or a photo you can't make out.
+1 = clear miss: a different kind of garment, a clearly different color family or silhouette, a "must match" detail the photo shows is replaced by something else, a costume, a piece from the original's own brand (check the title and store), a used or resale listing, a page showing many products, or a photo you can't make out.
 
-A stricter judge checks the best-rated ones closely next, including fabric and quality. Judge mostly from the photo; titles are often stuffed with keywords. Use the full range: don't rate everything 3.
+Rate the piece, not the photo. A back view, a crop or a tucked-in top hides details; it doesn't remove them. Rate what you can see, use a plain title to confirm what's hidden, and don't go below 4 for a hidden part alone. The same product in two listings gets the same rating.
+
+What matters at a glance, in order: outline and proportions (length and the size of trim included), then neckline (for shoes, toe and heel), then how the surface looks, then color. The right outline with one small added or missing detail is a 4, not a 3. Words for extras in a title (with cape, with scarf, embellished) don't lower a rating unless the photo shows they change the outline.
+
+When torn between two ratings, give the higher: the judge can reject what you pass but never sees what you drop.
+
+A stricter judge checks the best-rated ones closely next, including fabric and quality. Titles are often stuffed with keywords. Use the full range: don't rate everything 3.
 
 Apply the shopper's taste rules below when rating: they say what she weighs more or less than the checklist does.
 

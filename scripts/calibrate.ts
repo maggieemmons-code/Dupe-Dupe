@@ -17,6 +17,7 @@ import { parseToolInput } from "../lib/agents/parseToolInput";
 import { runScreener, SYSTEM_PROMPT as SCREENER_PROMPT } from "../lib/agents/screener";
 import { runJudge, SYSTEM_PROMPT as JUDGE_PROMPT } from "../lib/agents/judge";
 import { score, type AnchorDef } from "../lib/search/score";
+import { anchorKind } from "../lib/search/anchorKind";
 import { tasteText, tasteWeights, type TasteProfile } from "../lib/taste";
 
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!.trim(), {
@@ -93,7 +94,7 @@ async function main() {
   const content: Anthropic.Beta.BetaContentBlockParam[] = [
     {
       type: "text",
-      text: `SCREENER INSTRUCTIONS:\n${SCREENER_PROMPT}\n\nJUDGE INSTRUCTIONS:\n${JUDGE_PROMPT}\n\nSHOPPER'S TASTE RULES:\n${rules}\n\nWEIGHTS: ${JSON.stringify(weights)}\nScoring: match/pass 1, close/partial 0.5, different/fail 0; fabric target 1, swap 0.6, unknown 0.5, dealbreaker 0; polish as_polished 1, slightly_less 0.5, looks_cheap 0. Look = signature details, silhouette, neckline, sleeves, length, color, sheen, polish. Fit = fabric, sheen, size. Rejected if a must-match detail fails or look < 40.`,
+      text: `SCREENER INSTRUCTIONS:\n${SCREENER_PROMPT}\n\nJUDGE INSTRUCTIONS:\n${JUDGE_PROMPT}\n\nSHOPPER'S TASTE RULES:\n${rules}\n\nWEIGHTS: ${JSON.stringify(weights)}\nScoring: match/pass 1, close/partial 0.5, different/fail 0, cannot_see 0.5; fabric target 1, swap 0.6, unknown 0.5, dealbreaker 0; polish as_polished 1, slightly_less 0.5, looks_cheap 0, cannot_tell 0.5; extras none 1, minor 0.5, changes_look 0. Look = signature details, silhouette, neckline, sleeves, length, color, surface, extras, polish. Fit = fabric, surface, size. Rejected: the original's brand, its photo, resale, a price at or above the original, a failed must-match shape (a material only when Fabric must match is on), or look < 40. No price can't be approved.`,
     },
   ];
 
@@ -167,7 +168,7 @@ async function main() {
     const { data: blob } = await db.storage.from("photos").download(s.photo_paths[0]);
     const original = blob ? await small(Buffer.from(await blob.arrayBuffer())) : null;
     const fields = { brand: s.brand, style_name: s.style_name, category: s.category, color: s.color, neckline: s.neckline, hem: s.hem, fabrics: s.fabrics, weave: s.weave, details: s.details, retail_price: s.retail_price };
-    const anchors = ((s.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id);
+    const anchors = ((s.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id).map((a) => ({ ...a, kind: a.kind ?? anchorKind(a.label) }));
     const screen = await runScreener(
       { name: `${s.brand} ${s.style_name}`, fields, visualBrief: s.visual_brief, photo: original },
       pieces.map((p, n) => ({ n: n + 1, title: p.title, brand: "", store: p.store, price: p.price, photo: p.photo })),
@@ -184,7 +185,7 @@ async function main() {
     for (const [n, p] of pieces.entries()) {
       const r = screen.picks.find((x) => x.n === n + 1);
       const c = judged.checklists.get(`c${n + 1}`);
-      const v = c ? score(c, anchors, weights, { fabricMustMatch: s.composition_brief?.must_match === true }) : null;
+      const v = c ? score(c, anchors, weights, { fabricMustMatch: s.composition_brief?.must_match === true, price: p.price, retailPrice: s.retail_price }) : null;
       content.push({
         type: "text",
         text: `${p.label}: ${p.title} · ${p.store} · ${p.price != null ? `$${p.price}` : "price not shown"} · in the search: ${p.was}\nscreener now: ${r ? `${r.score}/5 "${r.note}"` : "no rating"}\njudge now: ${v ? `L${v.look} F${v.fit} ${v.verdict}${v.caveat ? ` (${v.caveat})` : ""}` : "no checklist"}${c ? `\nchecklist: ${JSON.stringify(c)}` : ""}`,

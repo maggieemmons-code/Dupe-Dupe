@@ -87,7 +87,7 @@ async function main() {
     tasteText(taste),
     ``,
     `## Scoring (code)`,
-    `Weights: ${JSON.stringify(tasteWeights(taste))}. Points: match/pass 1, close/partial 0.5, different/fail 0; fabric target 1, swap 0.6, unknown 0.5, dealbreaker 0; polish as_polished 1, slightly_less 0.5, looks_cheap 0; size yes 1, unknown 0.5, no 0. Look = signature details (anchors), silhouette, neckline, sleeves, length, color, sheen, polish. Fit = fabric, sheen, size. Rejected if a must-match detail fails or Look < 40. A different fabric only rejects if I switch "Fabric must match" on.`,
+    `Weights: ${JSON.stringify(tasteWeights(taste))}. Points: match/pass 1, close/partial 0.5, different/fail 0, cannot_see 0.5; fabric target 1, swap 0.6, unknown 0.5, dealbreaker 0; polish as_polished 1, slightly_less 0.5, looks_cheap 0, cannot_tell 0.5; extras none 1, minor 0.5, changes_look 0; size yes 1, unknown 0.5, no 0. Look = signature details (anchors), silhouette, neckline, sleeves, length, color, surface, extras, polish. Fit = fabric, surface, size. Rejected: the original's brand, its photo, resale, a price at or above the original, a failed must-match shape (a material only when "Fabric must match" is on), or Look < 40. No price can't be approved.`,
   ];
 
   let n = 0;

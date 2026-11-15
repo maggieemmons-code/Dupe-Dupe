@@ -1,5 +1,5 @@
 {
-  "about": "Maggie's test set (PLAN.md \u203a Testing): each original with 3 dupes she'd call good. Add the rest here.",
+  "about": "Maggie's test set (PLAN.md \u203a Testing): each original with dupes she'd call good. Items marked holdout were never shown to a calibration review and are never used for tuning: they check that changes generalize.",
   "items": [
     {
       "name": "Mother of All Amaya strapless maxi, cream",
@@ -8,7 +8,8 @@
         "https://clubllondon.us/products/alina-white-bandeau-maxi-dress-with-cape-cl137636110",
         "https://www.selfieleslie.com/products/well-versed-strapless-pleat-bust-maxi-dress-white",
         "https://www.meshki.us/products/hilda-embellished-strapless-maxi-dress-white"
-      ]
+      ],
+      "holdout": false
     },
     {
       "name": "The Sei halter drape bias gown, sapphire",
@@ -17,7 +18,8 @@
         "https://rosier.com/products/lilou-blue-backless-satin-maxi-dress-with-chiffon-drape",
         "https://dessy.com/products/draped-scarf-halter-open-back-stretch-satin-bias-maxi-dress-with-adjustable-straps-6925?variant=48272203448451",
         "https://cultmia.com/en-us/products/zuma-maxi-in-sapphire"
-      ]
+      ],
+      "holdout": false
     },
     {
       "name": "Lamarque Rosabella faux fur blazer, black",
@@ -26,7 +28,8 @@
         "https://www.dollskill.com/products/kenzy-faux-fur-trim-peplum-coat?cf=black",
         "https://shopakira.com/products/azalea-wang-faux-fur-trim-peplum-moto-black",
         "https://www.windsorstore.com/products/belted-up-faux-fur-trim-faux-leather-jacket-06201000109001"
-      ]
+      ],
+      "holdout": false
     },
     {
       "name": "Saint Laurent Fran\u00e7oise boots, smooth leather",
@@ -35,7 +38,8 @@
         "https://femme.la/products/the-soho-boot-nero",
         "https://www.nordstrom.com/s/cassie-knee-high-boot/8991751",
         "https://www2.hm.com/en_us/productpage.1304253001.html"
-      ]
+      ],
+      "holdout": false
     },
     {
       "name": "Mulberry Heritage Bayswater top handle bag",
@@ -45,7 +49,8 @@
         "https://us.vestiairecollective.com/women-bags/handbags/mulberry/black-leather-bayswater-mulberry-handbag-70826432.shtml",
         "https://luckyvintageseattle.com/products/mulberry-bayswater-satchel",
         "https://us.vestiairecollective.com/women-bags/handbags/mulberry/black-leather-bayswater-mulberry-handbag-73531663.shtml"
-      ]
+      ],
+      "holdout": true
     },
     {
       "name": "Max Mara Poldo coat, camel",
@@ -53,7 +58,8 @@
       "good": [
         "https://www.lilysilk.com/us/product/double-faced-wool-blend-robe-coat.html",
         "https://www.theory.com/women/womens-outerwear/wrap-trench-coat-in-double-face-wool-cashmere/beige/196060552181.html"
-      ]
+      ],
+      "holdout": true
     },
     {
       "name": "Holland Cooper full-length Regency coat, soft black",
@@ -63,7 +69,8 @@
         "https://www.aritzia.com/us/en/product/the-constant%E2%84%A2-coat/104728062.html?color=1461",
         "https://shopakira.com/products/scarlett-luxe-trench-coat-in-black",
         "https://www.nordstromrack.com/s/kensie-belt-detail-coat/8474554"
-      ]
+      ],
+      "holdout": true
     },
     {
       "name": "JD June Bodysuits for Bosses",
@@ -71,7 +78,8 @@
       "good": [
         "https://www.dillards.com/p/antonio-melani-greta-long-sleeve-point-collar-poplin-bodysuit/520098224",
         "https://www.allegra-k.com/products/p-166106a"
-      ]
+      ],
+      "holdout": false
     },
     {
       "name": "Bronx and Banco Florentina strapless velvet gown, burgundy",
@@ -80,7 +88,8 @@
       "good": [
         "https://www.revolve.com/nookie-majesty-gown-in-black/dp/NKIE-WD577/",
         "https://www.babyboofashion.com/en-us/products/yulia-maxi-dress-cherry-lacquer"
-      ]
+      ],
+      "holdout": false
     },
     {
       "name": "Bronx and Banco Allegra pearl Veronica maxi dress",
@@ -89,7 +98,8 @@
         "https://www.terrycosta.com/products/sherri-hill-dress-57610",
         "https://www.revolve.com/nookie-lumiere-gown-in-gold/dp/NKIE-WD648/",
         "https://macduggal.com/products/68895-nude"
-      ]
+      ],
+      "holdout": true
     }
   ]
 }

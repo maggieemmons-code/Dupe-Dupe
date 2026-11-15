@@ -17,7 +17,7 @@ const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPAB
 });
 const inngest = new Inngest({ id: "dupe-dupe", isDev: true });
 
-type Item = { name: string; original: string; good: string[] };
+type Item = { name: string; original: string; good: string[]; holdout?: boolean };
 
 const pathKey = (u: string) => {
   try {
@@ -48,7 +48,7 @@ async function main() {
 
   for (const [i, item] of items.entries()) {
     if (pick.length && !pick.includes(i + 1)) continue;
-    console.log(`\n━━ ${i + 1}. ${item.name}`);
+    console.log(`\n━━ ${i + 1}. ${item.name}${item.holdout ? " (holdout: never used for tuning)" : ""}`);
 
     // 1. Find or make the search, with its brief.
     const { data: existing } = await db
