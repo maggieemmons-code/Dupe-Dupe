@@ -42,3 +42,6 @@ next-env.d.ts
 
 # keep the blank template
 !.env.example
+
+# Calibration packets for pasting into Claude (scripts/calibration-packet.ts)
+calibration-packet/
