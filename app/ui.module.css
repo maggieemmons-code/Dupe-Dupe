@@ -1,0 +1,117 @@
+/* Shared pieces from DESIGN.md › Components */
+
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: 20px max(20px, env(safe-area-inset-right, 0px)) 40px max(20px, env(safe-area-inset-left, 0px));
+}
+
+.wordmark {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.34em;
+  padding-left: 0.34em;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.screenTitle {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.iconBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  background: var(--ink);
+  color: var(--on-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.btn {
+  height: 52px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 22px;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  background: var(--switch-off);
+  color: var(--muted-strong);
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  composes: btn;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.btnSmall {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.error {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 10px 14px;
+  margin: 0;
+}

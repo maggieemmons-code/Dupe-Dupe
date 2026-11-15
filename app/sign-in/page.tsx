@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import SignInForm from "./SignInForm";
 import styles from "./sign-in.module.css";
+import ui from "../ui.module.css";
 
 export const metadata = { title: "Sign in · Dupe Dupe" };
 
@@ -11,25 +12,18 @@ async function FormFromLink({ searchParams }: { searchParams: PageProps<"/sign-i
 
 export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   return (
-    <main className={styles.wrap}>
-      <header className={styles.header}>
-        <span className={styles.brand}>DUPE DUPE</span>
-      </header>
-      <section className={styles.tag}>
-        <p className={styles.eyebrow}>Invite only</p>
-        <h1 className={styles.title}>
-          Find the look.
-          <br />
-          <em>New or secondhand.</em>
-        </h1>
+    <main className={styles.page}>
+      <div className={`${ui.wordmark} ${styles.mark}`}>DUPE DUPE</div>
+      <div className={styles.hero}>
+        <h1 className={styles.title}>Replicate the look.</h1>
         <p className={styles.lede}>
-          Enter the email you were invited with and we&apos;ll send you a link. No password
-          needed.
+          Drop in a piece you love. Get new dupes under budget and secondhand matches, judged on
+          look and fit.
         </p>
-        <Suspense fallback={<SignInForm linkProblem={false} />}>
-          <FormFromLink searchParams={searchParams} />
-        </Suspense>
-      </section>
+      </div>
+      <Suspense fallback={<SignInForm linkProblem={false} />}>
+        <FormFromLink searchParams={searchParams} />
+      </Suspense>
     </main>
   );
 }
