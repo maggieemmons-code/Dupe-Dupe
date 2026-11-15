@@ -15,7 +15,7 @@ A private, invite-only web app for Maggie and up to 20 friends. A friend drops i
 
 **Needs before coding:** Maggie's test set (`PLAN.md` › Testing): 10 items across categories and prices, starting with the Sau Lee gown, each with its link and her own short list of 3 matches she'd call good.
 
-**Watch for:** no forced `tool_choice` and no strict mode for the judge's schema (`NOTES.md` › Phase 2). Until enrichment (phase 6), listings rarely state fabric or sizes, so fit scores lean on "unknown" and most results carry a "Fabric not listed" caveat. Keep checklists saved so weights can re-score old searches without calling the judge again.
+**Watch for:** no forced `tool_choice` and no strict mode for the judge's schema (`NOTES.md` › Phase 2). Until enrichment (phase 6), listings rarely state fabric or sizes, so fit scores lean on "unknown" and most results carry a "Fabric not listed" caveat. Keep checklists saved so weights can re-score old searches without calling the judge again. The phase 3 screener is strict (it passed on 5 of 6 Revolve gowns); once the judge does the real filtering, let the screener pass more. Only approved stores show (`lib/stores.ts`, Maggie's call on Nov 15); `scripts/unknown-stores.ts` lists hidden ones for her to approve.
 
 **Phase 3 passed on 2026-11-15:** on the live site, the Sau Lee search showed 9 new dupes with photos (7 with live prices), cards appeared on their own as the search ran, and Shop opened the store's own page. Added at Maggie's request: Amazon as a source, and a store lookup on the first Shop tap for Google Shopping results. Inngest needed a manual app sync after the first deploy. Details in `NOTES.md` › Phase 3.
 
