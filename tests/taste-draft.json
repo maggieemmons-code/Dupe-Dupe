@@ -1,0 +1,172 @@
+{
+  "per_item": [
+    {
+      "item": 1,
+      "her_picks_share": "Her picks are clean, matte, crepe-like columns that hug the hip and flare slightly at the hem (mermaid or trumpet). The bodice is smooth with a crisp straight-across top. Both are affordable and look polished, with a floor-sweeping hem.",
+      "judge_missed": "The judge rewarded pre-owned couture gowns and a rigid jacquard-like column, and it ranked an A-line with no train highly because the anchors passed. It under-weighted the hugging line through the hip and the flare at the hem. It also gave no credit for a hem that sweeps the floor."
+    },
+    {
+      "item": 2,
+      "her_picks_share": "Her picks are liquid, high-shine satin in a saturated blue, cut on the bias with a high mock or cowl neck and a bare back. Both add a soft flowing extra, a chiffon drape or scarf, and the neck is a gathered scarf-like cowl. They are sleek, narrow floor-length columns without a slit.",
+      "judge_missed": "The judge's top pick was the original dress itself (a stock-photo duplicate), and its other picks had thigh slits and one-shoulder scarf necks. It missed that she accepts a gathered mock neck and a different-hued cobalt satin as long as the satin is fluid and the line is uninterrupted. It also missed that a thigh slit or one-shoulder asymmetry moves away from the original's closed, elegant line."
+    },
+    {
+      "item": 3,
+      "her_picks_share": "Her picks are short, nipped-in belted jackets with a big fur collar and fur cuffs, and they read as fashion pieces, not a utility coat. The fur is dense and dark. The waist is cinched, and the proportions are cropped and compact.",
+      "judge_missed": "The judge favored knee-length trenches and coats and a likely real-leather listing, and it marked them 'close' on length. It missed that her picks keep the short, hip-length proportion and a cinched waist. It also under-valued a very low price, and it didn't weigh her tolerance for a fur hem or a shinier shell."
+    },
+    {
+      "item": 4,
+      "her_picks_share": "Her picks are smooth, glossy black leather-look knee-high boots with a sharply pointed toe, a tall slim shaft and a high, slim heel. The shaft is clean and has no slouch. Both are plain and sharp and come at an accessible price.",
+      "judge_missed": "The judge gave top marks to what looks like the original brand's own images and to a boot with a thick squared heel. It missed that she cares about the sharp pointed toe and the slim, high heel more than the exact square toe. It also over-rewarded a leather upper in the listing."
+    },
+    {
+      "item": 7,
+      "her_picks_share": "Her picks are not true dupes of the described coat. One is a plain black wool trench with a silk lining, which fits the soft-black-wool, tailored description, and the other is a fluffy fur jacket. Her only clear signal is a note that the Akira coat's fabric is not great, so she judges the coat by fabric quality and a tailored wool-trench look.",
+      "judge_missed": "The judge pushed full-length, slim, single-breasted coats and rated wool-blend coats on fiber content that was only partly stated. It did not weigh the quality of the wool or a lined, tailored trench look. It couldn't see the back buckle and shouldn't treat that as a pass."
+    },
+    {
+      "item": 8,
+      "her_picks_share": "Her pick is a crisp cotton-poplin point-collar shirt with a darted, tailored fit and button cuffs. It looks like a plain, structured office shirt with a firm hand. It is not a thong bodysuit, and it costs about $99.",
+      "judge_missed": "The judge chose three actual bodysuits at $100 to $425 because they matched the bodysuit anchor. It missed that she values the crisp poplin shirt look and an accessible price more than the bodysuit construction. A shirt that is not a bodysuit is acceptable to her."
+    },
+    {
+      "item": 9,
+      "her_picks_share": "Her pick is a clean, matte column with a straight strapless bodice and a sheer glove or sleeve, and it has no slit. Her note says the Babyboo dress is a different fabric, so she was weighing the plain column silhouette and tonal gloves above velvet. The judge had rejected it.",
+      "judge_missed": "The judge's picks add a high slit, ruching, a mermaid train or a flowing A-line skirt. It over-credited velvet and the gloves on a cheap $25 polyester gown. It missed that her eye puts the clean, unadorned column and its proportions first, and that the deep burgundy colour and the strapless line matter more than the pile."
+    },
+    {
+      "item": 10,
+      "her_picks_share": "Her picks are glamorous, heavily embellished gowns that are fully beaded or embellished in metallic or neutral tones. One is a fully beaded silver strapless with a high slit, and the other is a ruched floral gown. Both look occasion-ready and expensive, and neither has plain fabric.",
+      "judge_missed": "The judge chose gowns in champagne, a cream sequin cutout and a pearl-beaded white column, and it penalised colour and the missing slit. It under-valued the dense, all-over shimmer and the high-slit strapless shape that look like a real occasion gown."
+    }
+  ],
+  "rules": [
+    {
+      "rule": "Prefer a smooth, sleek, uninterrupted line (a clean column or slight trumpet flare that hugs the hip) over A-line, ruched, cut-out or fussy variants of the same neckline.",
+      "kind": "prefer",
+      "evidence": [
+        1,
+        2,
+        9
+      ]
+    },
+    {
+      "rule": "Avoid extra details the original lacks, such as thigh slits, waist cut-outs, front ruching, pleated bust panels and asymmetric one-shoulder necks. They break the closed, elegant line.",
+      "kind": "avoid",
+      "evidence": [
+        1,
+        2,
+        9,
+        10
+      ]
+    },
+    {
+      "rule": "Fabric hand and sheen carry the look: prefer liquid bias satin, matte crepe or a crisp poplin that hangs and lies flat. Avoid thin, bluish or costume-shiny shells.",
+      "kind": "prefer",
+      "evidence": [
+        1,
+        2,
+        3,
+        8
+      ]
+    },
+    {
+      "rule": "Keep the original's proportion and length. A mini-length belted jacket should stay hip-length and cinched, not a knee-length trench.",
+      "kind": "matters_more",
+      "evidence": [
+        3,
+        7
+      ]
+    },
+    {
+      "rule": "Do not let a matching anchor word (velvet, bodysuit, leather) outweigh how the garment looks. A cheap polyester velvet or a real thong bodysuit does not beat a better-looking piece that meets the look differently.",
+      "kind": "matters_less",
+      "evidence": [
+        8,
+        9,
+        3
+      ]
+    },
+    {
+      "rule": "An accessible price is welcome. She picks affordable ($10 to $265) lookalikes, so don't reward expensive couture, pre-owned designer pieces or the original brand's own listings.",
+      "kind": "prefer",
+      "evidence": [
+        1,
+        2,
+        3,
+        4,
+        8
+      ]
+    },
+    {
+      "rule": "Reject stock-photo duplicates of the original and listings from the original brand, since they are not dupes.",
+      "kind": "avoid",
+      "evidence": [
+        2,
+        4,
+        8
+      ]
+    },
+    {
+      "rule": "For statement or occasion pieces, prefer dense all-over embellishment or a rich colour, with a structured strapless shape. Weak pearly colour match matters less than the glamour.",
+      "kind": "prefer",
+      "evidence": [
+        10,
+        9
+      ]
+    },
+    {
+      "rule": "For footwear, the sharp pointed toe, slim high heel and smooth tall shaft matter more than an exact square toe.",
+      "kind": "matters_more",
+      "evidence": [
+        4
+      ]
+    },
+    {
+      "rule": "Fabric quality and a lined, tailored finish are a deal-breaker on outerwear. She dismissed a coat because its fabric was poor, so check the fibre content.",
+      "kind": "matters_more",
+      "evidence": [
+        7,
+        3
+      ]
+    }
+  ],
+  "weight_changes": [
+    {
+      "item": "anchor",
+      "direction": "down",
+      "why": "Anchors passed on picks she didn't choose, and a pick the judge failed on a key anchor still worked for her. Anchor words are weaker than the overall look."
+    },
+    {
+      "item": "silhouette",
+      "direction": "up",
+      "why": "She consistently picks a sleek hip-hugging line with a flare, and she avoids slits, ruching and A-line skirts."
+    },
+    {
+      "item": "fabric",
+      "direction": "up",
+      "why": "She cares about sheen and hand, such as liquid satin, crisp poplin and good wool, and she reacts to poor fabric."
+    },
+    {
+      "item": "length",
+      "direction": "up",
+      "why": "She keeps the original's proportions, such as a short jacket and a floor-length hem, and the judge treated knee-length coats as 'close'."
+    },
+    {
+      "item": "polish",
+      "direction": "up",
+      "why": "She picks a refined, expensive-looking finish and avoids a costume-like look."
+    },
+    {
+      "item": "color",
+      "direction": "down",
+      "why": "She accepts a different tone of the same hue (cobalt for sapphire, silver for pearl) if the surface and shape look right."
+    },
+    {
+      "item": "neckline",
+      "direction": "down",
+      "why": "A gathered mock neck stood in for a cowl in her picks, and the strapless neckline was met with a pleated bust."
+    }
+  ]
+}
