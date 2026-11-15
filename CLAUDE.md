@@ -23,7 +23,7 @@ Update this section when a phase's check passes. Phases and their "Done when" ch
 - Commit to GitHub after each working step, with a plain-English message.
 - At the end of each step, explain what changed in plain words and how to test it (on her phone where it applies).
 - Use the prototype's prompts, look and behavior unless the plan says otherwise.
-- When Maggie has to do something in GitHub, Vercel, Supabase or any other website, give exact click-by-click steps.
+- When Maggie has to do something in GitHub, Vercel, Supabase or any other website, give exact click-by-click steps. Look up the exact page or direct download link yourself and give it to her, name the button or file to expect, and say what to ignore. Her Mac has an Apple chip (arm64).
 - Record decisions and gotchas in `NOTES.md` so later sessions don't repeat mistakes.
 
 ## Stack
