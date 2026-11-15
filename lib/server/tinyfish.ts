@@ -2,11 +2,11 @@ import "server-only";
 
 const FETCH_URL = "https://api.fetch.tinyfish.ai";
 
-export type FetchedPage = { url: string; title: string; text: string };
+export type FetchedPage = { url: string; title: string; text: string; images: string[] };
 
 /**
- * Reads web pages as markdown with TinyFish Fetch (free up to 1,000 URLs a day).
- * Returns the pages that loaded and the URLs that failed.
+ * Reads web pages as markdown with TinyFish Fetch (free up to 1,000 URLs a day),
+ * plus the image links on each page. Returns the pages that loaded and the URLs that failed.
  */
 export async function fetchPages(urls: string[], purpose: string) {
   const key = process.env.TINYFISH_API_KEY;
@@ -19,6 +19,7 @@ export async function fetchPages(urls: string[], purpose: string) {
       urls: urls.slice(0, 10),
       format: "markdown",
       purpose,
+      image_links: true,
       per_url_timeout_ms: 45000,
     }),
     signal: AbortSignal.timeout(60000),
@@ -29,13 +30,18 @@ export async function fetchPages(urls: string[], purpose: string) {
   }
 
   const data = (await res.json()) as {
-    results?: { url: string; final_url?: string; title?: string; text?: unknown }[];
+    results?: { url: string; final_url?: string; title?: string; text?: unknown; image_links?: unknown }[];
     errors?: { url: string; error?: string }[];
   };
 
   const pages: FetchedPage[] = (data.results ?? [])
     .filter((r) => typeof r.text === "string" && r.text.trim())
-    .map((r) => ({ url: r.final_url || r.url, title: r.title ?? "", text: String(r.text) }));
+    .map((r) => ({
+      url: r.final_url || r.url,
+      title: r.title ?? "",
+      text: String(r.text),
+      images: Array.isArray(r.image_links) ? r.image_links.filter((u): u is string => typeof u === "string") : [],
+    }));
   const failed = (data.errors ?? []).map((e) => e.url);
 
   return { pages, failed };

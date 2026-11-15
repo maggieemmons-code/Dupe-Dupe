@@ -71,7 +71,7 @@ export async function startSearch(_prev: StartState, formData: FormData): Promis
   if (photos.length) {
     try {
       const paths: string[] = [];
-      for (const [i, file] of photos.entries()) paths.push(await savePhoto(session, search.id, i, file));
+      for (const [i, file] of photos.entries()) paths.push(await savePhoto(session, search.id, String(i + 1), file));
       await session.supabase.from("searches").update({ photo_paths: paths }).eq("id", search.id);
     } catch (e) {
       console.error(e);

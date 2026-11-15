@@ -10,15 +10,15 @@ const MAX_SIDE = 1024;
  * strips its metadata (including any GPS location), then saves it to the
  * friend's private folder: photos/<user_id>/<search_id>/<n>.jpg
  */
-export async function savePhoto(session: Session, searchId: string, index: number, file: Blob) {
-  const input = Buffer.from(await file.arrayBuffer());
+export async function savePhoto(session: Session, searchId: string, name: string, file: Blob | Buffer) {
+  const input = Buffer.isBuffer(file) ? file : Buffer.from(await file.arrayBuffer());
   const jpeg = await sharp(input)
     .rotate()
     .resize({ width: MAX_SIDE, height: MAX_SIDE, fit: "inside", withoutEnlargement: true })
     .jpeg({ quality: 82, mozjpeg: true })
     .toBuffer();
 
-  const path = `${session.userId}/${searchId}/${index + 1}.jpg`;
+  const path = `${session.userId}/${searchId}/${name}.jpg`;
   const { error } = await session.supabase.storage
     .from("photos")
     .upload(path, jpeg, { contentType: "image/jpeg", upsert: true });

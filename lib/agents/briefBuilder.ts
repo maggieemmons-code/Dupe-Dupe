@@ -1,17 +1,21 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-
-/*
- * Brief builder (PLAN.md › Appendix › Brief builder).
- * Schema and system prompt are copied from the plan as written, with one
- * addition for DESIGN.md › Prefill on Review: a `sources` map that says where
- * each item field came from (link, photo, typed or guess).
- */
-
 import {
   CATEGORIES,
-  FIT_STYLES,
+  COLOR_NAMES,
+  FIBERS,
+  WEAVES,
   STRETCH,
+  SIZING,
+  FIT_STYLES,
+  NECKLINES,
+  SLEEVES,
+  LENGTHS,
+  CLOSURES,
+  CARE,
+  DETAILS,
+  SINGLE_CHOICE,
+  MULTI_CHOICE,
   ITEM_FIELDS,
   GUESSABLE,
   type ItemField,
@@ -21,25 +25,40 @@ import {
 
 export { CATEGORIES, ITEM_FIELDS, type ItemField, type Anchor };
 
+/*
+ * Brief builder (PLAN.md › Appendix › Brief builder).
+ * The visual brief, composition brief, search queries and prompt come from the
+ * plan. Changes since, all recorded in NOTES.md:
+ * - every item field a friend can change is a pick from a list in lib/fields.ts
+ *   (Maggie's call: no free typing), so the item schema uses those lists;
+ * - a `sources` list says where each field came from, for Review's tags;
+ * - stretch may be inferred from the fabric, and product photos from the link are read.
+ */
+
+export type BriefItem = {
+  brand: string;
+  style_name: string;
+  category: string;
+  color: string;
+  color_name: string;
+  composition: string;
+  fabrics: string[];
+  weave: string;
+  care: string[];
+  fit_style: string[];
+  stretch: string[];
+  sizing: string;
+  neckline: string;
+  sleeve: string;
+  hem: string;
+  closure: string;
+  details: string[];
+  retail_price: number | null;
+  fit_notes: string;
+};
+
 export type BriefResult = {
-  item: {
-    brand: string;
-    style_name: string;
-    category: string;
-    color: string;
-    composition: string;
-    fabrics: string[];
-    care: string[];
-    fit_style: string[];
-    stretch: string[];
-    neckline: string;
-    sleeve: string;
-    hem: string;
-    closure: string;
-    features: string;
-    retail_price: number | null;
-    fit_notes: string;
-  };
+  item: BriefItem;
   sources: Partial<Record<ItemField, { from: Source; note?: string }>>;
   visual_brief: {
     silhouette: Record<string, string>;
@@ -64,42 +83,51 @@ export type BriefResult = {
   };
 };
 
+/** What the model returns: like BriefResult, but sources as a list. */
+type RawBrief = Omit<BriefResult, "sources"> & {
+  sources: { field: ItemField; from: Source; note?: string }[];
+};
+
+const one = (list: readonly string[]) => ({ enum: [...list, ""] });
+const many = (list: readonly string[]) => ({ type: "array", items: { enum: [...list] } });
+
 /*
  * The plan's submit_brief tool. Claude Sonnet 5.5 doesn't accept a forced tool
  * call (tool_choice "tool"), and this schema is too large for strict mode, so
  * the prompt asks for the call, tool_choice stays "auto", and the code checks
  * the answer and asks once more if no call came back (Claude API docs).
  */
-/** What the model returns: like BriefResult, but sources as a list. */
-type RawBrief = Omit<BriefResult, "sources"> & {
-  sources: { field: ItemField; from: Source; note: string }[];
-};
-
-const BRIEF_SCHEMA_DRAFT = {
+export const SUBMIT_BRIEF_TOOL: Anthropic.Tool = {
+  name: "submit_brief",
+  description: "Submit the search brief for this garment.",
+  input_schema: {
     type: "object",
     required: ["item", "sources", "visual_brief", "composition_brief", "search_queries"],
     properties: {
       item: {
         type: "object",
-        description: "Plain fields shown to the friend. Empty string or [] when unknown.",
+        description: "Plain fields shown to the friend. Empty string, [] or null when unknown. Pick-list fields use only the listed values.",
         properties: {
           brand: { type: "string" },
           style_name: { type: "string" },
-          category: { enum: [...CATEGORIES, ""] },
-          color: { type: "string" },
+          category: one(CATEGORIES),
+          color: { ...one(COLOR_NAMES), description: "Color family" },
+          color_name: { type: "string", description: "The store's own name for the shade, exactly as written, e.g. Red Date" },
           composition: {
             type: "string",
             description: "Exact text from the source, e.g. 100% Polyester. Never estimated.",
           },
-          fabrics: { type: "array", items: { type: "string" } },
-          care: { type: "array", items: { type: "string" } },
-          fit_style: { type: "array", items: { enum: [...FIT_STYLES] } },
-          stretch: { type: "array", items: { enum: [...STRETCH] } },
-          neckline: { type: "string" },
-          sleeve: { type: "string" },
-          hem: { type: "string" },
-          closure: { type: "string" },
-          features: { type: "string" },
+          fabrics: { ...many(FIBERS), description: "Fibers present" },
+          weave: { ...one(WEAVES), description: "Weave or finish of the main fabric" },
+          care: many(CARE),
+          fit_style: many(FIT_STYLES),
+          stretch: { ...many(STRETCH), maxItems: 1 },
+          sizing: { ...one(SIZING), description: "Only from what the listing says about sizing" },
+          neckline: one(NECKLINES),
+          sleeve: one(SLEEVES),
+          hem: { ...one(LENGTHS), description: "Length" },
+          closure: one(CLOSURES),
+          details: { ...many(DETAILS), description: "Construction details present" },
           retail_price: { type: ["number", "null"] },
           fit_notes: { type: "string", description: "Model size, true-to-size notes, as stated." },
         },
@@ -109,10 +137,11 @@ const BRIEF_SCHEMA_DRAFT = {
         description: "Where each filled item field came from: one entry per non-empty item field.",
         items: {
           type: "object",
+          required: ["field", "from"],
           properties: {
             field: { enum: [...ITEM_FIELDS] },
             from: { enum: ["link", "photo", "typed", "guess"] },
-            note: { type: "string", description: "For a guess: the reason, under 8 words. Otherwise empty." },
+            note: { type: "string", description: "For a guess: the reason, under 8 words" },
           },
         },
       },
@@ -192,12 +221,7 @@ const BRIEF_SCHEMA_DRAFT = {
         },
       },
     },
-};
-
-export const SUBMIT_BRIEF_TOOL: Anthropic.Tool = {
-  name: "submit_brief",
-  description: "Submit the search brief for this garment.",
-  input_schema: BRIEF_SCHEMA_DRAFT as Anthropic.Tool.InputSchema,
+  },
 };
 
 const SYSTEM_PROMPT = `You write the search brief for Dupe Dupe, which finds affordable dupes and secondhand matches for a higher-end garment.
@@ -207,7 +231,11 @@ Read every source you are given: listing text, the shopper's notes, photos and, 
 Rules for item fields:
 - Report only what a source states or a photo clearly shows. Use "" or [] when unknown.
 - Copy composition exactly as written. Never estimate a fiber percentage.
-- Use only the allowed values for category, fit_style and stretch.
+- Use only the allowed values for every pick-list field. Choose the closest listed value; if none fits, leave it empty.
+- color is the color family; color_name is the store's own name for the shade, copied as written.
+- fabrics lists the fibers of the shell (the main fabric), not the lining.
+- Product photos show the garment itself. Read neckline, sleeve, length (hem), closure, color, weave and construction details from them when the listing text doesn't say.
+- If the listing doesn't state stretch, infer it from the shell fabric: woven jacquard, brocade, taffeta, satin, crepe, organza, tweed or denim with no elastane in the shell is "None"; knit, jersey or elastane in the shell is "Slight" or more. Mark it as a guess with the reason. Lining fabric doesn't count.
 
 Rules for the visual brief:
 - Anchors are the 2 or 3 details that make this piece recognizable. A dupe that misses them is a generic garment, not this one. Prefer specific construction ("fold-over off-shoulder band", "boned bodice") over general traits ("red", "long").
@@ -228,7 +256,7 @@ Rules for search queries:
 
 Rules for sources:
 - For every item field you fill, add an entry to sources naming the field: "link" if the listing text states it, "photo" if a photo clearly shows it, "typed" if the shopper's notes say it.
-- You may fill a field as "guess" only for stretch, fit_style, hem, sleeve, closure and care, only when the evidence points one way, and with the reason in note. Never guess brand, style_name, category, color, composition, fabrics, neckline, features, retail_price or fit_notes; leave them empty instead.
+- You may fill a field as "guess" only for stretch, fit_style, hem, sleeve, closure and care, only when the evidence points one way, and with the reason in note. Never guess any other field; leave it empty instead.
 
 Apply the shopper's taste rules below when choosing anchors and dealbreakers. A rule marked dealbreaker becomes a dealbreaker anchor or fabric where it applies.
 
@@ -241,9 +269,12 @@ export type BriefInput = {
   pages: { url: string; title: string; text: string }[];
   unreadLinks: string[];
   notes: string;
+  /** The shopper's own photos. */
   photos: { data: string; mediaType: "image/jpeg" }[];
+  /** Product photos taken from the listing page. */
+  productPhotos?: { data: string; mediaType: "image/jpeg" }[];
   tasteRules: string;
-  editedFields?: Partial<BriefResult["item"]>;
+  editedFields?: Partial<BriefItem>;
 };
 
 export async function runBriefBuilder(input: BriefInput) {
@@ -252,6 +283,7 @@ export async function runBriefBuilder(input: BriefInput) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
 
   const client = new Anthropic();
+  const productPhotos = input.productPhotos ?? [];
 
   const parts: string[] = [];
   for (const p of input.pages) {
@@ -266,17 +298,19 @@ export async function runBriefBuilder(input: BriefInput) {
   if (input.editedFields && Object.keys(input.editedFields).length) {
     parts.push(`SHOPPER'S EDITED FIELDS (final):\n${JSON.stringify(input.editedFields)}`);
   }
-  if (input.photos.length) {
-    parts.push(`PHOTOS: ${input.photos.length} attached, all of the original garment.`);
-  }
+  const photoLines = [];
+  if (input.photos.length) photoLines.push(`${input.photos.length} from the shopper`);
+  if (productPhotos.length) photoLines.push(`${productPhotos.length} product photo(s) from the listing page`);
+  if (photoLines.length) parts.push(`PHOTOS ATTACHED, all of the original garment: ${photoLines.join(", ")}, in that order.`);
 
-  const content: Anthropic.ContentBlockParam[] = [
-    ...input.photos.map(
-      (p): Anthropic.ImageBlockParam => ({
-        type: "image",
-        source: { type: "base64", media_type: p.mediaType, data: p.data },
-      }),
-    ),
+  const image = (p: { data: string; mediaType: "image/jpeg" }): Anthropic.Beta.BetaImageBlockParam => ({
+    type: "image",
+    source: { type: "base64", media_type: p.mediaType, data: p.data },
+  });
+
+  const content: Anthropic.Beta.BetaContentBlockParam[] = [
+    ...input.photos.map(image),
+    ...productPhotos.map(image),
     { type: "text", text: parts.join("\n\n") || "(no sources)" },
   ];
 
@@ -292,13 +326,13 @@ export async function runBriefBuilder(input: BriefInput) {
     messages: [{ role: "user" as const, content }],
   };
 
-  let usage = { input_tokens: 0, output_tokens: 0, model };
+  let usage = { input_tokens: 0, output_tokens: 0, model, photos: input.photos.length + productPhotos.length };
   for (let attempt = 1; attempt <= 2; attempt++) {
     const response = await client.beta.messages.create(request);
     usage = {
+      ...usage,
       input_tokens: usage.input_tokens + response.usage.input_tokens,
       output_tokens: usage.output_tokens + response.usage.output_tokens,
-      model,
     };
     if (response.stop_reason === "refusal") throw new Error("The brief builder declined this request");
 
@@ -316,16 +350,29 @@ export async function runBriefBuilder(input: BriefInput) {
 
 /** Code-side guardrails on what the agent returned. */
 function cleanBrief(raw: RawBrief): BriefResult {
-  const item = { ...emptyItem(), ...(raw.item ?? {}) };
+  const item: BriefItem = { ...emptyItem(), ...(raw.item ?? {}) };
+
+  // Pick-list fields keep only listed values.
+  for (const [field, list] of Object.entries(SINGLE_CHOICE) as [keyof typeof SINGLE_CHOICE, readonly string[]][]) {
+    if (field === "stretch") continue;
+    const v = (item as Record<string, unknown>)[field];
+    (item as Record<string, unknown>)[field] = typeof v === "string" && list.includes(v) ? v : "";
+  }
+  item.stretch = (item.stretch ?? []).filter((v) => (STRETCH as readonly string[]).includes(v)).slice(0, 1);
+  for (const [field, list] of Object.entries(MULTI_CHOICE) as [keyof typeof MULTI_CHOICE, readonly string[]][]) {
+    const v = item[field];
+    item[field] = Array.isArray(v) ? [...new Set(v.filter((x) => list.includes(x)))] : [];
+  }
+
   const stated = new Map<string, { from: Source; note?: string }>();
   for (const s of raw.sources ?? []) if (s?.field) stated.set(s.field, { from: s.from, note: s.note || undefined });
-  const sources: BriefResult["sources"] = {};
 
+  const sources: BriefResult["sources"] = {};
   for (const field of ITEM_FIELDS) {
     const value = item[field];
     const filled = Array.isArray(value) ? value.length > 0 : value !== null && value !== "";
-    const src = stated.get(field);
     if (!filled) continue;
+    const src = stated.get(field);
 
     if (!src) {
       // No stated source: keep it, but never show it as if it were read from a source.
@@ -340,10 +387,6 @@ function cleanBrief(raw: RawBrief): BriefResult {
     sources[field] = { from: src.from, note: src.note };
   }
 
-  item.category = (CATEGORIES as readonly string[]).includes(item.category) ? item.category : "";
-  item.fit_style = (item.fit_style ?? []).filter((v) => (FIT_STYLES as readonly string[]).includes(v));
-  item.stretch = (item.stretch ?? []).filter((v) => (STRETCH as readonly string[]).includes(v));
-
   const anchors = (raw.visual_brief?.anchors ?? [])
     .filter((a) => a && a.label)
     .slice(0, 3)
@@ -357,22 +400,25 @@ function cleanBrief(raw: RawBrief): BriefResult {
   };
 }
 
-function emptyItem(): BriefResult["item"] {
+function emptyItem(): BriefItem {
   return {
     brand: "",
     style_name: "",
     category: "",
     color: "",
+    color_name: "",
     composition: "",
     fabrics: [],
+    weave: "",
     care: [],
     fit_style: [],
     stretch: [],
+    sizing: "",
     neckline: "",
     sleeve: "",
     hem: "",
     closure: "",
-    features: "",
+    details: [],
     retail_price: null,
     fit_notes: "",
   };

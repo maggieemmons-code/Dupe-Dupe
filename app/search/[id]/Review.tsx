@@ -3,77 +3,111 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { CATEGORIES, type Anchor, type ItemField } from "@/lib/fields";
+import {
+  CATEGORIES,
+  COLORS,
+  COLOR_NAMES,
+  FIBERS,
+  WEAVES,
+  STRETCH,
+  SIZING,
+  FIT_STYLES,
+  NECKLINES,
+  SLEEVES,
+  LENGTHS,
+  CLOSURES,
+  CARE,
+  DETAILS,
+  type Anchor,
+  type ItemField,
+} from "@/lib/fields";
 import { SIZES, searchName, type SearchRow } from "@/lib/searches";
 import { buildBrief, retryBrief, saveAnchors, saveChoices, saveFields, confirmSearch } from "./actions";
 import styles from "./review.module.css";
 import ui from "../../ui.module.css";
 
-/* ---------- field rows ---------- */
+/* ---------- field rows: every changeable field is a pick from a list ---------- */
 
-type Row = { field: ItemField; label: string; missingNote: string };
+type Row =
+  | { field: ItemField; label: string; kind: "single"; list: readonly string[]; missing: string }
+  | { field: ItemField; label: string; kind: "multi"; list: readonly string[]; missing: string }
+  | { field: ItemField; label: string; kind: "text" | "price" | "readonly"; missing: string };
 
 const ROWS: Row[] = [
-  { field: "brand", label: "Brand", missingNote: "Add it to find this exact piece" },
-  { field: "style_name", label: "Item", missingNote: "Add the style name if you know it" },
-  { field: "category", label: "Category", missingNote: "Pick one to narrow the search" },
-  { field: "color", label: "Color", missingNote: "Add it for closer matches" },
-  { field: "composition", label: "Fabric", missingNote: "Add it so we can match fabric" },
-  { field: "fit_notes", label: "Fit", missingNote: "Add how it fits if you know" },
-  { field: "stretch", label: "Stretch", missingNote: "Add it for a closer fit match" },
-  { field: "neckline", label: "Neckline", missingNote: "Add it for closer matches" },
-  { field: "sleeve", label: "Sleeves", missingNote: "Add it for closer matches" },
-  { field: "hem", label: "Length", missingNote: "Add it for closer matches" },
-  { field: "closure", label: "Closure", missingNote: "Optional" },
-  { field: "features", label: "Details", missingNote: "Optional" },
-  { field: "retail_price", label: "Retail price", missingNote: "Add it to compare savings" },
+  { field: "brand", label: "Brand", kind: "text", missing: "Add it to find this exact piece" },
+  { field: "style_name", label: "Item", kind: "text", missing: "Add the style name if you know it" },
+  { field: "category", label: "Category", kind: "single", list: CATEGORIES, missing: "Pick one to narrow the search" },
+  { field: "color", label: "Color", kind: "single", list: COLOR_NAMES, missing: "Pick one for closer matches" },
+  { field: "fabrics", label: "Fibers", kind: "multi", list: FIBERS, missing: "Pick them so we can match fabric" },
+  { field: "weave", label: "Weave", kind: "single", list: WEAVES, missing: "Pick one so we can match fabric" },
+  { field: "composition", label: "Fabric tag", kind: "readonly", missing: "Not on the listing" },
+  { field: "stretch", label: "Stretch", kind: "single", list: STRETCH, missing: "Pick one for a closer fit match" },
+  { field: "sizing", label: "Sizing", kind: "single", list: SIZING, missing: "Pick one if you know it" },
+  { field: "fit_style", label: "Fit", kind: "multi", list: FIT_STYLES, missing: "Pick how it sits on the body" },
+  { field: "neckline", label: "Neckline", kind: "single", list: NECKLINES, missing: "Pick one for closer matches" },
+  { field: "sleeve", label: "Sleeves", kind: "single", list: SLEEVES, missing: "Pick one for closer matches" },
+  { field: "hem", label: "Length", kind: "single", list: LENGTHS, missing: "Pick one for closer matches" },
+  { field: "closure", label: "Closure", kind: "single", list: CLOSURES, missing: "Optional" },
+  { field: "details", label: "Details", kind: "multi", list: DETAILS, missing: "Optional" },
+  { field: "care", label: "Care", kind: "multi", list: CARE, missing: "Optional" },
+  { field: "retail_price", label: "Retail price", kind: "price", missing: "Add it to compare savings" },
 ];
 
 const TAGS: Record<string, { tag: string; note: string; kind: "plain" | "guess" }> = {
   link: { tag: "Link", note: "Read from the product page", kind: "plain" },
-  photo: { tag: "Photo", note: "Seen in your photo", kind: "plain" },
+  photo: { tag: "Photo", note: "Seen in a photo", kind: "plain" },
   typed: { tag: "Typed", note: "From what you typed", kind: "plain" },
   profile: { tag: "Profile", note: "From your profile", kind: "plain" },
   edited: { tag: "Edited", note: "You changed this", kind: "plain" },
   guess: { tag: "Guess", note: "Please check", kind: "guess" },
 };
 
-function displayValue(s: SearchRow, field: ItemField): string {
-  switch (field) {
-    case "composition": {
-      const extra = s.fabrics.filter((f) => !s.composition.toLowerCase().includes(f.toLowerCase()));
-      return [s.composition, extra.join(", ")].filter(Boolean).join(" · ");
-    }
-    case "fit_notes":
-      return s.fit_notes || s.fit_style.join(", ");
-    case "stretch":
-      return s.stretch.length ? (s.stretch.join(", ") === "None" ? "No stretch" : s.stretch.join(", ")) : "";
-    case "retail_price":
-      return s.retail_price != null ? `$${s.retail_price}` : "";
-    default: {
-      const v = s[field];
-      return Array.isArray(v) ? v.join(", ") : String(v ?? "");
-    }
-  }
+type Values = Record<ItemField, string | string[] | number | null>;
+
+function initialValues(s: SearchRow): Values {
+  return {
+    brand: s.brand,
+    style_name: s.style_name,
+    category: s.category,
+    color: s.color,
+    color_name: s.color_name,
+    composition: s.composition,
+    fabrics: s.fabrics,
+    weave: s.weave,
+    care: s.care,
+    fit_style: s.fit_style,
+    stretch: s.stretch[0] ?? "",
+    sizing: s.sizing,
+    neckline: s.neckline,
+    sleeve: s.sleeve,
+    hem: s.hem,
+    closure: s.closure,
+    details: s.details,
+    retail_price: s.retail_price,
+    fit_notes: s.fit_notes,
+  };
 }
 
-function editValue(s: SearchRow, field: ItemField): string {
-  const v = s[field];
-  if (Array.isArray(v)) return v.join(", ");
-  return v == null ? "" : String(v);
+function shown(row: Row, v: Values): string {
+  const value = v[row.field];
+  if (row.field === "stretch") return value === "None" ? "No stretch" : String(value ?? "");
+  if (row.field === "retail_price") return value != null && value !== "" ? `$${value}` : "";
+  return Array.isArray(value) ? value.join(", ") : String(value ?? "");
 }
 
-function sourceFor(s: SearchRow, field: ItemField) {
-  if (field === "composition") return s.field_sources.composition ?? s.field_sources.fabrics;
-  if (field === "fit_notes") return s.field_sources.fit_notes ?? s.field_sources.fit_style;
-  return s.field_sources[field];
-}
+const colorHex = (name: string) => COLORS.find((c) => c.name === name)?.hex;
 
 /* ---------- small pieces ---------- */
 
 const Pencil = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M4 20h4L19 9l-4-4L4 16z" />
+  </svg>
+);
+
+const Chevron = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M6 9l6 6 6-6" />
   </svg>
 );
 
@@ -84,7 +118,13 @@ const GownIcon = ({ size = 60 }: { size?: number }) => (
   </svg>
 );
 
-function Original({ search, photoUrl, subtitle }: { search: SearchRow; photoUrl: string | null; subtitle: string }) {
+function ColorDot({ name }: { name: string }) {
+  const hex = colorHex(name);
+  if (!hex) return null;
+  return <span className={styles.dot} style={{ background: hex }} aria-hidden="true" />;
+}
+
+function Original({ search, photoUrl, subtitle, color }: { search: SearchRow; photoUrl: string | null; subtitle: string; color?: string }) {
   return (
     <div className={styles.original}>
       <div className={styles.originalTile}>
@@ -99,7 +139,12 @@ function Original({ search, photoUrl, subtitle }: { search: SearchRow; photoUrl:
         <span className={styles.eyebrowSmall}>Your original</span>
         <span className={styles.originalName}>{searchName(search)}</span>
         <span className={styles.meta}>{subtitle}</span>
-        {search.color && <span className={styles.meta}>{search.color}</span>}
+        {color && (
+          <span className={styles.colorLine}>
+            <ColorDot name={color} />
+            {search.color_name || color}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -108,9 +153,68 @@ function Original({ search, photoUrl, subtitle }: { search: SearchRow; photoUrl:
 function sourcesLine(s: SearchRow) {
   const bits = [];
   if (s.source_links.length) bits.push("your link");
-  if (s.photo_paths.length) bits.push(s.photo_paths.length > 1 ? "your photos" : "your photo");
+  if (s.photo_paths.length) bits.push(s.photo_paths.some((p) => p.includes("/link-")) ? "the product photos" : "your photos");
   if (s.pasted_text) bits.push("what you typed");
   return bits.length ? `Read from ${bits.join(", ").replace(/, ([^,]*)$/, " and $1")}` : "";
+}
+
+/** Bottom sheet with checkable rows, for pick-any fields. */
+function PickSheet({
+  title,
+  list,
+  value,
+  onDone,
+  onClose,
+}: {
+  title: string;
+  list: readonly string[];
+  value: string[];
+  onDone: (v: string[]) => void;
+  onClose: () => void;
+}) {
+  const [picked, setPicked] = useState<string[]>(value);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className={styles.scrim} onClick={onClose}>
+      <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.sheetHandle} aria-hidden="true" />
+        <div className={styles.sheetHead}>
+          <span className={styles.sheetTitle}>{title}</span>
+          <span className={styles.sheetHint}>Pick any</span>
+        </div>
+        <div className={styles.sheetList}>
+          {list.map((opt) => {
+            const on = picked.includes(opt);
+            return (
+              <label key={opt} className={styles.sheetRow}>
+                <span>{opt}</span>
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => setPicked(on ? picked.filter((x) => x !== opt) : [...picked, opt])}
+                />
+                <span className={on ? styles.checkOn : styles.check} aria-hidden="true">
+                  {on && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12l5 5 9-10" />
+                    </svg>
+                  )}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        <button className={ui.btn} onClick={() => onDone(list.filter((x) => picked.includes(x)))}>
+          Done
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /* ---------- the screen ---------- */
@@ -156,8 +260,8 @@ export default function Review({ search, photoUrl }: { search: SearchRow; photoU
         <div>
           <h1 className={styles.title}>Reading your piece…</h1>
           <p className={styles.lede}>
-            We&apos;re reading the fabric, fit and details{search.source_links.length ? " from your link" : ""}. This
-            usually takes 15 to 30 seconds.
+            We&apos;re reading the fabric, fit and details{search.source_links.length ? " from your link and its photos" : ""}. This
+            usually takes 20 to 40 seconds.
           </p>
         </div>
         <Original search={search} photoUrl={photoUrl} subtitle="Reading now" />
@@ -196,45 +300,38 @@ export default function Review({ search, photoUrl }: { search: SearchRow; photoU
 }
 
 function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl: string | null; header: React.ReactNode }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
-  /* field editing */
-  const [editing, setEditing] = useState<Set<ItemField>>(new Set());
-  const [drafts, setDrafts] = useState<Partial<Record<ItemField, string>>>({});
-  const detailsRef = useRef<HTMLDivElement>(null);
+  /* field values and their sources (kept locally so saves show at once) */
+  const [values, setValues] = useState<Values>(() => initialValues(search));
+  const [sources, setSources] = useState(search.field_sources as Record<string, { from: string; note?: string }>);
+  const [stale, setStale] = useState(search.brief_stale);
+  const [textEdit, setTextEdit] = useState<{ field: ItemField; draft: string } | null>(null);
+  const [sheet, setSheet] = useState<Extract<Row, { kind: "multi" }> | null>(null);
+  const detailsRef = useRef<HTMLElement>(null);
 
-  function openEdit(fields: ItemField[]) {
-    setEditing((prev) => new Set([...prev, ...fields]));
-    setDrafts((prev) => {
-      const next = { ...prev };
-      for (const f of fields) if (next[f] === undefined) next[f] = editValue(search, f);
+  function saveField(field: ItemField, value: string | string[] | number | null) {
+    setValues((v) => ({ ...v, [field]: value }));
+    const filled = Array.isArray(value) ? value.length > 0 : value !== null && value !== "";
+    setSources((s) => {
+      const next = { ...s };
+      if (filled) next[field] = { from: "edited" };
+      else delete next[field];
       return next;
     });
-  }
-  function cancelEdit() {
-    setEditing(new Set());
-    setDrafts({});
-  }
-  function saveEdits() {
-    const changed: Partial<Record<ItemField, string>> = {};
-    for (const f of editing) if ((drafts[f] ?? "") !== editValue(search, f)) changed[f] = drafts[f] ?? "";
-    if (!Object.keys(changed).length) return cancelEdit();
+    if (search.brief_built_at) setStale(true);
     startTransition(async () => {
-      const r = await saveFields(search.id, changed);
-      if (!r.ok) return setError(r.error);
-      setError("");
-      cancelEdit();
-      router.refresh();
+      const r = await saveFields(search.id, { [field]: value });
+      if (!r.ok) setError(r.error);
+      else setError("");
     });
   }
 
   /* signature details */
   const [anchors, setAnchors] = useState<Anchor[]>(search.visual_brief?.anchors ?? []);
   const [sigOpen, setSigOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState("");
+  const [custom, setCustom] = useState<string | null>(null);
 
   function updateAnchors(next: Anchor[]) {
     setAnchors(next);
@@ -243,18 +340,17 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
       if (!r.ok) setError(r.error);
     });
   }
-  function commitDraft() {
-    const v = draft.trim();
+  function addAnchor(label: string) {
+    const v = label.trim();
     if (v && !anchors.some((a) => a.label.toLowerCase() === v.toLowerCase())) {
       updateAnchors([...anchors, { id: `custom-${Date.now()}`, label: v, dealbreaker: false }]);
     }
-    setAdding(false);
-    setDraft("");
   }
   const mustCount = anchors.filter((a) => a.dealbreaker).length;
   const sigSummary = anchors.length
     ? `${anchors.length} found · ${mustCount} must match · ${anchors.map((a) => a.label).join(", ")}`
     : "None yet · Add one if something matters";
+  const addable = DETAILS.filter((d) => !anchors.some((a) => a.label.toLowerCase() === d.toLowerCase()));
 
   /* choices */
   const [view, setView] = useState(search.view);
@@ -269,10 +365,8 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
     });
   }
 
-  /* confirm */
   const [confirmed, setConfirmed] = useState(search.status === "queued");
-
-  const guesses = ROWS.filter((r) => sourceFor(search, r.field)?.from === "guess" && displayValue(search, r.field)).length;
+  const guesses = ROWS.filter((r) => sources[r.field]?.from === "guess" && shown(r, values)).length;
 
   return (
     <main className={`${ui.page} ${styles.page} ${styles.withBar}`}>
@@ -281,104 +375,12 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
       <div>
         <h1 className={styles.title}>Here&apos;s what we found.</h1>
         <p className={styles.lede}>
-          We filled in everything we could from your {search.source_links.length ? "link, " : ""}
-          {search.photo_paths.length ? "photos, " : ""}notes and profile.{" "}
+          We filled in everything we could. Tap any detail to change it.{" "}
           {guesses ? `Check the ${guesses === 1 ? "one" : guesses} marked Guess.` : "Nothing is a guess."}
         </p>
       </div>
 
-      <Original search={search} photoUrl={photoUrl} subtitle={sourcesLine(search)} />
-
-      {search.brief_stale && (
-        <p className={ui.error}>You changed details since we read this piece. We&apos;ll update the search brief when it runs.</p>
-      )}
-
-      {/* The details */}
-      <section ref={detailsRef} className={styles.details} aria-labelledby="details-h">
-        <div className={styles.sectionHead}>
-          <h2 id="details-h" className={ui.eyebrow}>
-            The details
-          </h2>
-          {editing.size < ROWS.length && (
-            <button className={styles.textBtn} onClick={() => openEdit(ROWS.map((r) => r.field))}>
-              Edit all
-            </button>
-          )}
-        </div>
-
-        {ROWS.map((row) => {
-          const value = displayValue(search, row.field);
-          const src = sourceFor(search, row.field);
-          const tag = value ? TAGS[src?.from ?? ""] : undefined;
-          const isEditing = editing.has(row.field);
-          return (
-            <div key={row.field} className={styles.fieldRow}>
-              <span className={styles.fieldLabel}>{row.label}</span>
-              {isEditing ? (
-                <span className={styles.fieldEdit}>
-                  {row.field === "category" ? (
-                    <select
-                      aria-label={row.label}
-                      value={drafts[row.field] ?? ""}
-                      onChange={(e) => setDrafts({ ...drafts, [row.field]: e.target.value })}
-                    >
-                      <option value="">Choose…</option>
-                      {CATEGORIES.map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      aria-label={row.label}
-                      inputMode={row.field === "retail_price" ? "decimal" : undefined}
-                      value={drafts[row.field] ?? ""}
-                      placeholder={row.field === "retail_price" ? "e.g. 750" : ""}
-                      onChange={(e) => setDrafts({ ...drafts, [row.field]: e.target.value })}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") saveEdits();
-                        if (e.key === "Escape") cancelEdit();
-                      }}
-                    />
-                  )}
-                </span>
-              ) : (
-                <span className={styles.fieldValue}>
-                  <span className={value ? styles.value : styles.valueMissing}>{value || "Not found"}</span>
-                  <span className={styles.tagLine}>
-                    {tag ? (
-                      <>
-                        <span className={tag.kind === "guess" ? styles.tagGuess : styles.tag}>{tag.tag}</span>
-                        {src?.note || tag.note}
-                      </>
-                    ) : (
-                      <>
-                        <span className={styles.tagMissing}>Missing</span>
-                        {row.missingNote}
-                      </>
-                    )}
-                  </span>
-                </span>
-              )}
-              {!isEditing && (
-                <button className={styles.pencil} aria-label={`Edit ${row.label.toLowerCase()}`} onClick={() => openEdit([row.field])}>
-                  <Pencil />
-                </button>
-              )}
-            </div>
-          );
-        })}
-
-        {editing.size > 0 && (
-          <div className={styles.editBar}>
-            <button className={ui.btnSmall} onClick={cancelEdit} disabled={pending}>
-              Cancel
-            </button>
-            <button className={`${ui.btnSmall} ${styles.saveBtn}`} onClick={saveEdits} disabled={pending}>
-              {pending ? "Saving…" : "Save details"}
-            </button>
-          </div>
-        )}
-      </section>
+      <Original search={search} photoUrl={photoUrl} subtitle={sourcesLine(search)} color={String(values.color || "")} />
 
       {/* Signature details */}
       <section className={styles.sig}>
@@ -390,9 +392,9 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
             </span>
             <span className={styles.sigSummary}>{sigSummary}</span>
           </span>
-          <svg className={sigOpen ? styles.chevOpen : styles.chev} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+          <span className={sigOpen ? styles.chevOpen : styles.chev}>
+            <Chevron />
+          </span>
         </button>
 
         {sigOpen && (
@@ -420,39 +422,60 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
                 </button>
               </div>
             ))}
-            {adding ? (
+            {custom !== null ? (
               <input
                 className={styles.addInput}
-                aria-label="Add a signature detail"
-                placeholder="e.g. Corset lacing at the back"
-                value={draft}
+                aria-label="Describe the detail"
+                placeholder="e.g. Fold-over off-shoulder band"
+                value={custom}
                 autoFocus
-                onChange={(e) => setDraft(e.target.value)}
+                maxLength={60}
+                onChange={(e) => setCustom(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    commitDraft();
+                    addAnchor(custom);
+                    setCustom(null);
                   }
-                  if (e.key === "Escape") {
-                    setAdding(false);
-                    setDraft("");
-                  }
+                  if (e.key === "Escape") setCustom(null);
                 }}
-                onBlur={commitDraft}
+                onBlur={() => {
+                  addAnchor(custom);
+                  setCustom(null);
+                }}
               />
             ) : (
-              <button className={styles.addBtn} onClick={() => setAdding(true)}>
+              <label className={styles.addBtn}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
                 Add a detail
-              </button>
+                <select
+                  className={styles.overlaySelect}
+                  aria-label="Add a signature detail"
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value === "__other") setCustom("");
+                    else addAnchor(e.target.value);
+                  }}
+                >
+                  <option value="" disabled>
+                    Add a detail
+                  </option>
+                  {addable.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                  <option value="__other">Something else…</option>
+                </select>
+              </label>
             )}
           </div>
         )}
       </section>
 
-      {/* Search for */}
+      {/* Search for: view, size and budget */}
       <section className={styles.choices}>
         <h2 className={ui.eyebrow}>Search for</h2>
         <div className={styles.segmented}>
@@ -493,9 +516,10 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
                 id="budget"
                 type="text"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 placeholder="—"
                 value={budget}
-                onChange={(e) => setBudget(e.target.value.replace(/[^0-9]/g, ""))}
+                onChange={(e) => setBudget(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
                 onBlur={() => save({ budget })}
               />
             </span>
@@ -533,10 +557,157 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
         )}
       </section>
 
+      {stale && (
+        <p className={ui.error}>You changed details since we read this piece. We&apos;ll update the search brief when it runs.</p>
+      )}
+
+      {/* The details */}
+      <section ref={detailsRef} className={styles.details} aria-labelledby="details-h">
+        <div className={styles.sectionHead}>
+          <h2 id="details-h" className={ui.eyebrow}>
+            The details
+          </h2>
+        </div>
+
+        {ROWS.map((row) => {
+          const text = shown(row, values);
+          const src = sources[row.field];
+          const tag = text ? TAGS[src?.from ?? ""] : undefined;
+          const editingText = textEdit?.field === row.field;
+
+          const valueBlock = (
+            <span className={styles.fieldValue}>
+              <span className={text ? styles.value : styles.valueMissing}>
+                {row.field === "color" && text && <ColorDot name={text} />}
+                {text || (row.kind === "readonly" ? row.missing : "Not found")}
+              </span>
+              {row.field === "color" && values.color_name && <span className={styles.subNote}>Store calls it “{String(values.color_name)}”</span>}
+              {row.field === "sizing" && values.fit_notes && <span className={styles.subNote}>{String(values.fit_notes)}</span>}
+              {row.kind !== "readonly" || text ? (
+                <span className={styles.tagLine}>
+                  {tag ? (
+                    <>
+                      <span className={tag.kind === "guess" ? styles.tagGuess : styles.tagPlain}>{tag.tag}</span>
+                      {src?.note || tag.note}
+                    </>
+                  ) : row.kind === "readonly" ? null : (
+                    <>
+                      <span className={styles.tagMissing}>Missing</span>
+                      {row.missing}
+                    </>
+                  )}
+                </span>
+              ) : null}
+            </span>
+          );
+
+          if (editingText && textEdit) {
+            return (
+              <div key={row.field} className={styles.fieldRow}>
+                <span className={styles.fieldLabel}>{row.label}</span>
+                <span className={styles.fieldEdit}>
+                  <input
+                    aria-label={row.label}
+                    autoFocus
+                    inputMode={row.kind === "price" ? "numeric" : undefined}
+                    pattern={row.kind === "price" ? "[0-9]*" : undefined}
+                    maxLength={row.kind === "price" ? 6 : 80}
+                    value={textEdit.draft}
+                    placeholder={row.kind === "price" ? "e.g. 750" : ""}
+                    onChange={(e) =>
+                      setTextEdit({ field: row.field, draft: row.kind === "price" ? e.target.value.replace(/[^0-9]/g, "") : e.target.value })
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") setTextEdit(null);
+                      if (e.key === "Enter") {
+                        saveField(row.field, row.kind === "price" ? (textEdit.draft ? Number(textEdit.draft) : null) : textEdit.draft.trim());
+                        setTextEdit(null);
+                      }
+                    }}
+                  />
+                  <span className={styles.editBtns}>
+                    <button className={ui.btnSmall} onClick={() => setTextEdit(null)}>
+                      Cancel
+                    </button>
+                    <button
+                      className={`${ui.btnSmall} ${styles.saveBtn}`}
+                      onClick={() => {
+                        saveField(row.field, row.kind === "price" ? (textEdit.draft ? Number(textEdit.draft) : null) : textEdit.draft.trim());
+                        setTextEdit(null);
+                      }}
+                    >
+                      Save
+                    </button>
+                  </span>
+                </span>
+              </div>
+            );
+          }
+
+          return (
+            <div key={row.field} className={styles.fieldRow}>
+              <span className={styles.fieldLabel}>{row.label}</span>
+              {valueBlock}
+              {row.kind === "single" && (
+                <>
+                  <span className={styles.pencil} aria-hidden="true">
+                    <Chevron />
+                  </span>
+                  {/* An invisible picker over the row: tapping anywhere opens the phone's scroll wheel. */}
+                  <select
+                    className={styles.overlaySelect}
+                    aria-label={`Change ${row.label.toLowerCase()}`}
+                    value={String(values[row.field] ?? "")}
+                    onChange={(e) => saveField(row.field, e.target.value)}
+                  >
+                    <option value="">Not sure</option>
+                    {row.list.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {row.field === "stretch" && opt === "None" ? "No stretch" : opt}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+              {row.kind === "multi" && (
+                <button className={styles.rowButton} aria-label={`Change ${row.label.toLowerCase()}`} onClick={() => setSheet(row)}>
+                  <span className={styles.pencil} aria-hidden="true">
+                    <Chevron />
+                  </span>
+                </button>
+              )}
+              {(row.kind === "text" || row.kind === "price") && (
+                <button
+                  className={styles.pencilBtn}
+                  aria-label={`Edit ${row.label.toLowerCase()}`}
+                  onClick={() => setTextEdit({ field: row.field, draft: values[row.field] == null ? "" : String(values[row.field]) })}
+                >
+                  <Pencil />
+                </button>
+              )}
+              {row.kind === "readonly" && <span aria-hidden="true" />}
+            </div>
+          );
+        })}
+      </section>
+
       {error && (
         <p className={ui.error} role="alert">
           {error}
         </p>
+      )}
+
+      {sheet && (
+        <PickSheet
+          title={sheet.label}
+          list={sheet.list}
+          value={(values[sheet.field] as string[]) ?? []}
+          onClose={() => setSheet(null)}
+          onDone={(v) => {
+            saveField(sheet.field, v);
+            setSheet(null);
+          }}
+        />
       )}
 
       {/* Sticky bottom bar */}
@@ -550,17 +721,14 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
             <button
               className={ui.btnSecondary}
               style={{ flex: 1 }}
-              onClick={() => {
-                openEdit(ROWS.map((r) => r.field));
-                detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
+              onClick={() => detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
             >
               Fix details
             </button>
             <button
               className={ui.btn}
               style={{ flex: 1.6 }}
-              disabled={pending || editing.size > 0}
+              disabled={pending || textEdit !== null}
               onClick={() =>
                 startTransition(async () => {
                   const r = await confirmSearch(search.id);

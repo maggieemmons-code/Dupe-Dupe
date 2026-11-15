@@ -1,9 +1,11 @@
 "use server";
 
 import { getSession, logApiCall } from "@/lib/server/session";
-import { fetchPages } from "@/lib/server/tinyfish";
-import { loadPhotosBase64 } from "@/lib/server/photos";
-import { runBriefBuilder, ITEM_FIELDS, CATEGORIES, type Anchor, type ItemField } from "@/lib/agents/briefBuilder";
+import { fetchPages, type FetchedPage } from "@/lib/server/tinyfish";
+import { loadPhotosBase64, savePhoto } from "@/lib/server/photos";
+import { pickProductPhotos, downloadPhoto } from "@/lib/server/linkPhotos";
+import { runBriefBuilder } from "@/lib/agents/briefBuilder";
+import { SINGLE_CHOICE, MULTI_CHOICE, type Anchor, type ItemField } from "@/lib/fields";
 import type { SearchRow } from "@/lib/searches";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -30,7 +32,7 @@ export async function buildBrief(searchId: string): Promise<Result> {
 
   try {
     // 1. Read the product links.
-    let pages: { url: string; title: string; text: string }[] = [];
+    let pages: FetchedPage[] = [];
     let unreadLinks: string[] = [];
     if (search.source_links.length) {
       try {
@@ -54,7 +56,26 @@ export async function buildBrief(searchId: string): Promise<Result> {
       }
     }
 
-    // 2. Ask the brief builder.
+    // 2. Product photos from the listing page (up to 3). If the friend gave no
+    //    photos of their own, the first one becomes the search's main photo.
+    const productPhotos: { data: string; mediaType: "image/jpeg" }[] = [];
+    const productPaths: string[] = [];
+    if (pages[0] && search.photo_paths.length < 4) {
+      const urls = pickProductPhotos(pages[0], Math.min(3, 4 - search.photo_paths.length));
+      const buffers = (await Promise.all(urls.map(downloadPhoto))).filter((b): b is Buffer => !!b);
+      for (const [i, buf] of buffers.entries()) {
+        productPhotos.push({ data: buf.toString("base64"), mediaType: "image/jpeg" });
+        if (!search.photo_paths.length) {
+          try {
+            productPaths.push(await savePhoto(session, searchId, `link-${i + 1}`, buf));
+          } catch (e) {
+            console.error("Saving a product photo failed", e);
+          }
+        }
+      }
+    }
+
+    // 3. Ask the brief builder.
     const photos = await loadPhotosBase64(session, search.photo_paths);
     let result;
     try {
@@ -63,6 +84,7 @@ export async function buildBrief(searchId: string): Promise<Result> {
         unreadLinks,
         notes: search.pasted_text,
         photos,
+        productPhotos,
         tasteRules: "None yet.",
       });
       await logApiCall(session, { service: "claude", stage: "brief", searchId, units: result.usage, ok: true });
@@ -76,6 +98,7 @@ export async function buildBrief(searchId: string): Promise<Result> {
       .from("searches")
       .update({
         ...brief.item,
+        ...(productPaths.length ? { photo_paths: productPaths } : {}),
         field_sources: brief.sources,
         visual_brief: brief.visual_brief,
         composition_brief: brief.composition_brief,
@@ -109,12 +132,18 @@ export async function retryBrief(searchId: string): Promise<Result> {
   return { ok: true };
 }
 
-const ARRAY_FIELDS: ItemField[] = ["fabrics", "care", "fit_style", "stretch"];
+const TEXT_FIELDS: ItemField[] = ["brand", "style_name"];
 
-/** Saves edited item fields. Never runs a search; marks the briefs out of date. */
+type FieldValue = string | string[] | number | null;
+
+/**
+ * Saves edited item fields. Pick-list fields accept only listed values; brand
+ * and item name are short text; retail price is a number. Never runs a search;
+ * marks the briefs out of date.
+ */
 export async function saveFields(
   searchId: string,
-  edits: Partial<Record<ItemField, string>>,
+  edits: Partial<Record<ItemField, FieldValue>>,
 ): Promise<Result> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Sign in again to continue." };
@@ -130,22 +159,30 @@ export async function saveFields(
   const update: Record<string, unknown> = {};
   const sources = { ...(current.field_sources ?? {}) } as Record<string, unknown>;
 
-  for (const [field, raw] of Object.entries(edits) as [ItemField, string][]) {
-    if (!ITEM_FIELDS.includes(field)) continue;
-    const text = String(raw ?? "").trim().slice(0, 500);
-    if (ARRAY_FIELDS.includes(field)) {
-      update[field] = text ? text.split(/\s*,\s*/).filter(Boolean).slice(0, 12) : [];
+  for (const [field, raw] of Object.entries(edits) as [ItemField, FieldValue][]) {
+    let value: FieldValue;
+    if (field in SINGLE_CHOICE) {
+      const list = SINGLE_CHOICE[field as keyof typeof SINGLE_CHOICE] as readonly string[];
+      const v = typeof raw === "string" && list.includes(raw) ? raw : "";
+      value = field === "stretch" ? (v ? [v] : []) : v;
+    } else if (field in MULTI_CHOICE) {
+      const list = MULTI_CHOICE[field as keyof typeof MULTI_CHOICE] as readonly string[];
+      value = Array.isArray(raw) ? [...new Set(raw.filter((x) => list.includes(x)))] : [];
+    } else if (TEXT_FIELDS.includes(field)) {
+      value = typeof raw === "string" ? raw.trim().slice(0, 120) : "";
     } else if (field === "retail_price") {
-      const n = parseFloat(text.replace(/[^0-9.]/g, ""));
-      update[field] = Number.isFinite(n) ? n : null;
-    } else if (field === "category") {
-      update[field] = (CATEGORIES as readonly string[]).includes(text) ? text : "";
+      const n = typeof raw === "number" ? raw : parseFloat(String(raw ?? "").replace(/[^0-9.]/g, ""));
+      value = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
     } else {
-      update[field] = text;
+      continue; // composition, color_name and fit_notes are read from sources only
     }
-    if (text) sources[field] = { from: "edited" };
+    update[field] = value;
+    const filled = Array.isArray(value) ? value.length > 0 : value !== null && value !== "";
+    if (filled) sources[field] = { from: "edited" };
     else delete sources[field];
   }
+
+  if (!Object.keys(update).length) return { ok: true };
 
   const { error } = await supabase
     .from("searches")
