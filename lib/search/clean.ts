@@ -5,10 +5,14 @@
  */
 
 import { isNotAStore, isRental } from "@/lib/server/serpapi";
+import { vetStore, AMAZON_MIN_RATING, AMAZON_MIN_REVIEWS } from "@/lib/stores";
 
 export type CleanRow = {
   id: string;
   kind: "new" | "secondhand";
+  source: string;
+  rating: number | null;
+  reviews: number | null;
   title: string;
   store: string;
   store_domain: string;
@@ -47,7 +51,13 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
   function dropReason(r: CleanRow): string | null {
     if (isNotAStore(r.store_domain, r.store)) return "Not a store";
     if (isRental(r.store_domain, r.store, r.title)) return "Rental, not for sale";
+    const vet = vetStore(r.store, r.store_domain);
+    if (vet === "blocked") return "Blocked store";
+    if (vet === "unknown") return "Store not approved";
     if (hidden.some((h) => norm(r.store).includes(h) || norm(r.store_domain).includes(h))) return "Hidden store";
+    if (r.source === "amazon" && ((r.rating ?? 0) < AMAZON_MIN_RATING || (r.reviews ?? 0) < AMAZON_MIN_REVIEWS)) {
+      return "Amazon: under 4 stars or 100 reviews";
+    }
     const title = norm(r.title);
     if (style && brand && title.includes(style) && (title.includes(brand) || norm(r.store).includes(brand))) {
       return "Your original";

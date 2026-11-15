@@ -29,13 +29,13 @@ async function main() {
   for (const m of (load("lens.json").visual_matches ?? []) as Raw[]) {
     const price = (m.price as Raw | undefined)?.currency === "$" ? num((m.price as Raw).extracted_value) : null;
     const domain = host(String(m.link));
-    rows.push({ id: `L${i++}`, kind: /realreal|posh|depop|ebay|volte|pickle/i.test(domain + m.source) ? "secondhand" : "new", title: String(m.title), store: String(m.source), store_domain: domain, link: String(m.link), photo_url: (m.image as string) ?? null, price, in_stock: (m.in_stock as boolean) ?? null, size: "", source: "lens", position: Number(m.position), thumb: (m.thumbnail as string) ?? null });
+    rows.push({ id: `L${i++}`, kind: /realreal|posh|depop|ebay|volte|pickle/i.test(domain + m.source) ? "secondhand" : "new", title: String(m.title), store: String(m.source), store_domain: domain, link: String(m.link), photo_url: (m.image as string) ?? null, price, in_stock: (m.in_stock as boolean) ?? null, size: "", source: "lens", rating: null, reviews: null, position: Number(m.position), thumb: (m.thumbnail as string) ?? null });
   }
   for (const r of (load("shopping.json").shopping_results ?? []) as Raw[]) {
-    rows.push({ id: `S${i++}`, kind: "new", title: String(r.title), store: String(r.source), store_domain: "", link: String(r.product_link), photo_url: (r.thumbnail as string) ?? null, price: num(r.extracted_price), in_stock: null, size: "", source: "shopping", position: Number(r.position), thumb: (r.thumbnail as string) ?? null });
+    rows.push({ id: `S${i++}`, kind: "new", title: String(r.title), store: String(r.source), store_domain: "", link: String(r.product_link), photo_url: (r.thumbnail as string) ?? null, price: num(r.extracted_price), in_stock: null, size: "", source: "shopping", rating: num(r.rating), reviews: num(r.reviews), position: Number(r.position), thumb: (r.thumbnail as string) ?? null });
   }
   for (const r of (load("amazon.json").organic_results ?? []) as Raw[]) {
-    rows.push({ id: `A${i++}`, kind: "new", title: String(r.title), store: "Amazon", store_domain: "amazon.com", link: String(r.link_clean ?? r.link), photo_url: (r.thumbnail as string) ?? null, price: num(r.extracted_price), in_stock: null, size: "", source: "amazon", position: Number(r.position), thumb: (r.thumbnail as string) ?? null });
+    rows.push({ id: `A${i++}`, kind: "new", title: String(r.title), store: "Amazon", store_domain: "amazon.com", link: String(r.link_clean ?? r.link), photo_url: (r.thumbnail as string) ?? null, price: num(r.extracted_price), in_stock: null, size: "", source: "amazon", rating: num(r.rating), reviews: num(r.reviews), position: Number(r.position), thumb: (r.thumbnail as string) ?? null });
   }
 
   const results = cleanCandidates(rows, { budget, brand: "Sau Lee", styleName: "Joanna Jacquard Gown", sizes: ["4"], hiddenStores: [], secondhandOn: false });

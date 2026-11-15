@@ -18,6 +18,12 @@ import { searchName } from "@/lib/searches";
 /** Pause searches when SerpApi gets this low (PLAN.md › Costs and guardrails). */
 const SERP_FLOOR = 30;
 const MAX_RESULTS = 10;
+/**
+ * The second Shopping search is scoped to one well-made store by adding its name
+ * to the words (Maggie, Nov 15: Revolve had dupes the general search missed).
+ * Friends' own favorite stores can take this over in phase 7.
+ */
+const STORE_SEARCH = "Revolve";
 const BATCH = 20;
 const MAX_BATCHES = 3;
 
@@ -131,9 +137,7 @@ export const runSearch = inngest.createFunction(
           })
         : Promise.resolve(null),
       gather("shopping-1", "Google Shopping", () => shoppingSearch(ctx.lookAlike[0], ctx.budget)),
-      ctx.lookAlike[1]
-        ? gather("shopping-2", "Google Shopping", () => shoppingSearch(ctx.lookAlike[1], ctx.budget))
-        : Promise.resolve(null),
+      gather("shopping-store", "Google Shopping", () => shoppingSearch(`${ctx.lookAlike[0]} ${STORE_SEARCH.toLowerCase()}`, ctx.budget)),
       gather("amazon", "Amazon", () => amazonSearch(ctx.lookAlike[0], ctx.budget)),
     ]);
 
@@ -144,10 +148,10 @@ export const runSearch = inngest.createFunction(
       await db.from("searches").update({ status: "screening", missing_sources: missing }).eq("id", searchId);
       const { data: rows } = await db
         .from("candidates")
-        .select("id, kind, source, position, title, store, store_domain, link, photo_url, price, in_stock, size")
+        .select("id, kind, source, query, position, title, store, store_domain, link, photo_url, price, in_stock, size, rating, reviews")
         .eq("search_id", searchId)
         .eq("user_id", userId);
-      const all = (rows ?? []) as (CleanRow & { source: string; position: number | null })[];
+      const all = (rows ?? []) as (CleanRow & { position: number | null; query: string })[];
       const results = cleanCandidates(all, {
         budget: ctx.budget,
         brand: ctx.brand,
@@ -171,11 +175,13 @@ export const runSearch = inngest.createFunction(
       const keptIds = new Set(results.filter((r) => !r.drop_reason).map((r) => r.id));
       if (keptIds.size) await db.from("candidates").update({ stage: "cleaned" }).in("id", [...keptIds]);
 
-      // Screening order: take turns between sources, each in its own ranking order.
+      // Screening order: take turns between searches (Lens, each Shopping search, Amazon),
+      // each in its own ranking order, so the store search isn't buried.
       const kept = all.filter((r) => keptIds.has(r.id) && r.kind === "new");
       const bySource = new Map<string, typeof kept>();
       for (const r of kept.sort((a, b) => (a.position ?? 999) - (b.position ?? 999))) {
-        bySource.set(r.source, [...(bySource.get(r.source) ?? []), r]);
+        const k = `${r.source}|${r.query}`;
+        bySource.set(k, [...(bySource.get(k) ?? []), r]);
       }
       const order: string[] = [];
       const lists = [...bySource.values()];

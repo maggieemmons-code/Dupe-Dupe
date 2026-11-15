@@ -100,13 +100,14 @@ A search runs as a background job in six stages: brief, gather, clean, screen, e
    **The friend confirms the anchors.** The review card shows them as editable chips under "What makes this piece?", each with a dealbreaker toggle. A wrong anchor makes every later stage wrong, so this is the one check a person makes before the search runs.
 2. **Gather** (no AI, all at once).
    - Google Lens through SerpApi, visual matches: the main photo goes by a 10-minute signed link from Supabase Storage, with a short description in `q`.
-   - Google Shopping through SerpApi: the look-alike queries, filtered to the budget.
+   - Google Shopping through SerpApi: the first look-alike query, and the same words plus "revolve", which brings back Revolve's own listings (Maggie, Nov 15), filtered to the budget.
    - Amazon through SerpApi: the first look-alike query, filtered to the budget (Maggie, Nov 14).
    - eBay Browse API: exact, look-alike and peer-brand queries.
    - TinyFish resale search pages: look-alike and peer-brand queries on every site the friend has on, exact queries on the top 3.
 
    Every item gathered is saved to the `candidates` table, and each later stage records how far it got and why it was dropped.
 3. **Clean** (code, no AI). Every candidate becomes one shape: source, link, title, brand, price, condition, size, color, photo link, store. Then code, not an agent:
+   - shows only approved stores (`lib/stores.ts`: established retailers and real brands' own sites), never blocked ones (ultra-cheap fast fashion and scam-prone marketplaces such as Shein, Temu, AliExpress, Fashion Nova), and Amazon items only with 4 stars or more from at least 100 reviews (Maggie, Nov 15). Unapproved stores are kept with a drop reason so Maggie can approve good ones;
    - drops hidden stores, new items over budget and items already rated thumbs down;
    - filters secondhand listings to the friend's sizes, keeping listings whose size is unknown;
    - merges the same product sold by several stores into one candidate, showing the cheapest.
@@ -339,7 +340,7 @@ At 20 friends doing 10 searches a month, the app uses about 600 of SerpApi's 1,0
 
 | Per search | Uses | Estimated cost |
 | --- | --- | --- |
-| SerpApi | 1 Lens search, 2 Shopping searches, 1 Amazon search (3 more in a retry), plus 1 store lookup per first tap on a Shopping result | Covered by the $25 plan up to about 200 searches a month |
+| SerpApi | 1 Lens search, 2 Shopping searches (one scoped to Revolve), 1 Amazon search (3 more in a retry), plus 1 store lookup per first tap on a Shopping result | Covered by the $25 plan up to about 200 searches a month |
 | Claude | Brief builder and judge with both photos and listing text (Sonnet 5.5), 2 screeners (Haiku 5.5) | About $0.11; the judge and the brief are most of it. Re-ranking after a rating costs nothing |
 | TinyFish | About 9 search pages plus up to 20 listing pages | $0 today |
 | eBay | About 6 searches and up to 10 item calls | $0, well under 5,000 a day |
