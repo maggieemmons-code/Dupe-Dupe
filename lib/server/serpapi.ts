@@ -41,6 +41,8 @@ export type Gathered = {
   reviews: number | null;
   delivery: string;
   in_stock: boolean | null;
+  /** Shopping only: SerpApi's token for looking up the stores that sell it. */
+  product_token?: string | null;
   drop_reason?: string;
 };
 
@@ -140,6 +142,7 @@ type ShoppingResult = {
   reviews?: number | string;
   delivery?: string;
   second_hand_condition?: string;
+  immersive_product_page_token?: string;
 };
 
 export async function shoppingSearch(q: string, maxPrice: number | null): Promise<Gathered[]> {
@@ -177,9 +180,39 @@ export async function shoppingSearch(q: string, maxPrice: number | null): Promis
         reviews: num(r.reviews),
         delivery: r.delivery ?? "",
         in_stock: null,
+        product_token: direct ? null : (r.immersive_product_page_token ?? null),
       };
     })
     .filter((x): x is Gathered => !!x);
+}
+
+/**
+ * The store's own page for a Google Shopping result (1 search). SerpApi's
+ * product lookup lists the stores that sell it, each with a Google redirect
+ * link; following that redirect (no search) gives the store's page.
+ */
+export async function storePage(token: string, storeName: string): Promise<{ url: string; details: string[] } | null> {
+  const body = await serp({ engine: "google_immersive_product", page_token: token });
+  type Store = { name?: string; link?: string; details_and_offers?: string[]; shipping?: string };
+  const stores = ((body.product_results as { stores?: Store[] } | undefined)?.stores ?? []).filter((s) => s.link);
+  const want = storeName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const store =
+    stores.find((s) => (s.name ?? "").toLowerCase().replace(/[^a-z0-9]/g, "") === want) ??
+    stores.find((s) => want && (s.name ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").includes(want)) ??
+    stores[0];
+  if (!store?.link) return null;
+
+  const google = new URL(store.link, "https://www.google.com");
+  let url = google.toString();
+  if (google.hostname.endsWith("google.com") && google.pathname === "/goto") {
+    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(10_000) });
+    const loc = res.headers.get("location");
+    if (!loc || !/^https:\/\//.test(loc)) return null;
+    url = loc;
+  }
+  if (!/^https:\/\//.test(url)) return null;
+  const details = (store.details_and_offers ?? []).filter((d) => typeof d === "string").slice(0, 4);
+  return { url, details };
 }
 
 /* ---------- Amazon ---------- */

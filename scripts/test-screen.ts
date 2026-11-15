@@ -5,7 +5,7 @@
  */
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import { cleanCandidates } from "../lib/search/clean";
+import { cleanCandidates, type CleanRow } from "../lib/search/clean";
 import { runScreener } from "../lib/agents/screener";
 import { downloadThumb, downloadPhoto } from "../lib/server/linkPhotos";
 
@@ -17,7 +17,7 @@ const load = (f: string) => (existsSync(join(dir, f)) ? JSON.parse(readFileSync(
 const num = (v: unknown) => (v == null ? null : Number(String(v).replace(/[^0-9.]/g, "")) || null);
 
 async function main() {
-  const rows: Parameters<typeof cleanCandidates>[0] & { source: string; position: number; thumb: string | null }[] = [];
+  const rows: (CleanRow & { source: string; position: number; thumb: string | null })[] = [];
   let i = 0;
   const host = (u: string) => {
     try {

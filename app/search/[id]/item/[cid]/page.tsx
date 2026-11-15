@@ -30,7 +30,7 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
 
   const savings = search.retail_price != null && item.price != null ? search.retail_price - item.price : null;
   const onSale = item.old_price != null && item.price != null && item.old_price > item.price;
-  const storeLabel = item.link_is_google ? `See it on Google` : `Shop at ${item.store}`;
+  const storeLabel = `Shop at ${item.store}`;
   const detailsSummary = ["Size not checked", "Fabric not listed", item.delivery].filter(Boolean).join(" · ");
 
   return (
@@ -130,7 +130,6 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
             <dd>{item.source === "lens" ? "Google Lens" : item.source === "amazon" ? "Amazon" : "Google Shopping"}</dd>
           </div>
         </dl>
-        {item.link_is_google && <p className={styles.meta}>Google lists the stores that sell this item and their prices.</p>}
       </details>
 
       {/* Sticky buy bar */}
