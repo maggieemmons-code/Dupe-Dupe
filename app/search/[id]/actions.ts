@@ -4,6 +4,7 @@ import { getSession, logApiCall } from "@/lib/server/session";
 import { fetchPages, type FetchedPage } from "@/lib/server/tinyfish";
 import { loadPhotosBase64, savePhoto } from "@/lib/server/photos";
 import { pickProductPhotos, downloadPhoto } from "@/lib/server/linkPhotos";
+import { usdPriceFromPage } from "@/lib/server/price";
 import { runBriefBuilder } from "@/lib/agents/briefBuilder";
 import { SINGLE_CHOICE, MULTI_CHOICE, type Anchor, type ItemField } from "@/lib/fields";
 import type { SearchRow } from "@/lib/searches";
@@ -94,6 +95,15 @@ export async function buildBrief(searchId: string): Promise<Result> {
     }
 
     const { brief } = result;
+
+    // Safety net: if the brief builder missed the price, read it from the page text itself.
+    if (brief.item.retail_price == null && pages[0]) {
+      const price = usdPriceFromPage(pages[0].text);
+      if (price != null) {
+        brief.item.retail_price = price;
+        brief.sources.retail_price = { from: "link", note: "Price shown on the page" };
+      }
+    }
     const { error } = await supabase
       .from("searches")
       .update({
