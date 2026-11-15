@@ -42,7 +42,7 @@ function displayValue(s: SearchRow, field: ItemField): string {
   switch (field) {
     case "composition": {
       const extra = s.fabrics.filter((f) => !s.composition.toLowerCase().includes(f.toLowerCase()));
-      return [s.composition, ...extra.map((f) => f.toLowerCase())].filter(Boolean).join(" ");
+      return [s.composition, extra.join(", ")].filter(Boolean).join(" · ");
     }
     case "fit_notes":
       return s.fit_notes || s.fit_style.join(", ");

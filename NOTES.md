@@ -27,3 +27,13 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - Fields like returns, delivery date and size in stock show only when a source states them (`DESIGN.md` › Data on screen).
 - The `design/screens/*.dc.html` files run only in the design canvas. They are for reading, not for copying into the app.
 
+
+## Phase 2
+
+- **Claude Sonnet 5.5 rejects forced tool use** (`tool_choice: {type: "tool"}` → 400). The brief schema is also too big for structured outputs (`output_config.format`: "too many optional parameters", then "compiled grammar is too large") and so for `strict: true`. What works: the plan's `submit_brief` tool as written, `tool_choice: "auto"`, the prompt says "Call submit_brief exactly once", and the code checks the call came back and asks once more if not (`lib/agents/briefBuilder.ts`). Expect the same for the judge in Phase 4.
+- Requests use Anthropic's server-side refusal fallback (`betas: ["server-side-fallback-2026-07-01"]`, `fallbacks: "default"`), so a rare safety decline is retried on another model.
+- Brief builder addition to the plan's prompt: a `sources` list (link, photo, typed, guess) per filled field, for Review's tags. Guesses are allowed only for stretch, fit style, length, sleeves, closure and care; code drops any other guess and shows a field with no stated source as "Guess · Source not stated".
+- Prompt tune after the first Sau Lee run: "Each anchor names one detail, in 2 to 5 words. Name the color in the plain words a shopper would search." Before it, the third anchor lumped color, shape and slit together.
+- Sau Lee test link: https://www.sau-lee.com/products/joanna-gown-red-date (the prototype's `joanna-jacquard-gown` URL doesn't exist). Run `npx tsx --conditions=react-server --env-file=.env.local scripts/test-brief.ts <link>` to test the brief builder alone.
+- Photos are shrunk to 1600px in the browser (also turns iPhone HEIC into JPEG and keeps uploads under Vercel's 4.5MB request limit), then to 1,024px by `sharp` on the server, which also strips metadata such as GPS.
+- `lib/fields.ts` holds lists the screens share; anything importing `server-only` (agents, `lib/server/*`) must never be imported by a `"use client"` file.

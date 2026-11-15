@@ -64,19 +64,18 @@ export type BriefResult = {
   };
 };
 
-const SOURCE_ENTRY = {
-  type: "object",
-  required: ["from"],
-  properties: {
-    from: { enum: ["link", "photo", "typed", "guess"] },
-    note: { type: "string", description: "For a guess: the reason, under 8 words" },
-  },
+/*
+ * The plan's submit_brief tool. Claude Sonnet 5.5 doesn't accept a forced tool
+ * call (tool_choice "tool"), and this schema is too large for strict mode, so
+ * the prompt asks for the call, tool_choice stays "auto", and the code checks
+ * the answer and asks once more if no call came back (Claude API docs).
+ */
+/** What the model returns: like BriefResult, but sources as a list. */
+type RawBrief = Omit<BriefResult, "sources"> & {
+  sources: { field: ItemField; from: Source; note: string }[];
 };
 
-export const SUBMIT_BRIEF_TOOL: Anthropic.Tool = {
-  name: "submit_brief",
-  description: "Submit the search brief for this garment.",
-  input_schema: {
+const BRIEF_SCHEMA_DRAFT = {
     type: "object",
     required: ["item", "sources", "visual_brief", "composition_brief", "search_queries"],
     properties: {
@@ -106,9 +105,16 @@ export const SUBMIT_BRIEF_TOOL: Anthropic.Tool = {
         },
       },
       sources: {
-        type: "object",
-        description: "Where each filled item field came from. One entry per non-empty item field, keyed by field name.",
-        properties: Object.fromEntries(ITEM_FIELDS.map((f) => [f, SOURCE_ENTRY])),
+        type: "array",
+        description: "Where each filled item field came from: one entry per non-empty item field.",
+        items: {
+          type: "object",
+          properties: {
+            field: { enum: [...ITEM_FIELDS] },
+            from: { enum: ["link", "photo", "typed", "guess"] },
+            note: { type: "string", description: "For a guess: the reason, under 8 words. Otherwise empty." },
+          },
+        },
       },
       visual_brief: {
         type: "object",
@@ -186,7 +192,12 @@ export const SUBMIT_BRIEF_TOOL: Anthropic.Tool = {
         },
       },
     },
-  },
+};
+
+export const SUBMIT_BRIEF_TOOL: Anthropic.Tool = {
+  name: "submit_brief",
+  description: "Submit the search brief for this garment.",
+  input_schema: BRIEF_SCHEMA_DRAFT as Anthropic.Tool.InputSchema,
 };
 
 const SYSTEM_PROMPT = `You write the search brief for Dupe Dupe, which finds affordable dupes and secondhand matches for a higher-end garment.
@@ -200,6 +211,7 @@ Rules for item fields:
 
 Rules for the visual brief:
 - Anchors are the 2 or 3 details that make this piece recognizable. A dupe that misses them is a generic garment, not this one. Prefer specific construction ("fold-over off-shoulder band", "boned bodice") over general traits ("red", "long").
+- Each anchor names one detail, in 2 to 5 words. Name the color in the plain words a shopper would search ("burnt red", not only the brand's color name).
 - Mark an anchor as a dealbreaker only if the piece would read as a different garment without it.
 - List sister shades a shopper would accept, and undertones that would read as a different color.
 
@@ -215,7 +227,7 @@ Rules for search queries:
 - peer_brands: labels similar in style and price. Never claim they share a factory or made this item.
 
 Rules for sources:
-- For every item field you fill, add an entry under sources with the same field name: "link" if the listing text states it, "photo" if a photo clearly shows it, "typed" if the shopper's notes say it.
+- For every item field you fill, add an entry to sources naming the field: "link" if the listing text states it, "photo" if a photo clearly shows it, "typed" if the shopper's notes say it.
 - You may fill a field as "guess" only for stretch, fit_style, hem, sleeve, closure and care, only when the evidence points one way, and with the reason in note. Never guess brand, style_name, category, color, composition, fabrics, neckline, features, retail_price or fit_notes; leave them empty instead.
 
 Apply the shopper's taste rules below when choosing anchors and dealbreakers. A rule marked dealbreaker becomes a dealbreaker anchor or fabric where it applies.
@@ -268,35 +280,51 @@ export async function runBriefBuilder(input: BriefInput) {
     { type: "text", text: parts.join("\n\n") || "(no sources)" },
   ];
 
-  const response = await client.messages.create({
+  const request = {
     model,
-    max_tokens: 4000,
+    max_tokens: 16000,
     system: SYSTEM_PROMPT.replace("{{taste_rules}}", input.tasteRules || "None yet."),
     tools: [SUBMIT_BRIEF_TOOL],
-    tool_choice: { type: "tool", name: "submit_brief" },
-    messages: [{ role: "user", content }],
-  });
-
-  const toolUse = response.content.find(
-    (b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === "submit_brief",
-  );
-  if (!toolUse) throw new Error("The brief builder did not return a brief");
-
-  return {
-    brief: cleanBrief(toolUse.input as BriefResult),
-    usage: { input_tokens: response.usage.input_tokens, output_tokens: response.usage.output_tokens, model },
+    tool_choice: { type: "auto" as const },
+    // If a safety check declines (very unlikely for clothing), Anthropic retries on a fallback model.
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default" as const,
+    messages: [{ role: "user" as const, content }],
   };
+
+  let usage = { input_tokens: 0, output_tokens: 0, model };
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const response = await client.beta.messages.create(request);
+    usage = {
+      input_tokens: usage.input_tokens + response.usage.input_tokens,
+      output_tokens: usage.output_tokens + response.usage.output_tokens,
+      model,
+    };
+    if (response.stop_reason === "refusal") throw new Error("The brief builder declined this request");
+
+    const call = response.content.find(
+      (b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use" && b.name === "submit_brief",
+    );
+    const raw = call?.input as RawBrief | undefined;
+    if (raw?.item && raw.visual_brief && raw.search_queries) {
+      return { brief: cleanBrief(raw), usage };
+    }
+    // No call, or an incomplete one: ask once more.
+  }
+  throw new Error("The brief builder did not return a brief");
 }
 
 /** Code-side guardrails on what the agent returned. */
-function cleanBrief(raw: BriefResult): BriefResult {
+function cleanBrief(raw: RawBrief): BriefResult {
   const item = { ...emptyItem(), ...(raw.item ?? {}) };
+  const stated = new Map<string, { from: Source; note?: string }>();
+  for (const s of raw.sources ?? []) if (s?.field) stated.set(s.field, { from: s.from, note: s.note || undefined });
   const sources: BriefResult["sources"] = {};
 
   for (const field of ITEM_FIELDS) {
     const value = item[field];
     const filled = Array.isArray(value) ? value.length > 0 : value !== null && value !== "";
-    const src = raw.sources?.[field];
+    const src = stated.get(field);
     if (!filled) continue;
 
     if (!src) {
