@@ -7,13 +7,17 @@ A private, invite-only web app for Maggie and up to 20 friends. A friend drops i
 - **`prototype.html` is the prompts and behavior reference.** Reuse its prompts and interaction details unless `PLAN.md` or `DESIGN.md` says otherwise. Its swing-tag look is retired.
 - Maggie is a first-time builder. She doesn't write code; she reads plans and tests on her phone.
 
-## Current phase: 2 (Start and brief)
+## Current phase: 3 (Lens and new dupes)
 
-**Builds:** the new look's fonts and colors (`DESIGN.md`), Sign in restyled, Find screen (the home screen) with photo, link and describe-it starts, photo upload and shrink, `searches` table, brief builder (plain fields, both briefs, query matrix), Review screen with editable signature details and Must match (dealbreaker) switches.
+**Builds:** Inngest job with a step per stage and status updates, SerpApi Lens and Shopping, the `candidates` table with stage tracking, cleaning step with size filter and duplicate merging, new-items screener with thumbnails (Haiku, `ANTHROPIC_FAST_MODEL`), result cards with photos (`design/screens/Results.dc.html`, `Card.dc.html`), and the `/go` click route that logs every outbound click.
 
-**Done when:** the Sau Lee Joanna gown link fills in 100% polyester jacquard and true to size, and its anchors include the off-shoulder neckline, burnt red jacquard and boned bodice.
+**Done when:** a Sau Lee search shows at least 6 new candidates with photos and real prices.
 
-**Needs before coding:** an Anthropic Console API key (`ANTHROPIC_API_KEY`) with a monthly spend limit set, the model settings `ANTHROPIC_FAST_MODEL` and `ANTHROPIC_JUDGE_MODEL`, and a TinyFish API key for reading product links. Maggie pastes key values into `.env.local` and Vercel herself.
+**Needs before coding:** an Inngest account and its keys (`INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, plus connecting Inngest to the Vercel project), and a SerpApi key (`SERPAPI_API_KEY`) with usage alerts on. Maggie pastes key values into `.env.local` and Vercel herself; Vercel only picks up changed settings on the next deployment.
+
+**Watch for:** Claude Sonnet 5.5 and Haiku 5.5 behavior with tools is in `NOTES.md` › Phase 2 (no forced `tool_choice`; large schemas can't use strict mode). Lens takes the search's first photo by a 10-minute signed link; link-only searches now have product photos saved from the page.
+
+**Phase 2 passed on 2026-11-15:** on the live site, the Sau Lee link (https://www.sau-lee.com/products/joanna-gown-red-date) fills in 100% polyester jacquard, true to size, $750, the product photos, and anchors covering the off-shoulder neckline, red jacquard and the structured (boned) bodice. Changes Maggie asked for along the way: every detail is a pick from a list (`lib/fields.ts`), stretch is inferred from fabric, product photos on the link are read, Review order is original → Search for → The details (Signature details first, each rewordable). Details in `NOTES.md` › Phase 2.
 
 **Phase 1 passed on 2026-11-14:** 5 test invites (Gmail `+test1`–`+test5`) arrived in the inbox fast, and an uninvited email was turned away by the database's "Before User Created" hook. Supabase sends email through Resend as `login@dupedupe.studio` ("Dupe Dupe"). Invites are added in Supabase's SQL Editor for now (`insert into public.invites (email) values (...)`); the usage screen for invites comes in Phase 8. Database changes go in `supabase/migrations/` as numbered files that Maggie pastes into the SQL Editor.
 
