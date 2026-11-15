@@ -41,14 +41,19 @@ Version 1 is the prototype rebuilt as a real website, plus photos and Google Len
 | One automatic retry when fewer than 4 results pass | Yes |  |
 | Views: All by price, New only, Secondhand only; sort by look, fit or price | Yes |  |
 | Brand, color and size on every card; Different color tag | Yes |  |
-| Thumbs up or down with one-tap reasons, scoped to taste or one item; a taste profile and "Your dupe rules" card that learn from them | Yes |  |
-| Favorite and hidden stores | Yes |  |
+| Thumbs up or down with one-tap reasons, scoped to taste or one item; a taste profile and "Your dupe rules" that learn from them | Yes |  |
+| Swipe to train: a card deck built from the friend's own results; right is yes, left is no, with a "why?" pop-up for the reason | Yes |  |
+| Item detail page: the original side by side with the dupe, verdict and caveat, look and fit breakdown, sizes, and shipping and returns when the source states them | Yes |  |
+| Your eye screen: sizes for dresses, tops, bottoms (letter, number and jean waist) and shoes; rules shown as "You go for" and "You pass on" tags a friend can add or remove | Yes |  |
+| Save items with a bookmark; a Saved tab | Yes |  |
+| Dark mode as an option (light by default) | Yes |  |
+| Favorite and hidden stores and brands | Yes |  |
 | Saved searches list; several searches running at once | Yes |  |
 | Edit details and rerun, with an out-of-date notice | Yes |  |
 | Usage view for Maggie (searches, clicks, ratings, cost) | Yes |  |
 | Daily search cap per friend and a monthly budget stop | Yes |  |
 | Affiliate links and disclosure |  | After the test |
-| New-listing alerts by email |  | After the test |
+| New-listing alerts by email; price-drop and restock alerts on saved items |  | After the test |
 | Weekly learning report for Maggie (where good matches are lost, by source and stage) |  | After the test |
 | Paid plan, public sign-up |  | Only if the test succeeds |
 
@@ -131,9 +136,12 @@ Dupe Dupe learns from what a friend does, not from forms: every tap is tied to a
 | --- | --- | --- |
 | Taps thumbs down, then a one-tap reason: wrong color, wrong shape, wrong neckline, wrong length, fabric looks cheap, too pricey, not my size (a typed note is optional) | That checklist item matters more to this friend | This search re-ranks at once; the item's weight rises in the taste profile |
 | Taps thumbs up, with an optional "close enough on" reason | Which differences are acceptable | That item's weight falls; the match joins the friend's liked examples |
+| Swipes a card right (yes) or left (no), then picks a reason in the pop-up | The same as thumbs up or down with a reason | The same as thumbs up or down |
+| Adds or removes a "You go for" or "You pass on" tag on Your eye | A rule the friend stated outright | Becomes a rule at once, marked "You added"; removing a tag deletes the rule |
 | Edits or removes an anchor chip, or flips a dealbreaker toggle | What makes a piece for this friend | This search's brief; repeated edits become defaults the brief builder proposes next time |
 | Corrects a plain field on the review card | Where the brief builder misreads | The brief for this search; Maggie's weekly report |
 | Clicks through to a listing, or doesn't | Interest without a rating | A weak signal, counted at a quarter of a rating |
+| Saves an item with the bookmark | Interest without a rating | A weak signal, counted like a click |
 | Marks "I bought this" | The strongest yes | Counted as three thumbs up; added to liked examples |
 | Favorites or hides a store or brand | Where to look and where not to | Query matrix and the cleaning step |
 
@@ -145,25 +153,26 @@ Dupe Dupe learns from what a friend does, not from forms: every tap is tied to a
 
 **Keeping it visible and safe**
 
-- A "Your dupe rules" card on the home screen lists every rule with the ratings behind it. A friend can edit or delete any rule.
+- The Your eye screen shows every rule as a "You go for" or "You pass on" tag, with the ratings behind it a tap away. A friend can add, edit or delete any rule.
 - When a new rule forms, the app says so once: "Learned: neckline must match. Undo?"
-- New friends start from neutral weights and a 3-question setup: how literal should a dupe be, which matters more between look and fabric, and sizes.
+- New friends start from neutral weights and a 3-question setup: how literal should a dupe be, which matters more between look and fabric, and sizes (set with the size dials on Your eye).
 - One friend's taste never changes another friend's results. Only the anonymous source counts in Maggie's report are shared.
 - Weights are capped, so no item can drop to zero or outweigh everything else.
 - Commission data never enters any of it.
 
 ## Data model
 
-Nine Postgres tables in Supabase. Every table except `invites` carries a `user_id`, and row-level security lets each friend read and write only their own rows. Maggie reads totals through an admin-only usage view, never through another friend's rows.
+Ten Postgres tables in Supabase. Every table except `invites` carries a `user_id`, and row-level security lets each friend read and write only their own rows. Maggie reads totals through an admin-only usage view, never through another friend's rows.
 
 | Table | One row is | Key fields |
 | --- | --- | --- |
-| `profiles` | A friend | name, default sizes (multi), default view, default sort, daily search count, is\_admin |
+| `profiles` | A friend | name, sizes (json: dress and top each with letter and number; bottom with letter, number and jean waist; shoe US size), theme (light or dark, light by default), default view, default sort, daily search count, is\_admin |
 | `invites` | An allowed email | email, invited\_by, accepted\_at |
 | `searches` | One search | status (queued, briefing, gathering, screening, enriching, judging, done, failed), plain item fields the friend edits (brand, style, category, color, composition, fabrics, care, fit, stretch, neckline, sleeve, hem, closure, features, retail price, budget, sizes, measurements), source links, pasted text, photo paths, view, `visual_brief` (json, with confirmed anchors and dealbreaker flags), `composition_brief` (json), `search_queries` (json), brief\_built\_at, retried (yes or no), ran\_at, changed\_at, cost estimate |
 | `candidates` | Every item gathered for a search, shown or not | search\_id, kind (new or secondhand), source, query used, title, brand, store, link, photo link, price, condition, size, color, duplicate\_of, stage reached (gathered, cleaned, screened, enriched, judged), drop reason, `composition_raw`, availability, `checklist` (json: the judge's answers), `fabric_tier`, stock\_photo\_flag, judge note, confidence, look score, fit score, `verdict` (approved, caveat, rejected), caveat text |
-| `ratings` | A thumbs up or down | candidate\_id, search\_id, vote, reason (the one-tap choice), note, scope (taste or item), bought (yes or no), snapshot of title, store and original item |
-| `taste_profiles` | One friend's learned taste | weights (json: one number per checklist item), rules (json: dealbreakers and preferences, each with the ratings behind it), liked examples, updated\_at |
+| `ratings` | A thumbs up or down, from a card or a swipe | candidate\_id, search\_id, vote, reason (the one-tap choice), note, scope (taste or item), source (card or swipe), bought (yes or no), snapshot of title, store and original item |
+| `saved_items` | A bookmarked result | candidate\_id, search\_id, snapshot of title, store, price, color, size and link, saved\_at |
+| `taste_profiles` | One friend's learned taste | weights (json: one number per checklist item), rules (json: dealbreakers and preferences, each with the ratings behind it or marked "You added"), liked examples, updated\_at |
 | `store_prefs` | A favorite or hidden store or brand | name (normalized), kind (favorite or hidden) |
 | `events` | Something a friend did | type (search\_started, result\_clicked, rated, anchor\_edited, field\_corrected, view\_changed), search\_id, candidate\_id, timestamp |
 | `api_calls` | One paid or external call | service (serpapi, claude, tinyfish, ebay), stage, search\_id, units, estimated cost, ok or error |
@@ -178,23 +187,29 @@ Nine Postgres tables in Supabase. Every table except `invites` carries a `user_i
 
 ## Screens
 
-Six screens, all carried over from the prototype, which is the visual and behavior reference. Keep its swing-tag look, palette and type, and lay out every screen for phones first.
+Ten screens. The look and the full spec for each are in `DESIGN.md` (black and white, light by default with a dark option), and the screens themselves are in `design/screens/`. The prototype is still the reference for prompts and behavior. Lay out every screen for phones first.
 
-| Screen | What a friend does there | Carried over from the prototype |
+| Screen | What a friend does there | Phase |
 | --- | --- | --- |
-| Sign in | Enters email, taps the link in the email | New |
-| Home | One box for a link or text, photo drop, Start search; list of saved searches with photo, status and date; remove with confirm; stores and brands manager | Home screen, recent searches, store chips |
-| Review | Checks what the reader found; confirms the signature anchors as chips; picks view (All by price, New only, Secondhand only), sizes and budget; "Looks right, search" or "Fix details" | Review card |
-| Results | Live cards appear as judged; tabs for the three views and Details; sort by look, fit or price; each card shows photo, look and fit scores, brand, color, size, price, store, verdict and caveat (such as "Poly blend, not silk"), anchor checks, judge note, View item, favorite or hide store, thumbs up or down with a scoped note | Cards, sort bar, ratings, out-of-date notice |
-| Details | Five sections: sources, item info, sizing and fit, fabric, design; buttons say "Save, next" and "Save, back to results"; Rerun search stays a separate, smaller button | Details steps and the fixed save flow |
-| Usage (Maggie only) | Searches, returning friends, click-through, ratings, spend this month against the budget | New |
+| Sign in | Enters email, taps the link in the email | 1, restyled in 2 |
+| Find (home) | Starts a search three equal ways: photo or screenshot, product link, or describe it; sees recent searches | 2 |
+| Review | Checks what the reader found (plain fields with edit buttons); confirms signature details, each with a Must match switch (the dealbreaker toggle); adds or removes details; picks view (All by price, New only, Secondhand), sees size and budget; "Looks right, search" or "Fix details" | 2 |
+| Results | Live cards appear as judged; filters for In my size and the three views; sort by look, fit or price; each card shows photo, brand, look and fit scores, name, price, color with a Different color tag, size, store, fabric, verdict and caveat (such as "Poly blend, not silk"); empty state suggests secondhand | 3 and 4 |
+| Item detail | The original side by side with the dupe; Save; favorite brand; verdict and caveat; sizes; facts (fabric, shipping, returns, care); look and fit breakdown; anchor checks and judge note; sticky buy bar through `/go`. Secondhand items show condition, measurements, seller and final sale instead. | 3 to 6 |
+| Swipe | A deck of cards from the friend's own approved and caveat results not yet rated; right is yes, left is no, with a pop-up for the reason; info opens Item detail; Save bookmarks | 7 |
+| Saved | Bookmarked items, newest first | 7 (price-drop and restock badges after the test) |
+| Your eye | Sizes for dresses, tops, bottoms and shoes, set with scrolling dials; "You go for" and "You pass on" tags (the dupe rules) to add or remove; price sweet spot; Appearance (light or dark) in the menu | 7 |
+| Details | Five sections: sources, item info, sizing and fit, fabric, design; buttons say "Save, next" and "Save, back to results"; Rerun search stays a separate, smaller button | 7 |
+| Usage (Maggie only) | Searches, returning friends, click-through, ratings, spend this month against the budget | 8 |
 
 **Lessons from the prototype to keep:**
 
 - A save button never also runs a search.
-- Feedback boxes close after Save and show a one-line summary with a Change link.
+- Feedback boxes close after Save and show a one-line summary with a Change link. The swipe pop-up follows this: after a reason it shrinks to "Nope · Price" with Change.
 - Every card shows brand, color and size together, and flags a different color.
 - Prices that aren't live are labeled as estimates, or left out.
+- Look and fit scores are always shown separately.
+- A field with no source is hidden or says it wasn't found (see `DESIGN.md` › Data on screen).
 
 ## Privacy, security and legal
 
@@ -255,12 +270,12 @@ Ten phases, each small enough for one or two Claude Code sessions and each endin
 | --- | --- | --- |
 | 0. Setup | Accounts opened, domain bought, eBay Partner Network application sent, empty Next.js app in a private GitHub repo, deployed to Vercel, `CLAUDE.md` written | A "Hello Dupe Dupe" page loads at the Vercel link |
 | 1. Sign-in | Supabase project, Resend connected to the domain and set as Supabase's email sender, email-link sign-in, `invites` and `profiles` tables, row-level security | 5 test invites all land in the inbox, not spam, within 2 minutes; an uninvited email is turned away |
-| 2. Start and brief | Home screen, photo upload and shrink, `searches` table, brief builder (plain fields, both briefs, query matrix), review card with editable anchor chips and dealbreaker toggles | The Sau Lee Joanna gown link fills in 100% polyester jacquard and true to size, and its anchors include the off-shoulder neckline, burnt red jacquard and boned bodice |
-| 3. Lens and new dupes | Inngest job with a step per stage and status updates, SerpApi Lens and Shopping, the candidates table with stage tracking, cleaning step with size filter and duplicate merging, new-items screener with thumbnails, result cards with photos, the /go click route that logs every outbound click | A Sau Lee search shows at least 6 new candidates with photos and real prices |
+| 2. Start and brief | New look's fonts and colors from `DESIGN.md`, Sign in restyled, Find screen (home) with photo, link and describe-it starts, photo upload and shrink, `searches` table, brief builder (plain fields, both briefs, query matrix), Review screen with editable signature details and Must match switches | The Sau Lee Joanna gown link fills in 100% polyester jacquard and true to size, and its anchors include the off-shoulder neckline, burnt red jacquard and boned bodice |
+| 3. Lens and new dupes | Inngest job with a step per stage and status updates, SerpApi Lens and Shopping, the candidates table with stage tracking, cleaning step with size filter and duplicate merging, new-items screener with thumbnails, result cards with photos in the `DESIGN.md` card style, Item detail page, the /go click route that logs every outbound click | A Sau Lee search shows at least 6 new candidates with photos and real prices |
 | 4. Judge | Judge with both photos and both briefs, the fixed checklist, look and fit scores and the three verdicts computed in code from it, caveats, sort, the three views | On the test set, Maggie agrees with the judge's top 3 at least 7 times in 10, and no rejected item breaks a stated dealbreaker |
 | 5. Secondhand | eBay (API or page reading), TinyFish resale pages with peer-brand queries, secondhand screener | At least 6 real secondhand listings with working links; no invented prices |
 | 6. Enrich and retry | Listing page reads for the top 20, sold-listing check, fabric tiers, unknown fabric as a caveat, stock-photo flag, one automatic retry | Fabric tier shows on at least 70% of approved results; a search built to come back thin retries exactly once |
-| 7. Taste | Ratings with one-tap reasons and scope, instant re-rank, taste profile with weights and rules, "Your dupe rules" card, 3-question setup, store favorites and hidden, saved searches, edit and rerun with out-of-date notice and brief rebuild, prototype data import | Tapping "wrong color" re-ranks the screen in under a second; after 2 matching ratings a rule appears on the card and changes the next search's brief |
+| 7. Taste | Ratings with one-tap reasons and scope, Swipe deck with the reason pop-up, instant re-rank, taste profile with weights and rules, Your eye screen (rules as tags, size dials, appearance setting), 3-question setup, store and brand favorites and hidden, saved searches, Saved tab, edit and rerun with out-of-date notice and brief rebuild, prototype data import | Tapping "wrong color" re-ranks the screen in under a second; after 2 matching ratings a rule appears on Your eye and changes the next search's brief |
 | 8. Guardrails | Daily caps, monthly budget stop, caching, `api_calls` logging, Sentry, usage screen, privacy note, account deletion | Hitting the cap shows a friendly message; spend on the usage screen matches the services' own dashboards within 10% |
 | 9. Friends | Invite 5 friends, fix what they hit, then invite the rest | 20 friends signed in; Goals measures tracking |
 
@@ -284,7 +299,7 @@ Treat Claude Code like a skilled builder you direct: give it this plan, one phas
 - Never put an API key in code or in a commit. Keys go in `.env.local` and in Vercel.
 - Commit to GitHub after each working step, with a plain-English message.
 - Explain what changed in plain words at the end of each step, and how to test it.
-- Use the prototype's prompts, look and behavior unless the plan says otherwise.
+- Use the prototype's prompts and behavior and `DESIGN.md`'s look, unless the plan says otherwise.
 
 **Habits for a first-time builder**
 
@@ -369,6 +384,7 @@ The first review settled six questions, and four remain open for the next one.
 | Email | Resend on Maggie's domain as Supabase's sender, set up in phase 1 |
 | Judging | Visual and composition briefs, signature anchors, fabric tiers, three verdicts, one automatic retry |
 | Missing listing details | An enrichment step reads the top 20 listings before judging; unknown fabric is a caveat, not a rejection |
+| Design | Black and white redesign on Nov 14, light by default with a dark option; `DESIGN.md` is the look reference and replaces the swing-tag look; swipe cards come from a friend's own results, so they add no search cost |
 
 **Still open**
 
@@ -605,7 +621,8 @@ The two screeners and the taste summarizer follow the same pattern: one tool, a 
 
 ## Sources
 
-- [Dupe Dupe prototype](https://claude.ai/artifact/H3QkMj1mQk95LN9ZvfmxxU), the behavior and design reference
+- [Dupe Dupe prototype](https://claude.ai/artifact/H3QkMj1mQk95LN9ZvfmxxU), the prompts and behavior reference
+- [Dupe Dupe design canvas](https://claude.ai/artifact/2aw46RbpRht5RgvvCBLHid), the look reference (copied into `design/screens/`)
 - [Dupe Dupe Cost Model](https://claude.ai/artifact/DfhDFDJQnVTeAcHGuFcPhz)
 - [SerpApi Google Lens API](https://serpapi.com/google-lens-api): parameters, image upload, visual matches fields, products type discontinued
 - [SerpApi plans, CostBench](https://www.costbench.com/software/web-scraping/serpapi/)

@@ -17,3 +17,13 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - Database changes live in `supabase/migrations/`; Maggie pastes them into Supabase's SQL Editor. `supabase/tests/privacy_check.sql` checks row-level security and changes nothing.
 - Keys: `.env.local` (git-ignored) and Vercel's Environment Variables. `.env.example` is the blank template. Maggie pastes key values herself; they never go through chat.
 - DNS check on 2026-11-14: Resend's DKIM record (`resend._domainkey`) is live. `send.dupedupe.studio` points at `send.forge.rmta.net` and DMARC is `p=reject` with strict alignment; confirm both against what Resend's dashboard asks for.
+
+## Design (Nov 14)
+
+- The swing-tag look (cream, sage and clay, Oswald) is retired. The new look is black and white, Inter Tight, Inter and JetBrains Mono, with pill buttons. `DESIGN.md` is the reference; `prototype.html` still is for prompts and behavior. The Phase 0 note about Oswald and Work Sans is out of date.
+- Why: product photos come from many sites and can't be made to match, so the app stays neutral and lets the clothes carry the color. Photos sit in a light gray tile with `mix-blend-mode: multiply`.
+- Light is the default. Dark mode is an option in the menu, saved in `profiles.theme`, not taken from the phone's setting. Image tiles stay light in dark mode so the blend trick still works.
+- Swipe cards come from the friend's own results, so the deck adds no search cost.
+- Fields like returns, delivery date and size in stock show only when a source states them (`DESIGN.md` › Data on screen).
+- The `design/screens/*.dc.html` files run only in the design canvas. They are for reading, not for copying into the app.
+

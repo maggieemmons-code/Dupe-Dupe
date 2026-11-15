@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dupe Dupe · Review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0A0A0A}a:hover{color:#444444}
+input::placeholder{color:#6B6B6B}
+</style>
+</helmet>
+<div style="width: 390px; height: 1780px; position: relative; overflow: hidden; background: #FFFFFF; font-family: Inter, system-ui, sans-serif; color: #0A0A0A; box-sizing: border-box">
+
+<div style="padding: 20px 20px 150px; display: flex; flex-direction: column; gap: 24px">
+
+<div style="display: flex; align-items: center; justify-content: space-between">
+<a href="Find.dc.html" aria-label="Back" style="width: 44px; height: 44px; border-radius: 22px; border: 1px solid #E5E5E5; box-sizing: border-box; display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+</a>
+<div style="font-size: 16px; font-weight: 600">Review</div>
+<div style="width: 44px" aria-hidden="true"></div>
+</div>
+
+<div>
+<h1 style="margin: 0; font-family: 'Inter Tight', Inter, sans-serif; font-weight: 800; font-size: 32px; line-height: 1.05; letter-spacing: -0.03em">Here's what we found.</h1>
+<p style="margin: 8px 0 0; font-size: 14px; line-height: 1.45; color: #6B6B6B">We filled in everything we could from your link, photos and profile. Check anything marked Guess.</p>
+</div>
+
+<div style="display: flex; gap: 14px; align-items: center; padding: 12px; border-radius: 22px; border: 1px solid #E5E5E5">
+<div style="width: 84px; height: 104px; border-radius: 16px; background: #F3F3F3; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+<svg width="60" height="72" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" role="img" aria-label="Your gown"><path d="M30 32 C45 26 75 26 90 32 L82 62 L106 130 H14 L38 62 Z"></path><path d="M30 32 C45 40 75 40 90 32 M38 62 H82" fill="none"></path></svg>
+</div>
+<div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B">Your original</span>
+<span style="font-family: 'Inter Tight', Inter, sans-serif; font-weight: 700; font-size: 18px">Sau Lee Joanna gown</span>
+<span style="font-size: 12px; color: #4A4A4A">Read from the product link</span>
+<span style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #4A4A4A"><span style="width: 10px; height: 10px; border-radius: 5px; background: #A0402A; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15)" aria-hidden="true"></span>Burnt red</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B">The details</span>
+<a href="Results.dc.html" style="font-size: 13px; font-weight: 600">Edit all</a>
+</div>
+<sc-for list="{{fields}}" as="fd" hint-placeholder-count="8">
+<div style="display: grid; grid-template-columns: 92px minmax(0, 1fr) 44px; gap: 8px; align-items: center; min-height: 48px; border-bottom: 1px solid #EDEDED">
+<span style="font-size: 13px; color: #6B6B6B">{{fd.label}}</span>
+<span style="display: flex; flex-direction: column; gap: 2px; padding: 8px 0; min-width: 0">
+<span style="font-size: 14px; font-weight: {{fd.weight}}; color: {{fd.color}}">{{fd.value}}</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #6B6B6B"><span style="border-radius: 999px; padding: 1px 7px; font-weight: 600; background: {{fd.tagBg}}; color: {{fd.tagFg}}; border: 1px solid {{fd.tagBorder}}">{{fd.tag}}</span>{{fd.note}}</span>
+</span>
+<button aria-label="{{fd.aria}}" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>
+</button>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<button onClick="{{toggleSig}}" aria-expanded="{{sigExpanded}}" style="display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 0; border: 0; border-top: 1px solid #EDEDED; background: transparent; cursor: pointer; text-align: left; color: #0A0A0A">
+<span style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0">
+<span style="display: flex; align-items: center; gap: 8px"><span style="font-family: 'Inter Tight', Inter, sans-serif; font-weight: 700; font-size: 18px">Signature details</span><span style="border: 1px solid #E5E5E5; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #4A4A4A">Optional</span></span>
+<span style="font-size: 12px; color: #4A4A4A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{sigSummary}}</span>
+</span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform: rotate({{sigRot}}); transition: transform 200ms ease"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{showSig}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<p style="margin: 0; font-size: 13px; line-height: 1.45; color: #4A4A4A">We already picked these from your link, so you can skip this. Turn on Must match and we reject anything without that detail.</p>
+<sc-for list="{{anchors}}" as="an" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 6px 8px 14px; border-radius: 16px; border: 1px solid {{an.border}}; background: {{an.bg}}">
+<span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 600">{{an.label}}</span>
+<span style="font-size: 11px; color: #4A4A4A; white-space: nowrap">Must match</span>
+<button onClick="{{an.toggle}}" role="switch" aria-checked="{{an.checked}}" aria-label="{{an.toggleLabel}}" style="width: 48px; height: 30px; border-radius: 15px; border: 0; padding: 3px; background: {{an.track}}; display: flex; justify-content: {{an.side}}; cursor: pointer; flex-shrink: 0">
+<span style="width: 24px; height: 24px; border-radius: 12px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.25)"></span>
+</button>
+<button onClick="{{an.remove}}" aria-label="{{an.removeLabel}}" style="width: 36px; height: 36px; border: 0; border-radius: 18px; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; flex-shrink: 0">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+</button>
+</div>
+</sc-for>
+<sc-if value="{{adding}}" hint-placeholder-val="{{false}}">
+<input aria-label="Add a signature detail" placeholder="e.g. Corset lacing at the back" value="{{draft}}" onChange="{{onDraft}}" onKeyDown="{{onKey}}" onBlur="{{commit}}" autoFocus="{{true}}" style="height: 48px; box-sizing: border-box; border-radius: 16px; border: 1.5px solid #0A0A0A; padding: 0 14px; font-family: Inter, sans-serif; font-size: 14px; color: #0A0A0A; outline: none">
+</sc-if>
+<sc-if value="{{notAdding}}" hint-placeholder-val="{{true}}">
+<button onClick="{{startAdd}}" style="height: 48px; border-radius: 16px; border: 1px dashed #0A0A0A; background: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 600; cursor: pointer; color: #0A0A0A">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add a detail</button>
+</sc-if>
+</div>
+</sc-if>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B">Search for</span>
+<div style="display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: #F2F2F2">
+<sc-for list="{{views}}" as="v" hint-placeholder-count="3">
+<button onClick="{{v.pick}}" aria-pressed="{{v.pressed}}" style="flex: 1; height: 40px; border: 0; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600; background: {{v.bg}}; color: {{v.fg}}; white-space: nowrap">{{v.label}}</button>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<a href="Taste.dc.html" style="display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 16px; background: #F6F6F6; text-decoration: none; color: #0A0A0A">
+<span style="font-size: 12px; color: #6B6B6B">Your dress size · from profile</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 500">M · 4</span>
+<span style="font-size: 12px; font-weight: 600">Change</span>
+</a>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 16px; background: #F6F6F6">
+<label for="budget" style="font-size: 12px; color: #6B6B6B">Most you'd spend · from Your eye</label>
+<div style="display: flex; align-items: center; gap: 2px; font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 500">$<input id="budget" type="text" inputmode="numeric" value="220" style="width: 100%; min-width: 0; border: 0; background: transparent; font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 500; color: #0A0A0A; outline: none; padding: 0"></div>
+<span style="font-size: 12px; color: #6B6B6B">Top of your price sweet spot</span>
+</div>
+</div>
+</div>
+
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 20px 28px; background: #FFFFFF; border-top: 1px solid #EDEDED; display: flex; gap: 10px">
+<a href="Results.dc.html" style="flex: 1; height: 52px; border-radius: 999px; border: 1px solid #0A0A0A; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; text-decoration: none; color: #0A0A0A">Fix details</a>
+<a href="Results.dc.html" style="flex: 1.6; height: 52px; border-radius: 999px; background: #0A0A0A; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; text-decoration: none">Looks right, search
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+</a>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1780}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      anchors: [
+        { label: 'Off-shoulder neckline', must: true },
+        { label: 'Burnt red jacquard', must: true },
+        { label: 'Boned bodice', must: false }
+      ],
+      view: 'all',
+      sig: false,
+      adding: false,
+      draft: ''
+    };
+  }
+  commit() {
+    const v = this.state.draft.trim();
+    const list = this.state.anchors;
+    const next = v && !list.some((a) => a.label === v) ? list.concat([{ label: v, must: false }]) : list;
+    this.setState({ anchors: next, adding: false, draft: '' });
+  }
+  renderVals() {
+    const s = this.state;
+    const fields = [
+      ['Brand', 'Sau Lee', 'link'], ['Item', 'Joanna gown', 'link'], ['Category', 'Gown', 'link'], ['Color', 'Burnt red', 'link'],
+      ['Fabric', '100% polyester jacquard', 'link'], ['Fit', 'True to size', 'link'], ['Stretch', 'No stretch', 'guess', 'Jacquard rarely stretches'],
+      ['Neckline', 'Off-shoulder', 'photo'], ['Length', 'Floor length', 'photo'], ['Retail price', 'Not found', 'none', 'Add it to compare savings']
+    ];
+    const tags = {
+      link: ['Link', 'Read from the product page', '#FFFFFF', '#0A0A0A', '#E5E5E5'],
+      photo: ['Photo', 'Seen in your photo', '#FFFFFF', '#0A0A0A', '#E5E5E5'],
+      profile: ['Profile', 'From your profile', '#FFFFFF', '#0A0A0A', '#E5E5E5'],
+      guess: ['Guess', 'Please check', '#0A0A0A', '#FFFFFF', '#0A0A0A'],
+      none: ['Missing', '', '#F2F2F2', '#4A4A4A', '#F2F2F2']
+    };
+    return {
+      fields: fields.map((f) => ({
+        label: f[0],
+        value: f[1],
+        tag: tags[f[2]][0],
+        note: f[3] || tags[f[2]][1],
+        tagBg: tags[f[2]][2],
+        tagFg: tags[f[2]][3],
+        tagBorder: tags[f[2]][4],
+        aria: 'Edit ' + f[0].toLowerCase(),
+        weight: f[1] === 'Not found' ? '400' : '500',
+        color: f[1] === 'Not found' ? '#6B6B6B' : '#0A0A0A'
+      })),
+      anchors: s.anchors.map((a, i) => ({
+        label: a.label,
+        checked: a.must ? 'true' : 'false',
+        toggleLabel: 'Must match: ' + a.label,
+        removeLabel: 'Remove ' + a.label,
+        track: a.must ? '#0A0A0A' : '#D4D4D4',
+        side: a.must ? 'flex-end' : 'flex-start',
+        border: a.must ? '#0A0A0A' : '#E5E5E5',
+        bg: '#FFFFFF',
+        toggle: () => {
+          const next = s.anchors.slice();
+          next[i] = { label: a.label, must: !a.must };
+          this.setState({ anchors: next });
+        },
+        remove: () => this.setState({ anchors: s.anchors.filter((x, j) => j !== i) })
+      })),
+      views: [['all', 'All by price'], ['new', 'New only'], ['used', 'Secondhand']].map((v) => ({
+        label: v[1],
+        pressed: s.view === v[0] ? 'true' : 'false',
+        bg: s.view === v[0] ? '#0A0A0A' : 'transparent',
+        fg: s.view === v[0] ? '#FFFFFF' : '#0A0A0A',
+        pick: () => this.setState({ view: v[0] })
+      })),
+      toggleSig: () => this.setState({ sig: !s.sig }),
+      showSig: s.sig,
+      sigExpanded: s.sig ? 'true' : 'false',
+      sigRot: s.sig ? '180deg' : '0deg',
+      sigSummary: s.anchors.length ? s.anchors.length + ' found · ' + s.anchors.filter((a) => a.must).length + ' must match · ' + s.anchors.map((a) => a.label).join(', ') : 'None yet · Add one if something matters',
+      adding: s.adding,
+      notAdding: !s.adding,
+      draft: s.draft,
+      startAdd: () => this.setState({ adding: true, draft: '' }),
+      onDraft: (e) => this.setState({ draft: e.target.value }),
+      onKey: (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); this.commit(); }
+        if (e.key === 'Escape') this.setState({ adding: false, draft: '' });
+      },
+      commit: () => this.commit()
+    };
+  }
+}
+</script>
+</body>
+</html>

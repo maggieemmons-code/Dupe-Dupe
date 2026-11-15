@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dupe Dupe · Swipe card</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 100%; height: 430px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #E6E6E6; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; font-family: Inter, system-ui, sans-serif; color: #0A0A0A; box-shadow: 0 1px 2px rgba(0,0,0,0.04)">
+<div style="position: relative; height: 236px; margin: 8px 8px 0; border-radius: 22px; background: #F3F3F3; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+<sc-if value="{{it.coat}}" hint-placeholder-val="{{true}}">
+<svg width="150" height="175" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" role="img" aria-label="Coat"><path d="M46 12 L60 26 L74 12 L94 20 C100 40 104 62 108 92 L96 95 L90 52 L92 130 L28 130 L30 52 L24 95 L12 92 C16 62 20 40 26 20 Z"></path><path d="M46 12 L50 44 L60 26 M74 12 L70 44 L60 26" fill="none"></path><path d="M60 26 L52 64 L64 130" fill="none"></path><path d="M30 78 H90" fill="none"></path><path d="M36 98 h12 M72 98 h12" fill="none"></path></svg>
+</sc-if>
+<sc-if value="{{it.bag}}" hint-placeholder-val="{{false}}">
+<svg width="150" height="175" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" role="img" aria-label="Tote bag"><path d="M44 54 C44 24 76 24 76 54" fill="none"></path><path d="M22 54 H98 L104 126 H16 Z"></path><path d="M21 66 H99" fill="none"></path></svg>
+</sc-if>
+<sc-if value="{{it.shoe}}" hint-placeholder-val="{{false}}">
+<svg width="160" height="175" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" role="img" aria-label="Loafer"><path d="M10 96 C10 84 20 78 32 77 L58 72 C70 70 80 74 88 82 L106 88 C112 90 112 100 106 102 L14 102 C11 102 10 99 10 96 Z"></path><path d="M50 76 C56 83 70 85 80 80" fill="none"></path><path d="M58 80 h12" fill="none"></path><path d="M11 102 H108" fill="none"></path></svg>
+</sc-if>
+<sc-if value="{{it.knit}}" hint-placeholder-val="{{false}}">
+<svg width="150" height="175" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" role="img" aria-label="Sweater"><path d="M42 18 C48 26 72 26 78 18 L102 28 C106 50 110 72 112 96 L100 98 L94 56 L94 126 L26 126 L26 56 L20 98 L8 96 C10 72 14 50 18 28 Z"></path><path d="M42 18 C48 31 72 31 78 18" fill="none"></path><path d="M26 118 H94 M100 91 l11 -1 M9 90 l11 1" fill="none"></path></svg>
+</sc-if>
+<sc-if value="{{it.pant}}" hint-placeholder-val="{{false}}">
+<svg width="150" height="175" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" role="img" aria-label="Trousers"><path d="M34 14 H86 L94 128 H68 L60 52 L52 128 H26 Z"></path><path d="M34 24 H86 M60 24 V44 M46 24 L44 60 M74 24 L76 60" fill="none"></path></svg>
+</sc-if>
+<sc-if value="{{it.secondhand}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: 14px; top: 14px; background: #FFFFFF; border: 1px solid #0A0A0A; border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 600">Pre-owned</div>
+</sc-if>
+<div style="position: absolute; right: 14px; top: 14px; display: flex; align-items: center; gap: 6px; background: #FFFFFF; border: 1px solid #E5E5E5; border-radius: 999px; padding: 5px 10px 5px 6px; font-size: 11px; font-weight: 600">
+<span style="width: 12px; height: 12px; border-radius: 6px; background: {{it.hex}}; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15)" aria-hidden="true"></span>
+<span>{{it.color}}</span>
+</div>
+<sc-if value="{{it.diffColor}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; right: 14px; top: 50px; background: #0A0A0A; color: #FFFFFF; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600">Different color</div>
+</sc-if>
+<div style="position: absolute; left: 14px; bottom: 12px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B">Image · {{it.domain}}</div>
+</div>
+<div style="padding: 14px 20px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0">
+<div style="display: flex; justify-content: space-between; align-items: center">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B">{{it.retailer}}</span>
+<span style="background: #0A0A0A; color: #FFFFFF; border-radius: 999px; padding: 4px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px">Look {{it.look}} · Fit {{it.fit}}</span>
+</div>
+<div style="font-family: 'Inter Tight', Inter, sans-serif; font-weight: 700; font-size: 21px; line-height: 1.15; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.name}}</div>
+<div style="font-size: 13px; color: #6B6B6B">{{it.note}}</div>
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: {{it.sizeColor}}">
+<span style="width: 8px; height: 8px; border-radius: 4px; box-sizing: border-box; border: 1.5px solid {{it.sizeColor}}; background: {{it.sizeDot}}" aria-hidden="true"></span>
+<span>{{it.sizeNote}}</span>
+</div>
+<div style="display: flex; align-items: center; gap: 10px; margin-top: auto">
+<span style="font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 24px; letter-spacing: -0.02em">{{it.price}}</span>
+<s style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #6B6B6B">{{it.was}}</s>
+<button onPointerDown="{{stop}}" onClick="{{toggleSave}}" aria-pressed="{{savedPressed}}" aria-label="{{saveLabel}}" style="margin-left: auto; height: 40px; padding: 0 14px 0 12px; border-radius: 999px; border: 1px solid #0A0A0A; background: {{saveBg}}; color: {{saveFg}}; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="{{saveFill}}" stroke="{{saveFg}}" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-6-4.5-6 4.5z"></path></svg>
+<span>{{saveText}}</span>
+</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"$preview":{"width":350,"height":430}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { saved: {} };
+  }
+  renderVals() {
+    const raw = this.props.item ?? { kind: 'coat', retailer: 'Mango', domain: 'mango.com', name: 'Wool-blend wrap coat', note: 'Dupe of Toteme wrap coat', was: '$1,200', price: '$129', look: '92', fit: '88', secondhand: false, color: 'Camel', hex: '#B8875A', sizeNote: 'Your size M · In stock', sizeOk: true };
+    const k = raw.kind;
+    const key = raw.retailer + '|' + raw.name;
+    const on = !!this.state.saved[key];
+    return {
+      stop: (e) => e.stopPropagation(),
+      toggleSave: (e) => {
+        e.stopPropagation();
+        const next = Object.assign({}, this.state.saved);
+        next[key] = !on;
+        this.setState({ saved: next });
+      },
+      savedPressed: on ? 'true' : 'false',
+      saveLabel: on ? 'Saved. Tap to remove' : 'Save link for later',
+      saveText: on ? 'Saved' : 'Save',
+      saveBg: on ? '#0A0A0A' : '#FFFFFF',
+      saveFg: on ? '#FFFFFF' : '#0A0A0A',
+      saveFill: on ? '#FFFFFF' : 'none',
+      it: Object.assign({}, raw, { coat: k === 'coat', bag: k === 'bag', shoe: k === 'shoe', knit: k === 'knit', pant: k === 'pant', secondhand: !!raw.secondhand, diffColor: !!raw.diffColor, sizeNote: raw.sizeNote || 'Size info unavailable', sizeColor: raw.sizeOk === false ? '#6B6B6B' : '#0A0A0A', sizeDot: raw.sizeOk === false ? 'transparent' : '#0A0A0A' })
+    };
+  }
+}
+</script>
+</body>
+</html>

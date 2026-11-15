@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dupe Dupe · Swipe to train</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0A0A0A}a:hover{color:#444444}
+button{font-family:inherit}
+@keyframes ddPop{from{opacity:0;transform:translateY(14px) scale(0.97)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #FFFFFF; font-family: Inter, system-ui, sans-serif; color: #0A0A0A; box-sizing: border-box; user-select: none">
+
+<div style="position: absolute; left: 20px; right: 20px; top: 20px; display: flex; align-items: center; justify-content: space-between">
+<button aria-label="Menu" style="width: 44px; height: 44px; border-radius: 22px; border: 1px solid #E5E5E5; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h10"></path></svg>
+</button>
+<div style="font-family: 'Inter Tight', Inter, sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.34em; padding-left: 0.34em">DUPE DUPE</div>
+<button aria-label="Filters" style="width: 44px; height: 44px; border-radius: 22px; border: 1px solid #E5E5E5; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"></path><circle cx="16" cy="7" r="2.5"></circle><circle cx="8" cy="17" r="2.5"></circle></svg>
+</button>
+</div>
+
+<div style="position: absolute; left: 20px; right: 20px; top: 78px; display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: #F2F2F2">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+<button onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="flex: 1; height: 40px; border: 0; border-radius: 999px; cursor: pointer; font-size: 14px; font-weight: 600; background: {{m.bg}}; color: {{m.fg}}">{{m.label}}</button>
+</sc-for>
+</div>
+
+<div style="position: absolute; left: 20px; right: 20px; top: 142px">
+<div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B"><span>Training your eye</span><span>{{count}} swipes</span></div>
+<div style="margin-top: 8px; height: 3px; background: #EDEDED; border-radius: 2px; overflow: hidden"><div style="height: 3px; background: #0A0A0A; width: {{pct}}; transition: width 300ms ease"></div></div>
+</div>
+
+<div style="position: absolute; left: 20px; right: 20px; top: 178px; height: 430px">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; transform: {{backTransform}}; transition: {{backTransition}}">
+<dc-import name="Card" item="{{next}}" hint-size="100%,430px"></dc-import>
+</div>
+<div onPointerDown="{{down}}" onPointerMove="{{move}}" onPointerUp="{{up}}" onPointerCancel="{{up}}" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; touch-action: none; cursor: grab; transform: {{frontTransform}}; transition: {{frontTransition}}">
+<dc-import name="Card" item="{{cur}}" hint-size="100%,430px"></dc-import>
+<div aria-hidden="true" style="position: absolute; top: 30px; left: 26px; opacity: {{yesOp}}; transform: rotate(-12deg); border: 2px solid #0A0A0A; background: #FFFFFF; border-radius: 10px; padding: 6px 14px; font-family: 'Inter Tight', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0.14em; pointer-events: none">YES</div>
+<div aria-hidden="true" style="position: absolute; top: 30px; right: 26px; opacity: {{noOp}}; transform: rotate(12deg); border: 2px solid #0A0A0A; background: #0A0A0A; color: #FFFFFF; border-radius: 10px; padding: 6px 14px; font-family: 'Inter Tight', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0.14em; pointer-events: none">NOPE</div>
+</div>
+</div>
+
+<sc-if value="{{showFull}}" hint-placeholder-val="{{false}}">
+<div role="dialog" aria-label="Why did you swipe that way?" style="position: absolute; left: 24px; right: 24px; top: 452px; box-sizing: border-box; padding: 14px; border-radius: 22px; background: rgba(255,255,255,0.78); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); border: 1px solid rgba(10,10,10,0.08); box-shadow: 0 18px 40px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.08); display: flex; flex-direction: column; gap: 12px; animation: ddPop 240ms cubic-bezier(.2,.8,.2,1)">
+<div style="display: flex; align-items: center; gap: 12px">
+<div style="width: 48px; height: 56px; border-radius: 12px; background: #F3F3F3; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative">
+<sc-if value="{{lastIs.coat}}" hint-placeholder-val="{{false}}"><svg width="34" height="40" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="3.2" stroke-linejoin="round" aria-hidden="true"><path d="M46 12 L60 26 L74 12 L94 20 C100 40 104 62 108 92 L96 95 L90 52 L92 130 L28 130 L30 52 L24 95 L12 92 C16 62 20 40 26 20 Z"></path><path d="M60 26 L52 64 L64 130 M30 78 H90" fill="none"></path></svg></sc-if>
+<sc-if value="{{lastIs.bag}}" hint-placeholder-val="{{false}}"><svg width="34" height="40" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="3.2" stroke-linejoin="round" aria-hidden="true"><path d="M44 54 C44 24 76 24 76 54" fill="none"></path><path d="M22 54 H98 L104 126 H16 Z"></path></svg></sc-if>
+<sc-if value="{{lastIs.shoe}}" hint-placeholder-val="{{false}}"><svg width="34" height="40" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="3.2" stroke-linejoin="round" aria-hidden="true"><path d="M10 96 C10 84 20 78 32 77 L58 72 C70 70 80 74 88 82 L106 88 C112 90 112 100 106 102 L14 102 C11 102 10 99 10 96 Z"></path></svg></sc-if>
+<sc-if value="{{lastIs.knit}}" hint-placeholder-val="{{false}}"><svg width="34" height="40" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="3.2" stroke-linejoin="round" aria-hidden="true"><path d="M42 18 C48 26 72 26 78 18 L102 28 C106 50 110 72 112 96 L100 98 L94 56 L94 126 L26 126 L26 56 L20 98 L8 96 C10 72 14 50 18 28 Z"></path></svg></sc-if>
+<sc-if value="{{lastIs.pant}}" hint-placeholder-val="{{false}}"><svg width="34" height="40" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="3.2" stroke-linejoin="round" aria-hidden="true"><path d="M34 14 H86 L94 128 H68 L60 52 L52 128 H26 Z"></path></svg></sc-if>
+<span style="position: absolute; right: -6px; bottom: -6px; width: 22px; height: 22px; border-radius: 11px; background: {{badgeBg}}; border: 1.5px solid #0A0A0A; display: flex; align-items: center; justify-content: center" aria-hidden="true">
+<sc-if value="{{lastYes}}" hint-placeholder-val="{{false}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"></path></svg></sc-if>
+<sc-if value="{{lastNo}}" hint-placeholder-val="{{true}}"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="3.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></sc-if>
+</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #4A4A4A">{{whyLabel}}</span>
+<span style="font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{lastName}}</span>
+<span style="font-size: 12px; color: #4A4A4A">{{lastMeta}}</span>
+</div>
+<button onClick="{{dismiss}}" aria-label="Skip" style="width: 36px; height: 36px; border-radius: 18px; border: 0; background: rgba(10,10,10,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; flex-shrink: 0; align-self: flex-start">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+</button>
+</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<sc-for list="{{reasons}}" as="r" hint-placeholder-count="3">
+<button onClick="{{r.pick}}" aria-pressed="{{r.pressed}}" style="height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid #0A0A0A; background: {{r.bg}}; color: {{r.fg}}; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap">{{r.label}}</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{showSummary}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: absolute; left: 24px; right: 24px; top: 556px; height: 48px; box-sizing: border-box; padding: 0 6px 0 16px; border-radius: 999px; background: rgba(255,255,255,0.82); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); border: 1px solid rgba(10,10,10,0.08); box-shadow: 0 10px 28px rgba(0,0,0,0.18); display: flex; align-items: center; gap: 8px; animation: ddPop 200ms cubic-bezier(.2,.8,.2,1)">
+<span style="font-size: 13px; font-weight: 600; white-space: nowrap">{{summaryText}}</span>
+<span style="font-size: 12px; color: #4A4A4A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0">{{lastName}}</span>
+<button onClick="{{change}}" style="height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #0A0A0A; background: #FFFFFF; font-size: 12px; font-weight: 600; cursor: pointer; color: #0A0A0A">Change</button>
+</div>
+</sc-if>
+
+<div style="position: absolute; left: 0; right: 0; top: 624px; display: flex; justify-content: center; align-items: center; gap: 16px">
+<button aria-label="Not for me" onClick="{{no}}" style="width: 64px; height: 64px; border-radius: 32px; border: 1.5px solid #0A0A0A; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+</button>
+<button aria-label="Undo last swipe" onClick="{{undo}}" style="width: 48px; height: 48px; border-radius: 24px; border: 1px solid #E5E5E5; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6L4 11l5 5"></path><path d="M4 11h10a5 5 0 0 1 0 10h-3"></path></svg>
+</button>
+<a href="Detail.dc.html" aria-label="See full details" style="width: 48px; height: 48px; border-radius: 24px; border: 1px solid #E5E5E5; box-sizing: border-box; display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 11v5.5M12 7.6v.1"></path></svg>
+</a>
+<button aria-label="For me" onClick="{{yes}}" style="width: 64px; height: 64px; border-radius: 32px; border: 0; background: #0A0A0A; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"></path></svg>
+</button>
+</div>
+
+<div style="position: absolute; left: 16px; right: 16px; top: 702px; height: 44px; display: flex; align-items: center; justify-content: center">
+<div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B">← Swipe to pass · Swipe to save →</div>
+</div>
+
+<nav aria-label="Main" style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; gap: 8px; padding: 8px; border-radius: 999px; background: #0A0A0A">
+<a href="Main.dc.html" aria-label="Swipe" aria-current="page" style="width: 48px; height: 48px; border-radius: 24px; background: #FFFFFF; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="10" height="14" rx="2" transform="rotate(-10 8.5 12)"></rect><rect x="10" y="4" width="10" height="15" rx="2"></rect></svg>
+</a>
+<a href="Find.dc.html" aria-label="Find a dupe" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h3.5l2-3h6l2 3h3.5v11h-17z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+</a>
+<a href="Saved.dc.html" aria-label="Saved" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-6-4.5-6 4.5z"></path></svg>
+</a>
+<a href="Taste.dc.html" aria-label="Your eye" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1-4.5 4.5-6.5 8-6.5s7 2 8 6.5"></path></svg>
+</a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { mode: 'new', i: 0, dx: 0, dy: 0, dragging: false, last: null, reason: null, count: 14 };
+    this.start = null;
+    this.busy = false;
+  }
+  items() {
+    if (this.state.mode === 'used') {
+      return [
+        { kind: 'coat', retailer: 'Poshmark', domain: 'poshmark.com', name: 'Toteme wrap coat', note: 'The exact piece, pre-owned', was: '$1,200', price: '$310', look: '100', fit: '94', secondhand: true, color: 'Camel', hex: '#B8875A', sizeNote: 'Your size M · Only 1', sizeOk: true },
+        { kind: 'bag', retailer: 'The RealReal', domain: 'therealreal.com', name: 'Leather tote, camel', note: 'Designer original, authenticated', was: '$1,450', price: '$620', look: '96', fit: '100', secondhand: true, color: 'Camel', hex: '#B07A4A', sizeNote: 'One size · Only 1', sizeOk: true },
+        { kind: 'knit', retailer: 'Depop', domain: 'depop.com', name: 'Cashmere crewneck', note: 'Designer original, gently worn', was: '$950', price: '$140', look: '94', fit: '90', secondhand: true, color: 'Oatmeal', hex: '#D9CBB5', sizeNote: 'Size M · Only 1', sizeOk: true },
+        { kind: 'shoe', retailer: 'ThredUp', domain: 'thredup.com', name: 'Vintage leather loafer', note: 'Dupe of a designer loafer', was: '$890', price: '$38', look: '83', fit: '86', secondhand: true, color: 'Black', hex: '#0A0A0A', sizeNote: 'Your size 8 · Only 1', sizeOk: true }
+      ];
+    }
+    return [
+      { kind: 'coat', retailer: 'Mango', domain: 'mango.com', name: 'Wool-blend wrap coat', note: 'Dupe of Toteme wrap coat', was: '$1,200', price: '$129', look: '92', fit: '88', secondhand: false, color: 'Camel', hex: '#B8875A', sizeNote: 'Your size M · In stock', sizeOk: true },
+      { kind: 'bag', retailer: 'COS', domain: 'cos.com', name: 'Soft leather tote', note: 'Dupe of The Row tote', was: '$1,450', price: '$190', look: '88', fit: '100', secondhand: false, color: 'Black', hex: '#0A0A0A', sizeNote: 'One size · In stock', sizeOk: true },
+      { kind: 'pant', retailer: 'Aritzia', domain: 'aritzia.com', name: 'Wide-leg pleated trouser', note: 'Dupe of The Row trouser', was: '$1,290', price: '$148', look: '90', fit: '84', secondhand: false, color: 'Charcoal', hex: '#3D3D3D', diffColor: true, sizeNote: 'Your size 28 · Low stock', sizeOk: true },
+      { kind: 'shoe', retailer: '& Other Stories', domain: 'stories.com', name: 'Leather penny loafer', note: 'Dupe of Khaite loafer', was: '$890', price: '$110', look: '85', fit: '80', secondhand: false, color: 'Dark brown', hex: '#4A2E1F', sizeNote: 'Size 8 sold out · 8.5 available', sizeOk: false },
+      { kind: 'knit', retailer: 'Uniqlo', domain: 'uniqlo.com', name: 'Cashmere crewneck', note: 'Dupe of Jil Sander crewneck', was: '$950', price: '$99', look: '81', fit: '92', secondhand: false, color: 'Ivory', hex: '#EFE8DA', diffColor: true, sizeNote: 'Your size M · In stock', sizeOk: true }
+    ];
+  }
+  down(e) {
+    if (this.busy) return;
+    this.start = { x: e.clientX, y: e.clientY };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+    this.setState({ dragging: true });
+  }
+  move(e) {
+    if (!this.start) return;
+    this.setState({ dx: e.clientX - this.start.x, dy: (e.clientY - this.start.y) * 0.25 });
+  }
+  up() {
+    if (!this.start) return;
+    this.start = null;
+    const dx = this.state.dx;
+    if (Math.abs(dx) > 100) this.commit(dx > 0 ? 1 : -1);
+    else this.setState({ dragging: false, dx: 0, dy: 0 });
+  }
+  commit(dir) {
+    if (this.busy) return;
+    this.busy = true;
+    this.setState({ dragging: false, dx: dir * 560 });
+    setTimeout(() => {
+      const list = this.items();
+      const it = list[this.state.i % list.length];
+      this.setState({ i: this.state.i + 1, dx: 0, dy: 0, dragging: true, last: { dir: dir, item: it }, reason: null, count: this.state.count + 1 });
+      setTimeout(() => { this.busy = false; this.setState({ dragging: false }); }, 40);
+    }, 280);
+  }
+  undo() {
+    if (this.busy || this.state.i === 0) return;
+    this.setState({ i: this.state.i - 1, last: null, reason: null, count: Math.max(0, this.state.count - 1) });
+  }
+  renderVals() {
+    const s = this.state;
+    const list = this.items();
+    const n = list.length;
+    const p = Math.min(Math.abs(s.dx) / 120, 1);
+    const ease = 'cubic-bezier(.2,.8,.2,1)';
+    const last = s.last;
+    const li = last ? last.item : null;
+    const labels = last && last.dir > 0 ? ['The shape', 'The price', 'Fabric'] : ['Price', 'Fabric', 'Not me'];
+    return {
+      modes: [['new', 'New dupes'], ['used', 'Secondhand']].map((m) => ({
+        label: m[1],
+        pressed: s.mode === m[0] ? 'true' : 'false',
+        bg: s.mode === m[0] ? '#0A0A0A' : 'transparent',
+        fg: s.mode === m[0] ? '#FFFFFF' : '#0A0A0A',
+        pick: () => this.setState({ mode: m[0], i: 0, dx: 0, dy: 0, last: null, reason: null })
+      })),
+      cur: list[s.i % n],
+      next: list[(s.i + 1) % n],
+      count: s.count,
+      pct: Math.min((s.count / 25) * 100, 100) + '%',
+      frontTransform: 'translate(' + s.dx + 'px, ' + s.dy + 'px) rotate(' + (s.dx / 16) + 'deg)',
+      frontTransition: s.dragging ? 'none' : 'transform 280ms ' + ease,
+      backTransform: 'translateY(' + (14 - 14 * p) + 'px) scale(' + (0.94 + 0.06 * p) + ')',
+      backTransition: s.dragging ? 'none' : 'transform 280ms ' + ease,
+      yesOp: Math.max(0, Math.min(s.dx / 90, 1)),
+      noOp: Math.max(0, Math.min(-s.dx / 90, 1)),
+      down: (e) => this.down(e),
+      move: (e) => this.move(e),
+      up: () => this.up(),
+      no: () => this.commit(-1),
+      yes: () => this.commit(1),
+      undo: () => this.undo(),
+      showFull: !!last && !s.reason,
+      showSummary: !!last && !!s.reason,
+      summaryText: last ? (last.dir > 0 ? 'Yes' : 'Nope') + ' · ' + (s.reason || '') : '',
+      change: () => this.setState({ reason: null }),
+      whyLabel: last ? (last.dir > 0 ? 'You said yes · What hooked you?' : 'You passed · What missed?') : '',
+      lastName: li ? li.name : '',
+      lastMeta: li ? li.retailer + ' · ' + li.price : '',
+      lastIs: { coat: !!li && li.kind === 'coat', bag: !!li && li.kind === 'bag', shoe: !!li && li.kind === 'shoe', knit: !!li && li.kind === 'knit', pant: !!li && li.kind === 'pant' },
+      lastYes: !!last && last.dir > 0,
+      lastNo: !!last && last.dir < 0,
+      badgeBg: last && last.dir > 0 ? '#0A0A0A' : '#FFFFFF',
+      dismiss: () => this.setState({ last: null, reason: null }),
+      reasons: labels.map((label) => ({
+        label: label,
+        pressed: s.reason === label ? 'true' : 'false',
+        bg: s.reason === label ? '#0A0A0A' : '#FFFFFF',
+        fg: s.reason === label ? '#FFFFFF' : '#0A0A0A',
+        pick: () => this.setState({ reason: label })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

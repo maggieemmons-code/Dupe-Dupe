@@ -3,12 +3,13 @@
 A private, invite-only web app for Maggie and up to 20 friends. A friend drops in a piece they love (link, typed text or photos) and gets new dupes under budget plus secondhand matches, judged on look and fit.
 
 - **`PLAN.md` is the source of truth** for scope, pipeline, data model, screens, guardrails and the agent prompts. Read the relevant section before starting any phase.
-- **`prototype.html` is the look and behavior reference.** Reuse its prompts, palette, type, swing-tag look and interaction details unless `PLAN.md` says otherwise.
+- **`DESIGN.md` is the look reference** (black and white, light by default with a dark option). The screens it describes are in `design/screens/`; read the matching file before building a screen.
+- **`prototype.html` is the prompts and behavior reference.** Reuse its prompts and interaction details unless `PLAN.md` or `DESIGN.md` says otherwise. Its swing-tag look is retired.
 - Maggie is a first-time builder. She doesn't write code; she reads plans and tests on her phone.
 
 ## Current phase: 2 (Start and brief)
 
-**Builds:** Home screen, photo upload and shrink, `searches` table, brief builder (plain fields, both briefs, query matrix), review card with editable anchor chips and dealbreaker toggles.
+**Builds:** the new look's fonts and colors (`DESIGN.md`), Sign in restyled, Find screen (the home screen) with photo, link and describe-it starts, photo upload and shrink, `searches` table, brief builder (plain fields, both briefs, query matrix), Review screen with editable signature details and Must match (dealbreaker) switches.
 
 **Done when:** the Sau Lee Joanna gown link fills in 100% polyester jacquard and true to size, and its anchors include the off-shoulder neckline, burnt red jacquard and boned bodice.
 
@@ -30,7 +31,7 @@ Update this section when a phase's check passes. Phases and their "Done when" ch
 - Never put an API key in code or in a commit. Keys go in `.env.local` (git-ignored) and in Vercel's environment variables. No key ever reaches the browser.
 - Commit to GitHub after each working step, with a plain-English message.
 - At the end of each step, explain what changed in plain words and how to test it (on her phone where it applies).
-- Use the prototype's prompts, look and behavior unless the plan says otherwise.
+- Use the prototype's prompts and behavior and `DESIGN.md`'s look, unless the plan says otherwise.
 - When Maggie has to do something in GitHub, Vercel, Supabase or any other website, give exact click-by-click steps. Look up the exact page or direct download link yourself and give it to her, name the button or file to expect, and say what to ignore. Her Mac has an Apple chip (arm64).
 - Record decisions and gotchas in `NOTES.md` so later sessions don't repeat mistakes.
 
@@ -60,9 +61,12 @@ Update this section when a phase's check passes. Phases and their "Done when" ch
 - Affiliate code lives in one module that only the `/go` route may import. Agents never see commission data.
 - Every external call writes a row to `api_calls`.
 
-## Look and feel (from `prototype.html`)
+## Look and feel (from `DESIGN.md`)
 
-- Phones first. Swing-tag cards, ticket-stub stepper, dashed borders, 3–4px radii.
-- Fonts: Oswald (display, uppercase headings and buttons), Work Sans (body), JetBrains Mono (labels, eyebrows, prices).
-- Light palette: paper `#F6F4EF`, card `#FFFFFF`, ink `#1D1C1A`, muted `#857E74`, line `#E2DCD1`, sage `#6F7E61` / `#EBEFE6`, clay `#B8653F` / `#F5E9E1`, warn `#9A3B2B`. Dark palette is in the prototype's `:root` rules; support both.
-- Behavior lessons to keep: a save button never also runs a search; feedback boxes close after Save and show a one-line summary with a Change link; every card shows brand, color and size together and flags a different color; prices that aren't live are labeled estimates or left out.
+- Phones first (designed at 390px wide). Black and white; color comes only from product photos and color dots.
+- Light by default; dark is a friend's choice in the menu, saved in `profiles.theme`, not taken from the phone's setting.
+- Fonts: Inter Tight (display, titles, wordmark), Inter (body), JetBrains Mono (labels, eyebrows, prices, scores, sizes).
+- Pill buttons, chips and inputs; 22–28px card corners; 44px minimum tap targets; bottom nav with Swipe, Find, Saved and Your eye.
+- Product photos sit in a light gray tile with `mix-blend-mode: multiply` so photos from different sites look like one catalog.
+- Show only data a source provides; `DESIGN.md` › Data on screen lists each field and what to show when it's missing.
+- Behavior lessons to keep: a save button never also runs a search; feedback boxes close after Save and show a one-line summary with a Change link; every card shows brand, color and size together and flags a different color; prices that aren't live are labeled estimates or left out; look and fit scores are always shown separately.

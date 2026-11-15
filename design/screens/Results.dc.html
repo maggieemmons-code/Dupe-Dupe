@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dupe Dupe · Results</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0A0A0A}a:hover{color:#444444}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #FFFFFF; font-family: Inter, system-ui, sans-serif; color: #0A0A0A; box-sizing: border-box">
+
+<div style="position: absolute; left: 20px; right: 20px; top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<a href="Find.dc.html" aria-label="Back" style="width: 44px; height: 44px; border-radius: 22px; border: 1px solid #E5E5E5; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+</a>
+<div style="font-size: 16px; font-weight: 600">{{countLabel}}</div>
+<button onClick="{{cycleSort}}" aria-label="{{sortAria}}" style="height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid #E5E5E5; background: #FFFFFF; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; font-weight: 600; color: #0A0A0A; flex-shrink: 0">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"></path></svg>
+<span>{{sortLabel}}</span>
+</button>
+</div>
+
+<div style="position: absolute; left: 20px; right: 20px; top: 80px; height: 96px; border-radius: 24px; background: #0A0A0A; color: #FFFFFF; display: flex; align-items: center; gap: 14px; padding: 12px; box-sizing: border-box">
+<div style="width: 64px; height: 72px; border-radius: 14px; background: #F3F3F3; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
+<svg width="42" height="50" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="3" stroke-linejoin="round" aria-hidden="true"><path d="M46 12 L60 26 L74 12 L94 20 C100 40 104 62 108 92 L96 95 L90 52 L92 130 L28 130 L30 52 L24 95 L12 92 C16 62 20 40 26 20 Z"></path><path d="M60 26 L52 64 L64 130 M30 78 H90" fill="none"></path></svg>
+</div>
+<div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #A3A3A3">Your original</span>
+<span style="font-family: 'Inter Tight', Inter, sans-serif; font-weight: 700; font-size: 17px">Toteme wrap coat · $1,200</span>
+<span style="font-size: 13px; color: #A3A3A3">Long · Belted · 100% wool · Camel</span>
+</div>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 192px; display: flex; gap: 8px; overflow-x: auto; padding: 0 20px; scrollbar-width: none">
+<button onClick="{{toggleSize}}" aria-pressed="{{sizePressed}}" style="height: 44px; padding: 0 14px 0 12px; border-radius: 999px; border: 1px solid #0A0A0A; background: {{sizeBg}}; color: {{sizeFg}}; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 6px">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{sizeFg}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+In my size (M)</button>
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+<button onClick="{{f.pick}}" aria-pressed="{{f.pressed}}" style="height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid {{f.border}}; background: {{f.bg}}; color: {{f.fg}}; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; flex-shrink: 0">{{f.label}}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{hasItems}}" hint-placeholder-val="{{true}}">
+<div style="position: absolute; left: 20px; right: 20px; top: 252px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 16px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="4">
+<div style="position: relative">
+<a href="{{it.href}}" style="display: block; text-decoration: none; color: #0A0A0A">
+<div style="position: relative; height: 180px; border-radius: 20px; background: #F3F3F3; display: flex; align-items: center; justify-content: center">
+<svg width="96" height="112" viewBox="0 0 120 140" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M46 12 L60 26 L74 12 L94 20 C100 40 104 62 108 92 L96 95 L90 52 L92 130 L28 130 L30 52 L24 95 L12 92 C16 62 20 40 26 20 Z"></path><path d="M46 12 L50 44 L60 26 M74 12 L70 44 L60 26" fill="none"></path><path d="M60 26 L52 64 L64 130 M30 78 H90" fill="none"></path></svg>
+<div style="position: absolute; left: 10px; bottom: 10px; display: flex; gap: 4px">
+<sc-if value="{{it.secondhand}}" hint-placeholder-val="{{false}}">
+<span style="background: #FFFFFF; border: 1px solid #0A0A0A; border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 600">Pre-owned</span>
+</sc-if>
+<sc-if value="{{it.diffColor}}" hint-placeholder-val="{{false}}">
+<span style="background: #FFFFFF; border: 1px solid #0A0A0A; border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 600">Different color</span>
+</sc-if>
+<sc-if value="{{it.onSale}}" hint-placeholder-val="{{false}}">
+<span style="background: #0A0A0A; color: #FFFFFF; border-radius: 999px; padding: 4px 8px; font-size: 10px; font-weight: 600">Sale</span>
+</sc-if>
+</div>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6B6B">{{it.retailer}}</span>
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; white-space: nowrap">L{{it.look}} · F{{it.fit}}</span>
+</div>
+<div style="font-size: 14px; font-weight: 600; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.name}}</div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; gap: 6px">
+<span style="display: inline-flex; align-items: baseline; gap: 6px"><span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 500">{{it.price}}</span><s style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #6B6B6B">{{it.wasPrice}}</s></span>
+<span style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #4A4A4A; min-width: 0"><span style="width: 10px; height: 10px; border-radius: 5px; background: {{it.hex}}; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15); flex-shrink: 0" aria-hidden="true"></span><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.color}}</span></span>
+</div>
+<div style="font-size: 12px; color: #4A4A4A; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.fabric}} · ★ {{it.rating}}</div>
+<div style="display: flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 12px; font-weight: 500; color: {{it.sizeColor}}">
+<span style="width: 7px; height: 7px; border-radius: 4px; box-sizing: border-box; border: 1.5px solid {{it.sizeColor}}; background: {{it.sizeDot}}; flex-shrink: 0" aria-hidden="true"></span>
+<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.sizeNote}}</span>
+</div>
+<div style="font-size: 12px; margin-top: 3px; font-weight: {{it.returnsWeight}}; color: {{it.returnsColor}}">{{it.returns}}</div>
+<sc-if value="{{it.hasCaveat}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: flex-start; gap: 5px; margin-top: 6px; padding: 6px 8px; border-radius: 10px; background: #F2F2F2; font-size: 11px; font-weight: 600; line-height: 1.35">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><path d="M12 3l9.5 17h-19z"></path><path d="M12 10v4.5M12 17.5v.1"></path></svg>
+<span>{{it.caveat}}</span>
+</div>
+</sc-if>
+</a>
+<button aria-label="Save" style="position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border-radius: 18px; border: 0; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-6-4.5-6 4.5z"></path></svg>
+</button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: 20px; right: 20px; top: 272px; border: 1.5px dashed #0A0A0A; border-radius: 24px; padding: 28px 24px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; box-sizing: border-box">
+<div style="font-family: 'Inter Tight', Inter, sans-serif; font-weight: 700; font-size: 19px">Nothing strong enough yet</div>
+<div style="font-size: 13px; color: #6B6B6B; line-height: 1.45">We only show strong matches, and none fit these filters. Secondhand often has the real thing.</div>
+<button onClick="{{tryUsed}}" style="margin-top: 6px; height: 48px; padding: 0 22px; border-radius: 999px; border: 0; background: #0A0A0A; color: #FFFFFF; font-size: 14px; font-weight: 600; cursor: pointer">Try secondhand</button>
+</div>
+</sc-if>
+
+<nav aria-label="Main" style="position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; gap: 8px; padding: 8px; border-radius: 999px; background: #0A0A0A">
+<a href="Main.dc.html" aria-label="Swipe" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="10" height="14" rx="2" transform="rotate(-10 8.5 12)"></rect><rect x="10" y="4" width="10" height="15" rx="2"></rect></svg>
+</a>
+<a href="Find.dc.html" aria-label="Find a dupe" aria-current="page" style="width: 48px; height: 48px; border-radius: 24px; background: #FFFFFF; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8h3.5l2-3h6l2 3h3.5v11h-17z"></path><circle cx="12" cy="13" r="3.5"></circle></svg>
+</a>
+<a href="Saved.dc.html" aria-label="Saved" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-6-4.5-6 4.5z"></path></svg>
+</a>
+<a href="Taste.dc.html" aria-label="Your eye" style="width: 48px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c1-4.5 4.5-6.5 8-6.5s7 2 8 6.5"></path></svg>
+</a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { filter: 'all', mySize: false, sort: 0 };
+  }
+  renderVals() {
+    const all = [
+      { retailer: 'Mango', name: 'Wool-blend wrap coat', price: '$129', cost: 129, matchN: 92, look: 92, fit: 88, caveat: 'Poly blend, not 100% wool', secondhand: false, color: 'Camel', hex: '#B8875A', fabric: '70% wool', rating: '4.6', inSize: true, sizeNote: 'Size M · In stock', returns: 'Free returns · 30 days', finalSale: false, href: 'Detail.dc.html', wasPrice: '' },
+      { retailer: 'Poshmark', name: 'Toteme wrap coat', price: '$310', cost: 310, matchN: 100, look: 100, fit: 94, caveat: '', secondhand: true, color: 'Camel', hex: '#B8875A', fabric: '100% wool', rating: '4.9 seller', inSize: true, sizeNote: 'Size M · Only 1', returns: 'Final sale', finalSale: true, href: 'DetailUsed.dc.html', wasPrice: '' },
+      { retailer: 'COS', name: 'Belted wool coat', price: '$175', cost: 175, matchN: 87, look: 87, fit: 90, caveat: 'Oat, a shade lighter than camel', diffColor: true, secondhand: false, color: 'Oat', hex: '#CDB89A', fabric: '80% wool', rating: '4.4', inSize: false, sizeNote: 'M sold out · L available', returns: 'Free returns · 30 days', finalSale: false, href: 'Detail.dc.html', wasPrice: '$250' },
+      { retailer: 'Depop', name: 'Vintage camel wrap coat', price: '$64', cost: 64, matchN: 84, look: 84, fit: 70, caveat: 'Fabric content not listed', secondhand: true, color: 'Camel', hex: '#A9774B', fabric: 'Wool blend', rating: '4.7 seller', inSize: false, sizeNote: 'Size S · Only 1', returns: 'Final sale', finalSale: true, href: 'DetailUsed.dc.html', wasPrice: '' },
+      { retailer: 'Zara', name: 'Manteco wool coat', price: '$149', cost: 149, matchN: 80, look: 80, fit: 82, caveat: 'Thinner fabric, 50% wool', secondhand: false, color: 'Tan', hex: '#C29A6B', fabric: '50% wool', rating: '4.1', inSize: true, sizeNote: 'Size M · Low stock', returns: 'Free returns · 30 days', finalSale: false, href: 'Detail.dc.html', wasPrice: '' },
+      { retailer: 'ThredUp', name: 'Max Mara-style coat', price: '$92', cost: 92, matchN: 78, look: 78, fit: 76, caveat: 'Hits at the knee, original is mid-calf', secondhand: true, color: 'Honey', hex: '#B98A4E', fabric: '90% wool', rating: '4.5 seller', inSize: false, sizeNote: 'Size L · Only 1', returns: 'Returns for credit', finalSale: false, href: 'DetailUsed.dc.html', wasPrice: '' }
+    ];
+    const s = this.state;
+    const f = s.filter;
+    const sorts = [
+      { label: 'Best look', fn: (a, b) => b.look - a.look }, { label: 'Best fit', fn: (a, b) => b.fit - a.fit },
+      { label: 'Lowest price', fn: (a, b) => a.cost - b.cost }
+    ];
+    const sort = sorts[s.sort % sorts.length];
+    const items = all
+      .filter((x) => f === 'all' || (f === 'new' && !x.secondhand) || (f === 'used' && x.secondhand) || (f === 'under' && x.cost < 100))
+      .filter((x) => !s.mySize || x.inSize)
+      .sort(sort.fn)
+      .map((x) => Object.assign({}, x, {
+        match: x.matchN + '%',
+        onSale: !!x.wasPrice,
+        hasCaveat: !!x.caveat,
+        diffColor: !!x.diffColor,
+        sizeColor: x.inSize ? '#0A0A0A' : '#6B6B6B',
+        sizeDot: x.inSize ? '#0A0A0A' : 'transparent',
+        returnsColor: x.finalSale ? '#0A0A0A' : '#4A4A4A',
+        returnsWeight: x.finalSale ? '600' : '400'
+      }));
+    const defs = [['all', 'All'], ['new', 'New'], ['used', 'Secondhand'], ['under', 'Under $100']];
+    return {
+      countLabel: items.length + (items.length === 1 ? ' dupe' : ' dupes'),
+      items: items,
+      hasItems: items.length > 0,
+      isEmpty: items.length === 0,
+      sortLabel: sort.label,
+      sortAria: 'Sorted by ' + sort.label + '. Tap to change',
+      cycleSort: () => this.setState({ sort: s.sort + 1 }),
+      sizePressed: s.mySize ? 'true' : 'false',
+      sizeBg: s.mySize ? '#0A0A0A' : '#FFFFFF',
+      sizeFg: s.mySize ? '#FFFFFF' : '#0A0A0A',
+      toggleSize: () => this.setState({ mySize: !s.mySize }),
+      tryUsed: () => this.setState({ filter: 'used', mySize: false }),
+      filters: defs.map((d) => ({
+        label: d[1],
+        pressed: f === d[0] ? 'true' : 'false',
+        bg: f === d[0] ? '#0A0A0A' : '#FFFFFF',
+        fg: f === d[0] ? '#FFFFFF' : '#0A0A0A',
+        border: f === d[0] ? '#0A0A0A' : '#E5E5E5',
+        pick: () => this.setState({ filter: d[0] })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
