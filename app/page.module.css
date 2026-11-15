@@ -7,6 +7,10 @@
 }
 
 .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--line);
   margin-bottom: 40px;
@@ -70,4 +74,32 @@
   font-size: 16px;
   max-width: 58ch;
   margin: 0;
+}
+
+.who {
+  color: var(--ink);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.ghost {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+}
+
+.ghost:hover {
+  border-color: var(--ink);
+}
+
+.ghost:focus-visible {
+  outline: 2px solid var(--sage);
+  outline-offset: 2px;
 }
