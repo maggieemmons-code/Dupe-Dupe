@@ -386,3 +386,32 @@
   font-size: 18px;
   font-weight: 700;
 }
+
+.rangeButton {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.rangeBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aboveNote {
+  text-align: left;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface-2);
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+}

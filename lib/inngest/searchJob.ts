@@ -93,7 +93,7 @@ export const runSearch = inngest.createFunction(
     },
   },
   async ({ event, step, attempt, maxAttempts }) => {
-    const { searchId, userId } = event.data as SearchConfirmed;
+    const { searchId, userId, reuseGathered } = event.data as SearchConfirmed;
     const db = adminClient();
     const lastTry = attempt + 1 >= (maxAttempts ?? 2);
 
@@ -125,8 +125,21 @@ export const runSearch = inngest.createFunction(
         return null;
       }
 
-      // A rerun starts fresh.
-      await db.from("candidates").delete().eq("search_id", searchId).eq("user_id", userId);
+      if (reuseGathered) {
+        // Keep what was gathered (and any lookups already paid for); undo every later decision.
+        await db
+          .from("candidates")
+          .update({
+            stage: "gathered", drop_reason: null, duplicate_of: null, screen_note: null, screen_rank: null, color_match: null,
+            checklist: null, fabric_tier: null, fabric_evidence: null, stock_photo_flag: null, judge_note: null, confidence: null,
+            look_score: null, fit_score: null, verdict: null, caveat: null,
+          })
+          .eq("search_id", searchId)
+          .eq("user_id", userId);
+      } else {
+        // A rerun starts fresh.
+        await db.from("candidates").delete().eq("search_id", searchId).eq("user_id", userId);
+      }
 
       const q = (s.search_queries ?? {}) as { look_alike?: string[]; lens_hint?: string };
       const fallback = [s.color, s.category].filter(Boolean).join(" ");
@@ -167,7 +180,7 @@ export const runSearch = inngest.createFunction(
         }
       });
 
-    const sources = await Promise.all([
+    const sources = reuseGathered ? [] : await Promise.all([
       ...ctx.photoPaths.map((path, i) =>
         gather(`lens-${i + 1}`, "Google Lens", async () => {
           const { data, error } = await db.storage.from("photos").createSignedUrl(path, 600);
@@ -224,21 +237,20 @@ export const runSearch = inngest.createFunction(
       const keptIds = new Set(results.filter((r) => !r.drop_reason).map((r) => r.id));
       if (keptIds.size) await db.from("candidates").update({ stage: "cleaned" }).in("id", [...keptIds]);
 
-      // Screening order: Lens's visual matches first (Maggie, Nov 15: visual matches
-      // matter most), then the other searches taking turns, each in its own ranking order.
+      // Screening order: every search takes turns, each in its own ranking order, and
+      // Lens's visual matches get two places a turn (Maggie, Nov 15: visual matches matter
+      // most). Putting all of Lens first crowded out Shopping, which found her Dessy pick.
       const kept = all.filter((r) => keptIds.has(r.id) && r.kind === "new");
-      const interleave = (rows: typeof kept) => {
-        const byQuery = new Map<string, typeof kept>();
-        for (const r of [...rows].sort((a, b) => (a.position ?? 999) - (b.position ?? 999))) {
-          const k = `${r.source}|${r.query}`;
-          byQuery.set(k, [...(byQuery.get(k) ?? []), r]);
-        }
-        const out: string[] = [];
-        const lists = [...byQuery.values()];
-        for (let i = 0; out.length < rows.length; i++) for (const l of lists) if (l[i]) out.push(l[i].id);
-        return out;
-      };
-      const order = [...interleave(kept.filter((r) => r.source === "lens")), ...interleave(kept.filter((r) => r.source !== "lens"))];
+      const byQuery = new Map<string, typeof kept>();
+      for (const r of [...kept].sort((a, b) => (a.position ?? 999) - (b.position ?? 999))) {
+        const k = `${r.source}|${r.query}`;
+        byQuery.set(k, [...(byQuery.get(k) ?? []), r]);
+      }
+      const lists = [...byQuery.entries()].map(([k, rows]) => ({ rows, take: k.startsWith("lens|") ? 2 : 1, at: 0 }));
+      const order: string[] = [];
+      while (order.length < kept.length) {
+        for (const l of lists) for (let t = 0; t < l.take && l.at < l.rows.length; t++) order.push(l.rows[l.at++].id);
+      }
       return order.slice(0, BATCH * MAX_BATCHES);
     });
 
@@ -304,7 +316,7 @@ export const runSearch = inngest.createFunction(
       await db.from("searches").update({ status: "enriching" }).eq("id", searchId);
       const { data } = await db
         .from("candidates")
-        .select("id, source, link, product_token, store")
+        .select("id, source, link, product_token, store, listing_text")
         .eq("search_id", searchId)
         .eq("user_id", userId)
         .eq("stage", "screened")
@@ -316,7 +328,7 @@ export const runSearch = inngest.createFunction(
     await Promise.all(
       picks.map((p, i) =>
         step.run(`lookup-${i + 1}`, async () => {
-          if (i >= MAX_LOOKUPS) return;
+          if (i >= MAX_LOOKUPS || p.listing_text) return; // already looked up on an earlier run
           const asin = p.source === "amazon" ? p.link.match(/\/dp\/([A-Z0-9]{10})/)?.[1] : null;
           if (!(p.source === "shopping" && p.product_token) && !asin) return; // Lens links are read for free below
           try {

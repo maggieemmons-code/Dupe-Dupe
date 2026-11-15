@@ -7,5 +7,10 @@ import { Inngest } from "inngest";
  */
 export const inngest = new Inngest({ id: "dupe-dupe" });
 
-export type SearchConfirmed = { searchId: string; userId: string };
+/**
+ * reuseGathered: redo cleaning, screening, enriching and judging on the items this
+ * search already gathered, without new Lens or Shopping searches (for tuning and
+ * re-checks; PLAN.md › Costs and guardrails › Caching).
+ */
+export type SearchConfirmed = { searchId: string; userId: string; reuseGathered?: boolean };
 export const SEARCH_CONFIRMED = "search/confirmed";

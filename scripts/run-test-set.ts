@@ -5,7 +5,7 @@
  * and, for each of her good dupes, how far it got (never found, dropped and why,
  * or judged with its scores). About 15 SerpApi searches per item.
  * Needs `npm run dev` and `npx inngest-cli@latest dev -u http://localhost:3000/api/inngest`.
- * Run: npx tsx --conditions=react-server --env-file=.env.local scripts/run-test-set.ts [item numbers, e.g. 1 3] [--no-search] [--fresh: new search and brief]
+ * Run: npx tsx --conditions=react-server --env-file=.env.local scripts/run-test-set.ts [item numbers, e.g. 1 3] [--no-search] [--fresh: new search and brief] [--reuse: re-judge what was already gathered, no new searches]
  */
 import { createClient } from "@supabase/supabase-js";
 import { Inngest } from "inngest";
@@ -87,7 +87,7 @@ async function main() {
     // 2. Run the search.
     if (!skipSearch) {
       await db.from("searches").update({ status: "queued", error: null }).eq("id", id);
-      await inngest.send({ name: "search/confirmed", data: { searchId: id, userId: me.id } });
+      await inngest.send({ name: "search/confirmed", data: { searchId: id, userId: me.id, reuseGathered: args.includes("--reuse") } });
       const t = Date.now();
       for (let k = 0; k < 120; k++) {
         await new Promise((r) => setTimeout(r, 2000));

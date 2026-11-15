@@ -13,11 +13,18 @@ export default function PriceRange({
   high,
   scaleMax,
   onSave,
+  onMove,
+  label = "Price range · new dupes",
+  hint = "Drag the low end up to skip very cheap pieces. Both ends start where you left them last time.",
 }: {
   low: number;
   high: number | null;
   scaleMax: number;
   onSave: (low: number, high: number | null) => void;
+  /** Called on every move, for screens that filter as the handle moves (Results). */
+  onMove?: (low: number, high: number | null) => void;
+  label?: string;
+  hint?: string;
 }) {
   const step = scaleMax > 1000 ? 25 : 10;
   const [lo, setLo] = useState(Math.min(low, scaleMax - step));
@@ -29,20 +36,21 @@ export default function PriceRange({
       first.current = false;
       return;
     }
+    onMove?.(lo, hi >= scaleMax ? null : hi);
     const t = setTimeout(() => onSave(lo, hi >= scaleMax ? null : hi), 600);
     return () => clearTimeout(t);
-  }, [lo, hi, scaleMax, onSave]);
+  }, [lo, hi, scaleMax, onSave, onMove]);
 
   const pct = (v: number) => `${(v / scaleMax) * 100}%`;
   const money = (v: number) => `$${v.toLocaleString("en-US")}`;
-  const label = `${lo > 0 ? money(lo) : "$0"} – ${hi >= scaleMax ? `${money(scaleMax)}+` : money(hi)}`;
+  const valueText = `${lo > 0 ? money(lo) : "$0"} – ${hi >= scaleMax ? `${money(scaleMax)}+` : money(hi)}`;
 
   return (
     <div className={styles.block}>
       <div className={styles.head}>
-        <span className={styles.label}>Price range · new dupes</span>
+        <span className={styles.label}>{label}</span>
         <span className={styles.value} aria-live="polite">
-          {label}
+          {valueText}
         </span>
       </div>
       <div className={styles.slider}>
@@ -71,7 +79,7 @@ export default function PriceRange({
         <span>$0</span>
         <span>{money(scaleMax)}+</span>
       </div>
-      <span className={styles.hint}>Drag the low end up to skip very cheap pieces. Both ends start where you left them last time.</span>
+      {hint && <span className={styles.hint}>{hint}</span>}
     </div>
   );
 }

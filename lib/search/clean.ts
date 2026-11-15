@@ -40,8 +40,6 @@ export type CleanResult = { id: string; drop_reason: string | null; duplicate_of
 export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResult[] {
   const out = new Map<string, CleanResult>();
   const hidden = ctx.hiddenStores.map(norm).filter(Boolean);
-  const brand = norm(ctx.brand);
-  const style = norm(ctx.styleName);
 
   const keep: CleanRow[] = [];
   for (const r of rows) {
@@ -59,10 +57,9 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
     if (r.source === "amazon" && ((r.rating ?? 0) < AMAZON_MIN_RATING || (r.reviews ?? 0) < AMAZON_MIN_REVIEWS)) {
       return "Amazon: under 4 stars or 100 reviews";
     }
-    const title = norm(r.title);
-    if (style && brand && title.includes(style) && (title.includes(brand) || norm(r.store).includes(brand))) {
-      return "Your original";
-    }
+    if (isOriginal(r, ctx)) return "Your original";
+    if (isForeign(r)) return "Store outside the US";
+    if (isCategoryPage(r)) return "Not a product page";
     if (r.kind === "secondhand") {
       if (!ctx.secondhandOn) return "Secondhand comes in a later phase";
       if (r.size && ctx.sizes.length && !sizeMatches(r.size, ctx.sizes)) return "Not your size";
@@ -92,6 +89,76 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
   }
 
   return [...out.values()];
+}
+
+/* ---------- the original itself, category pages, foreign storefronts (test set, Nov 15) ---------- */
+
+/** Words that describe any garment, so they don't identify the original's style. */
+const GENERIC = new Set([
+  "dress", "dresses", "gown", "gowns", "maxi", "midi", "mini", "strapless", "halter", "drape", "draped", "bias", "boots", "boot",
+  "coat", "coats", "blazer", "jacket", "bag", "handle", "top", "leather", "smooth", "faux", "fur", "velvet", "full", "length",
+  "long", "women", "womens", "the", "and", "for", "with", "black", "white", "cream", "ivory", "red", "blue", "camel", "pink",
+  "burgundy", "sapphire", "satin", "silk", "wool", "bodysuit", "bodysuits", "shirt", "skirt", "pants", "jeans", "heritage",
+]);
+
+function wordSet(t: string) {
+  return new Set(
+    t
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .split(" ")
+      .filter((w) => w.length > 1),
+  );
+}
+
+/**
+ * Lens finds the original itself at other stores (Nykaa's Amaya, Bergdorf's Françoise
+ * boots). It's the original when the brand's words are all there and either a word
+ * of the style name that isn't generic ("Amaya", "Rosabella", "Bayswater"), or, for
+ * a style name with only generic words, most of them.
+ */
+function isOriginal(r: CleanRow, ctx: CleanContext) {
+  const brandWords = [...wordSet(ctx.brand)].filter((w) => !["the", "and", "of"].includes(w));
+  if (!brandWords.length) return false;
+  const hay = wordSet(`${r.title} ${r.store} ${r.store_domain.replace(/\./g, " ")}`);
+  const joined = [...hay].join("");
+  const brandThere = brandWords.every((w) => hay.has(w)) || joined.includes(brandWords.join(""));
+  if (!brandThere) return false;
+  const style = [...wordSet(ctx.styleName)].filter((w) => !brandWords.includes(w));
+  const distinctive = style.filter((w) => !GENERIC.has(w) && w.length > 2);
+  const title = wordSet(r.title);
+  if (distinctive.length) return distinctive.some((w) => title.has(w));
+  return style.length >= 2 && style.filter((w) => title.has(w)).length >= Math.ceil(style.length * 0.75);
+}
+
+const FOREIGN_TLD = /\.(jp|cn|kr|tw|ru|in|sa|ae|qa|kw|do|br|mx|tr|id|th|vn|hk|my|ph|pk|eg)$/;
+const FOREIGN_NAME = /\b(ksa|uae|saudi|dominican republic|india|japan|korea|mexico|brazil|turkey|qatar|kuwait|egypt|nykaa|myntra|ajio|namshi|rakuten)\b/i;
+/** Letters from scripts other than Latin: a storefront for another country. */
+const NON_LATIN = /[\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/;
+
+function isForeign(r: CleanRow) {
+  const host = r.store_domain.toLowerCase();
+  return FOREIGN_TLD.test(host) || /^(en-)?(saudi|uae|ksa|qa|kw)\./.test(host) || FOREIGN_NAME.test(r.store) || NON_LATIN.test(`${r.title} ${r.store}`);
+}
+
+/** Collection and search pages ("Shop Pink Mulberry Online", "Women's Black Fall Jackets"), not one product. */
+const PLURAL_GARMENT = /\b(dresses|gowns|coats|jackets|blazers|bodysuits|bags|handbags|tops|skirts|sweaters|blouses|shirts)\b/i;
+function isCategoryPage(r: CleanRow) {
+  let path = "";
+  try {
+    path = new URL(r.link).pathname.toLowerCase();
+  } catch {
+    /* no link */
+  }
+  if (/\/(collections|category|categories|c|shop|search|brands?|designers?)\/[^/]*\/?$/.test(path) && !/\/products?\//.test(path)) return true;
+  if (r.price != null) return false; // a priced item is almost always one product
+  const t = r.title.trim();
+  if (/^(shop|discover|explore)\b/i.test(t) || /\b(online|collection|new arrivals)\s*$/i.test(t)) return true;
+  // "White Button Down Bodysuits", "The Sei Halter Dresses – Women": a plural garment noun as the main word.
+  const main = t.split(/\s[–|-]\s/)[0];
+  return PLURAL_GARMENT.test(main) && !/\b(set|pack|two|2)\b/i.test(main);
 }
 
 function sameProduct(a: CleanRow, b: CleanRow) {

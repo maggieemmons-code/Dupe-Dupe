@@ -73,3 +73,32 @@ test("store names match however Google writes them", () => {
   assert.equal(vetStore("ohcici.us", "ohcici.us"), "blocked");
   assert.equal(vetStore("Some New Label", "somenewlabel.com"), "unknown");
 });
+
+test("the original sold at another store is dropped", () => {
+  const amaya = { ...ctx, brand: "Mother of All", styleName: "Amaya Strapless Maxi Dress" };
+  assert.equal(reason(row({ price: null, source: "lens", store: "Nykaa Fashion US", title: "Buy Mother of All Amaya Women's Strapless Boned Bodice Maxi" }), amaya), "Your original");
+  const boots = { ...ctx, brand: "Saint Laurent", styleName: "Francoise Boots in Smooth Leather", budget: 1410 };
+  assert.equal(reason(row({ price: null, source: "lens", store: "Bergdorf Goodman", title: "Saint Laurent Françoise Leather Knee-High Boots" }), boots), "Your original");
+  const bb = { ...ctx, brand: "Bronx and Banco", styleName: "Florentina" };
+  assert.equal(reason(row({ price: null, source: "lens", store: "Revolve", title: "Bronx Banco Florentina Strapless Velvet Gown in Burgundy" }), bb), "Your original");
+});
+
+test("another piece from the same brand stays", () => {
+  const sei = { ...ctx, brand: "The Sei", styleName: "Halter Drape Bias Gown", budget: 640 };
+  assert.equal(reason(row({ price: 400, store: "Editorialist", title: "The Sei Cowl Bias Gown In Slate Blue" }), sei), null);
+});
+
+test("category pages are dropped", () => {
+  assert.equal(reason(row({ price: null, source: "lens", store: "Nordstrom", title: "Shop Pink Mulberry Online" })), "Not a product page");
+  assert.equal(reason(row({ price: null, source: "lens", store: "Windsor", title: "Women's Black Fall Jackets" })), "Not a product page");
+  assert.equal(reason(row({ price: null, source: "lens", store: "Revolve", title: "White Button Down Bodysuits" })), "Not a product page");
+  assert.equal(reason(row({ price: null, source: "lens", store: "Revolve", title: "Red gown", link: "https://www.revolve.com/collections/gowns" })), "Not a product page");
+  assert.equal(reason(row({ price: null, source: "lens", store: "Meshki", title: "Hilda Embellished Strapless Maxi Dress - White | MESHKI US" })), null);
+});
+
+test("foreign storefronts are dropped", () => {
+  assert.equal(reason(row({ price: null, source: "lens", store: "Max Mara KSA", title: "Manuela Icon Coat" })), "Store outside the US");
+  assert.equal(reason(row({ price: null, source: "lens", store: "Rakuten Fashion - 楽天市場", title: "Mulberry – 【マルベリー公式】ベイズウォーター" })), "Store outside the US");
+  assert.equal(reason(row({ price: null, source: "lens", store: "Mitsukoshi", store_domain: "isetan.mistore.jp", title: "Bag" })), "Store outside the US");
+  assert.equal(reason(row({ price: 200, store: "Club L London", store_domain: "clubllondon.us", title: "Alina White Bandeau Maxi Dress" })), null);
+});

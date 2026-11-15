@@ -4,12 +4,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { confirmSearch } from "./actions";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { confirmSearch, saveChoices } from "./actions";
+import PriceRange from "./PriceRange";
 import { createClient } from "@/lib/supabase/client";
 import { searchName, type SearchRow } from "@/lib/searches";
 import { money, imageSource, type CandidateRow } from "@/lib/candidates";
-import { lowEnd } from "@/lib/search/priceFloor";
+import { lowEnd, sliderMax } from "@/lib/search/priceFloor";
 import styles from "./results.module.css";
 import ui from "../../ui.module.css";
 
@@ -89,23 +90,42 @@ export default function Results({
     };
   }, [running, search.id, router]);
 
+  // Price range (Maggie, Nov 15): dupes above the limit are found and scored too, and
+  // appear as soon as the friend raises it here. No new search.
+  const [range, setRange] = useState<{ lo: number | null; hi: number | null }>({ lo: lowEnd(search), hi: search.budget });
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const inRange = useCallback(
+    (c: CandidateRow) => c.price == null || ((range.hi == null || c.price <= range.hi) && (range.lo == null || c.price >= range.lo)),
+    [range],
+  );
+  const onMove = useCallback((lo: number, hi: number | null) => setRange({ lo: lo > 0 ? lo : null, hi }), []);
+  const onSaveRange = useCallback(
+    (lo: number, hi: number | null) => {
+      saveChoices(search.id, { budget: hi == null ? "" : String(hi), budgetMin: lo });
+    },
+    [search.id],
+  );
+  const above = candidates.filter((c) => c.price != null && range.hi != null && c.price > range.hi);
+
   const items = useMemo(() => {
-    const list = candidates.filter((c) => view === "all" || (view === "new" ? c.kind === "new" : c.kind === "secondhand"));
+    const list = candidates
+      .filter((c) => view === "all" || (view === "new" ? c.kind === "new" : c.kind === "secondhand"))
+      .filter(inRange);
     if (sort === "price") list.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
     else if (scored && sort === "fit") list.sort((a, b) => (b.fit_score ?? -1) - (a.fit_score ?? -1) || (b.look_score ?? -1) - (a.look_score ?? -1));
     else if (scored) list.sort((a, b) => (b.look_score ?? -1) - (a.look_score ?? -1) || (b.fit_score ?? -1) - (a.fit_score ?? -1));
     return list;
-  }, [candidates, sort, view, scored]);
+  }, [candidates, sort, view, scored, inRange]);
 
   const name = searchName(search);
   const summary = [search.hem, search.neckline, search.composition || search.fabrics.join(", "), search.color_name || search.color]
     .filter(Boolean)
     .join(" · ");
   const countLabel = running
-    ? candidates.length
-      ? `${candidates.length} so far`
+    ? items.length
+      ? `${items.length} so far`
       : "Searching"
-    : `${candidates.length} dupe${candidates.length === 1 ? "" : "s"}`;
+    : `${items.length} dupe${items.length === 1 ? "" : "s"}`;
 
   return (
     <main className={`${ui.page} ${styles.page}`}>
@@ -172,15 +192,37 @@ export default function Results({
               </button>
             ))}
           </div>
-          {search.budget != null && (
-            <span className={styles.budget}>
-              {(() => {
-                const floor = lowEnd(search);
-                return floor ? `${money(floor)}–${money(search.budget)}` : `Under ${money(search.budget)}`;
-              })()}
-            </span>
-          )}
+          <button className={styles.rangeButton} onClick={() => setRangeOpen(!rangeOpen)} aria-expanded={rangeOpen}>
+            {range.hi != null
+              ? range.lo
+                ? `${money(range.lo)}–${money(range.hi)}`
+                : `Under ${money(range.hi)}`
+              : range.lo
+                ? `From ${money(range.lo)}`
+                : "Any price"}
+          </button>
         </div>
+      )}
+
+      {candidates.length > 0 && (rangeOpen || above.length > 0) && (
+        <section className={styles.rangeBlock}>
+          {above.length > 0 && !rangeOpen && (
+            <button className={styles.aboveNote} onClick={() => setRangeOpen(true)}>
+              {above.length} more dupe{above.length === 1 ? "" : "s"} up to {money(Math.max(...above.map((c) => c.price ?? 0)))}. Raise your limit to see {above.length === 1 ? "it" : "them"}.
+            </button>
+          )}
+          {rangeOpen && (
+            <PriceRange
+              low={range.lo ?? 0}
+              high={range.hi}
+              scaleMax={sliderMax(search.retail_price, Math.max(search.budget ?? 0, ...candidates.map((c) => c.price ?? 0)))}
+              onSave={onSaveRange}
+              onMove={onMove}
+              label="Your price range"
+              hint={above.length ? `${above.length} more above your limit, already checked.` : ""}
+            />
+          )}
+        </section>
       )}
 
       {candidates.length > 1 && (
