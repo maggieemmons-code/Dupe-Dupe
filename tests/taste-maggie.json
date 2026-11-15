@@ -1,0 +1,61 @@
+{
+  "about": "Maggie's eye, from her test set and her edits on Nov 15 (draft in tests/taste-draft.json). Saved to taste_profiles by scripts/save-taste.ts.",
+  "rules": [
+    {
+      "rule": "Extra details the original doesn't have (a slit, a pleated bust, ruching, a cut-out) count against a piece only when they change the overall look. When the shape, fabric and proportions are strong, they're a small difference, not a deal-breaker.",
+      "kind": "matters_less",
+      "evidence": [1, 2, 9, 10],
+      "source": "test set, edited by Maggie"
+    },
+    {
+      "rule": "The fabric's look carries the piece: prefer fabrics that hang, drape or lie flat the way the original's does. Avoid thin or costume-shiny fabrics.",
+      "kind": "prefer",
+      "evidence": [1, 2, 3, 8],
+      "source": "test set"
+    },
+    {
+      "rule": "Keep the original's proportions and length: a short, cinched jacket stays short and cinched, a floor-length gown stays floor-length.",
+      "kind": "matters_more",
+      "evidence": [3, 7],
+      "source": "test set"
+    },
+    {
+      "rule": "A matching word (velvet, bodysuit, leather) doesn't beat a better look: a piece that gets the look another way can be the better dupe.",
+      "kind": "matters_less",
+      "evidence": [3, 8, 9],
+      "source": "test set"
+    },
+    {
+      "rule": "The original's own photos and listings, and pieces from the original's own listing pages, aren't dupes.",
+      "kind": "avoid",
+      "evidence": [2, 4, 8],
+      "source": "test set"
+    },
+    {
+      "rule": "Embellishment should be fairly literal: beading should read as beading and pearls as pearls. Sequins standing in for beading often, but not always, look cheaper.",
+      "kind": "matters_more",
+      "evidence": [10],
+      "source": "Maggie"
+    },
+    {
+      "rule": "For shoes, the toe shape, heel and overall profile should look close to one-for-one. Less literal options are still welcome when the profile matches, such as pebbled instead of smooth leather.",
+      "kind": "matters_more",
+      "evidence": [4],
+      "source": "Maggie"
+    },
+    {
+      "rule": "Looks come first. Similar fabric quality is a plus, not a requirement: lining, tailoring or a specific fiber (cashmere, wool, silk) only decides a match when the shopper switches Fabric must match on.",
+      "kind": "matters_less",
+      "evidence": [6, 7],
+      "source": "Maggie"
+    }
+  ],
+  "weights": {
+    "silhouette": 2.5,
+    "length": 1.5,
+    "polish": 2.5,
+    "anchor": 2.5,
+    "color": 1.5,
+    "fabric": 2
+  }
+}

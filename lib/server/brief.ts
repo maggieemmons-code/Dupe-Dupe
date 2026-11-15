@@ -8,6 +8,8 @@ import { usdPriceFromPage } from "@/lib/server/price";
 import { runBriefBuilder } from "@/lib/agents/briefBuilder";
 import type { SearchRow } from "@/lib/searches";
 import { ITEM_FIELDS } from "@/lib/fields";
+import { loadTaste } from "@/lib/server/taste";
+import { tasteText } from "@/lib/taste";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -109,7 +111,7 @@ export async function buildBriefFor(session: Session, searchId: string): Promise
         notes: search.pasted_text,
         photos,
         productPhotos,
-        tasteRules: "None yet.",
+        tasteRules: tasteText(await loadTaste(supabase as never, session.userId)),
       });
       await logApiCall(session, { service: "claude", stage: "brief", searchId, units: result.usage, ok: true });
     } catch (e) {

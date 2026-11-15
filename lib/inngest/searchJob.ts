@@ -15,7 +15,9 @@ import { fetchPages } from "@/lib/server/tinyfish";
 import { usefulPageText } from "@/lib/search/listingText";
 import { usdPriceFromPage } from "@/lib/server/price";
 import { runJudge, type JudgeCandidate } from "@/lib/agents/judge";
-import { score, type AnchorDef } from "@/lib/search/score";
+import { score, type AnchorDef, type Weights } from "@/lib/search/score";
+import { loadTaste } from "@/lib/server/taste";
+import { tasteText, tasteWeights } from "@/lib/taste";
 import { downloadThumb } from "@/lib/server/linkPhotos";
 import { cleanCandidates, type CleanRow } from "@/lib/search/clean";
 import { runScreener, type ScreenItem } from "@/lib/agents/screener";
@@ -74,6 +76,9 @@ type Ctx = {
   visualBrief: unknown;
   compositionBrief: unknown;
   anchors: AnchorDef[];
+  tasteRules: string;
+  weights: Weights;
+  fabricMustMatch: boolean;
 };
 
 export const runSearch = inngest.createFunction(
@@ -161,6 +166,11 @@ export const runSearch = inngest.createFunction(
         visualBrief: s.visual_brief,
         compositionBrief: s.composition_brief,
         anchors: ((s.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id),
+        ...(await (async () => {
+          const taste = await loadTaste(db, userId);
+          return { tasteRules: tasteText(taste), weights: tasteWeights(taste) };
+        })()),
+        fabricMustMatch: s.composition_brief?.must_match === true,
       };
     });
     if (!ctx) return { skipped: true };
@@ -280,7 +290,7 @@ export const runSearch = inngest.createFunction(
             ]);
             const items: ScreenItem[] = ordered.map((r, i) => ({ n: i + 1, title: r.title, brand: r.brand, store: r.store, price: r.price, photo: thumbs[i] }));
             try {
-              const result = await runScreener({ name: ctx.name, fields: ctx.fields, visualBrief: ctx.visualBrief, photo: original }, items);
+              const result = await runScreener({ name: ctx.name, fields: ctx.fields, visualBrief: ctx.visualBrief, photo: original }, items, ctx.tasteRules);
               await logJobCall({ userId, searchId, service: "claude", stage: "screen", units: result.usage, ok: true });
               return result.picks.map((p) => ({ id: ordered[p.n - 1].id, score: p.score, color: p.color_match, note: p.note, order: b * BATCH + p.n }));
             } catch (e) {
@@ -456,6 +466,7 @@ export const runSearch = inngest.createFunction(
                 sizes: ctx.sizes,
               },
               candidates,
+              ctx.tasteRules,
             );
             await logJobCall({ userId, searchId, service: "claude", stage: "judge", units: result.usage, ok: true });
           } catch (e) {
@@ -468,7 +479,7 @@ export const runSearch = inngest.createFunction(
           for (const [i, r] of rows.entries()) {
             const c = result.checklists.get(`c${i + 1}`);
             if (!c) continue;
-            const v = score(c, ctx.anchors);
+            const v = score(c, ctx.anchors, ctx.weights, { fabricMustMatch: ctx.fabricMustMatch });
             await db
               .from("candidates")
               .update({

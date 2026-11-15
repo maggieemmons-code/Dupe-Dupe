@@ -787,3 +787,25 @@ div.tile {
   background: var(--ink);
   border-color: var(--ink);
 }
+
+/* Fabric must match */
+.fabricRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface-2);
+}
+
+.fabricText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fabricLabel {
+  font-size: 15px;
+  font-weight: 600;
+}

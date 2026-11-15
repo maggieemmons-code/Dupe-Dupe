@@ -22,7 +22,7 @@ import {
   type ItemField,
 } from "@/lib/fields";
 import { SIZES, searchName, type SearchRow } from "@/lib/searches";
-import { buildBrief, retryBrief, saveAnchors, saveChoices, saveFields, confirmSearch } from "./actions";
+import { buildBrief, retryBrief, saveAnchors, saveChoices, saveFields, confirmSearch, saveFabricMustMatch } from "./actions";
 import PriceRange from "./PriceRange";
 import { lowEnd, sliderMax } from "@/lib/search/priceFloor";
 import styles from "./review.module.css";
@@ -385,6 +385,7 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
     [search.id],
   );
 
+  const [fabricMust, setFabricMust] = useState(search.composition_brief?.must_match === true);
   const [confirmed, setConfirmed] = useState(search.status === "queued");
   const guesses = ROWS.filter((r) => sources[r.field]?.from === "guess" && shown(r, values)).length;
 
@@ -441,6 +442,32 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
           scaleMax={sliderMax(search.retail_price, search.budget)}
           onSave={savePrice}
         />
+
+        {/* Maggie, Nov 15: looks first; fabric decides a match only when the shopper says so. */}
+        <div className={styles.fabricRow}>
+          <div className={styles.fabricText}>
+            <span className={styles.fabricLabel}>Fabric must match</span>
+            <span className={styles.tileHint}>
+              {fabricMust ? "Only pieces in the same kind of fabric." : "Off: a different fabric is noted on the card, not hidden."}
+            </span>
+          </div>
+          <button
+            role="switch"
+            aria-checked={fabricMust}
+            aria-label="Fabric must match"
+            className={fabricMust ? styles.switchOn : styles.switch}
+            onClick={() => {
+              const next = !fabricMust;
+              setFabricMust(next);
+              startTransition(async () => {
+                const r = await saveFabricMustMatch(search.id, next);
+                if (!r.ok) setError(r.error);
+              });
+            }}
+          >
+            <span />
+          </button>
+        </div>
 
         {sizesOpen && (
           <div className={styles.sizePicker}>

@@ -180,3 +180,17 @@ export async function confirmSearch(searchId: string): Promise<Result> {
   await session.supabase.from("events").insert({ type: "search_started", search_id: searchId });
   return { ok: true };
 }
+
+/** "Fabric must match" on Review: when on, a dealbreaker fabric rejects a piece instead of a caveat. */
+export async function saveFabricMustMatch(searchId: string, on: boolean): Promise<Result> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Sign in again to continue." };
+  const { supabase } = session;
+  const { data: current } = await supabase.from("searches").select("composition_brief").eq("id", searchId).single();
+  if (!current) return { ok: false, error: "This search wasn't found." };
+  const { error } = await supabase
+    .from("searches")
+    .update({ composition_brief: { ...(current.composition_brief ?? {}), must_match: !!on } })
+    .eq("id", searchId);
+  return error ? { ok: false, error: "That didn't save. Try again." } : { ok: true };
+}

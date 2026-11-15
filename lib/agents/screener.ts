@@ -71,11 +71,16 @@ Rate EVERY candidate from 1 to 5 on how well it could pass for the original at a
 
 A stricter judge checks the best-rated ones closely next, including fabric and quality. Judge mostly from the photo; titles are often stuffed with keywords. Use the full range: don't rate everything 3.
 
+Apply the shopper's taste rules below when rating: they say what she weighs more or less than the checklist does.
+
+Shopper's taste rules:
+{{taste_rules}}
+
 Rate only by number. Never invent a product, a price or a link.
 
 Call submit_ratings exactly once, with one rating for every candidate.`;
 
-export async function runScreener(original: ScreenOriginal, items: ScreenItem[]) {
+export async function runScreener(original: ScreenOriginal, items: ScreenItem[], tasteRules = "None yet.") {
   const model = process.env.ANTHROPIC_FAST_MODEL;
   if (!model) throw new Error("ANTHROPIC_FAST_MODEL is not set");
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
@@ -103,7 +108,7 @@ export async function runScreener(original: ScreenOriginal, items: ScreenItem[])
   const request = {
     model,
     max_tokens: 4000,
-    system: SYSTEM_PROMPT,
+    system: SYSTEM_PROMPT.replace("{{taste_rules}}", tasteRules),
     tools: [SUBMIT_PICKS_TOOL],
     tool_choice: { type: "auto" as const },
     betas: ["server-side-fallback-2026-07-01"],

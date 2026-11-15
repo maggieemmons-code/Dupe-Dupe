@@ -8,6 +8,8 @@ import { signedPhotoUrls } from "@/lib/server/photos";
 import { searchName, type SearchRow } from "@/lib/searches";
 import { CANDIDATE_FIELDS, money, imageSource, ago, type CandidateRow } from "@/lib/candidates";
 import { breakdown, type AnchorDef } from "@/lib/search/score";
+import { loadTaste } from "@/lib/server/taste";
+import { tasteWeights } from "@/lib/taste";
 import styles from "./detail.module.css";
 import ui from "../../../../ui.module.css";
 
@@ -36,7 +38,8 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
     .filter(Boolean)
     .join(" · ");
   const anchors = ((search.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id);
-  const b = item.checklist ? breakdown(item.checklist, anchors) : null;
+  const weights = tasteWeights(await loadTaste(session.supabase as never, session.userId));
+  const b = item.checklist ? breakdown(item.checklist, anchors, weights) : null;
 
   return (
     <main className={`${ui.page} ${styles.page}`}>

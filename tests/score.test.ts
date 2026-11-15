@@ -1,7 +1,7 @@
 /** Scoring and verdict rules (PLAN.md › Scoring and verdicts). Run: npm test */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { score, type Checklist, type AnchorDef } from "../lib/search/score";
+import { score, WEIGHTS, type Checklist, type AnchorDef } from "../lib/search/score";
 
 const anchors: AnchorDef[] = [
   { id: "a1", label: "Off-shoulder neckline", dealbreaker: true },
@@ -46,8 +46,17 @@ test("failing an ordinary detail isn't rejected on its own", () => {
   assert.notEqual(score(c, anchors).verdict, "rejected");
 });
 
-test("a dealbreaker fabric is rejected", () => {
-  assert.equal(score({ ...perfect, fabric_tier: "dealbreaker" }, anchors).verdict, "rejected");
+test("a dealbreaker fabric is a caveat unless Fabric must match is on", () => {
+  const v = score({ ...perfect, fabric_tier: "dealbreaker" }, anchors);
+  assert.equal(v.verdict, "caveat");
+  assert.match(v.caveat ?? "", /Different fabric/);
+  assert.equal(score({ ...perfect, fabric_tier: "dealbreaker" }, anchors, undefined, { fabricMustMatch: true }).verdict, "rejected");
+});
+
+test("taste weights change the scores", () => {
+  const c = { ...perfect, silhouette: "different" as const };
+  const heavy = { ...WEIGHTS, silhouette: 3 };
+  assert.ok(score(c, anchors, heavy).look < score(c, anchors).look);
 });
 
 test("unknown fabric is a caveat, not a rejection", () => {

@@ -35,6 +35,7 @@ export type SearchRow = {
   sizes: string[];
   view: "all" | "new" | "used";
   visual_brief: { anchors?: Anchor[] } & Record<string, unknown> | null;
+  composition_brief: { must_match?: boolean } & Record<string, unknown> | null;
   brief_built_at: string | null;
   brief_stale: boolean;
   ran_at: string | null;

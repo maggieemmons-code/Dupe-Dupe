@@ -6,6 +6,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { score, type AnchorDef, type Checklist } from "../lib/search/score";
+import { tasteWeights, type TasteProfile } from "../lib/taste";
 
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!.trim(), {
   auth: { persistSession: false },
@@ -14,14 +15,17 @@ const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPAB
 async function main() {
   const id = process.argv[2];
   const save = process.argv.includes("--save");
-  const { data: s } = await db.from("searches").select("visual_brief").eq("id", id).single();
+  const { data: s } = await db.from("searches").select("user_id, visual_brief, composition_brief").eq("id", id).single();
+  const { data: t } = await db.from("taste_profiles").select("rules, weights").eq("user_id", s?.user_id).maybeSingle();
+  const weights = tasteWeights((t as TasteProfile | null) ?? null);
+  const fabricMustMatch = s?.composition_brief?.must_match === true;
   const anchors = ((s?.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id);
   const { data } = await db
     .from("candidates")
     .select("id, store, title, price, checklist, look_score, fit_score, verdict")
     .eq("search_id", id)
     .eq("stage", "judged");
-  const rows = (data ?? []).map((c) => ({ ...c, next: score(c.checklist as Checklist, anchors) }));
+  const rows = (data ?? []).map((c) => ({ ...c, next: score(c.checklist as Checklist, anchors, weights, { fabricMustMatch }) }));
   rows.sort((a, b) => b.next.look - a.next.look);
   for (const c of rows) {
     const was = `L${c.look_score} F${c.fit_score} ${c.verdict}`;

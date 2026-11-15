@@ -97,14 +97,19 @@ export function breakdown(c: Checklist, anchors: AnchorDef[], w: Weights = WEIGH
 export type Verdict = { look: number; fit: number; verdict: "approved" | "caveat" | "rejected"; caveat: string | null };
 
 /** Verdict rules, in order (PLAN.md). */
-export function score(c: Checklist, anchors: AnchorDef[], w: Weights = WEIGHTS): Verdict {
+/**
+ * fabricMustMatch: the friend switched "Fabric must match" on for this search. Off (the
+ * default), a dealbreaker fabric is a caveat, not a rejection (Maggie, Nov 15: looks
+ * first; fabric is make-or-break only when she opts in).
+ */
+export function score(c: Checklist, anchors: AnchorDef[], w: Weights = WEIGHTS, opts: { fabricMustMatch?: boolean } = {}): Verdict {
   const b = breakdown(c, anchors, w);
   const look = b.look.score ?? 0;
   const fit = b.fit.score ?? 0;
 
   const mine = ownAnchors(c, anchors);
   const failedDealbreaker = mine.some((a) => a.result === "fail" && anchors.find((x) => x.id === a.id)?.dealbreaker);
-  if (failedDealbreaker || c.fabric_tier === "dealbreaker" || look < 40) {
+  if (failedDealbreaker || (c.fabric_tier === "dealbreaker" && opts.fabricMustMatch) || look < 40) {
     return { look, fit, verdict: "rejected", caveat: null };
   }
 
@@ -114,6 +119,7 @@ export function score(c: Checklist, anchors: AnchorDef[], w: Weights = WEIGHTS):
   }
   if (c.color === "different") notes.push("Different color");
   else if (c.color === "close") notes.push("Slightly different shade");
+  if (c.fabric_tier === "dealbreaker") notes.push(c.fabric_evidence ? `Different fabric: ${shortFabric(c.fabric_evidence)}` : "Different fabric");
   if (c.fabric_tier === "acceptable_swap") notes.push(c.fabric_evidence ? `${shortFabric(c.fabric_evidence)}, not the original fabric` : "Different fabric");
   if (c.fabric_tier === "unknown") notes.push("Fabric not listed");
   if (c.polish === "looks_cheap") notes.push("May look less polished");
