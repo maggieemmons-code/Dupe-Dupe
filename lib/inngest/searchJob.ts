@@ -34,11 +34,14 @@ const SERP_FLOOR = 30;
 /** How many screened picks go on to the judge (PLAN.md: up to 10 new; a few more since the judge now does the filtering). */
 const MAX_RESULTS = 12;
 /**
- * The second Shopping search is scoped to one well-made store by adding its name
- * to the words (Maggie, Nov 15: Revolve had dupes the general search missed).
+ * Google Shopping runs every look-alike phrasing from the brief (up to 4: each
+ * brings different stores), plus one search per store below, scoped by adding
+ * the store's name to the words (Maggie, Nov 15: Revolve had dupes the general
+ * search missed; more phrasings and Nordstrom for more good candidates).
  * Friends' own favorite stores can take this over in phase 7.
  */
-const STORE_SEARCH = "Revolve";
+const MAX_PHRASINGS = 4;
+const STORE_SEARCHES = ["Revolve", "Nordstrom"];
 const BATCH = 20;
 const MAX_BATCHES = 3;
 /** Paid product lookups (1 SerpApi search each) per search, for the top picks (Maggie, Nov 15: top picks, open to upgrading). */
@@ -161,8 +164,16 @@ export const runSearch = inngest.createFunction(
             return lensSearch(data.signedUrl, ctx.lensHint);
           })
         : Promise.resolve(null),
-      gather("shopping-1", "Google Shopping", () => shoppingSearch(ctx.lookAlike[0], ctx.budget, ctx.priceFloor)),
-      gather("shopping-store", "Google Shopping", () => shoppingSearch(`${ctx.lookAlike[0]} ${STORE_SEARCH.toLowerCase()}`, ctx.budget, ctx.priceFloor)),
+      ...ctx.lookAlike
+        .slice(0, MAX_PHRASINGS)
+        .map((q, i) => gather(`shopping-${i + 1}`, "Google Shopping", () => shoppingSearch(q, ctx.budget, ctx.priceFloor))),
+      ...STORE_SEARCHES.map((store) => {
+        // The shortest phrasing works best with a store name added.
+        const q = [...ctx.lookAlike].sort((a, b) => a.length - b.length)[0];
+        return gather(`shopping-${store.toLowerCase()}`, "Google Shopping", () =>
+          shoppingSearch(`${q} ${store.toLowerCase()}`, ctx.budget, ctx.priceFloor),
+        );
+      }),
       gather("amazon", "Amazon", () => amazonSearch(ctx.lookAlike[0], ctx.budget, ctx.priceFloor)),
     ]);
 
@@ -330,9 +341,13 @@ export const runSearch = inngest.createFunction(
             "Read a clothing product page: fabric content, lining, care, fit and sizes in stock",
             20000,
           );
+          // Match each page to its own address (two items from one store must not share a page).
+          const key = (u: string) => {
+            const x = new URL(u);
+            return `${x.hostname.replace(/^www\./, "")}${x.pathname.replace(/\/$/, "")}`;
+          };
           for (const r of targets) {
-            const host = new URL(urlFor(r)!).hostname;
-            const page = pages.find((pg) => pg.url === urlFor(r) || new URL(pg.url).hostname === host);
+            const page = pages.find((pg) => pg.url === urlFor(r) || key(pg.url) === key(urlFor(r)!));
             const useful = page ? usefulPageText(page.text) : "";
             if (useful) {
               await db
@@ -388,6 +403,7 @@ export const runSearch = inngest.createFunction(
             result = await runJudge(
               {
                 name: ctx.name,
+                anchors: ctx.anchors,
                 photo: original,
                 fields: ctx.fields,
                 visualBrief: ctx.visualBrief,

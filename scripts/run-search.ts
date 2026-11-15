@@ -51,15 +51,16 @@ async function main() {
 
   const { data: shown } = await db
     .from("candidates")
-    .select("source, store, title, price, price_is_estimate, photo_url, color_match, link_is_google, product_token")
+    .select("source, store, title, price, price_is_estimate, photo_url, color_match, link_is_google, product_token, look_score, fit_score, verdict, caveat")
     .eq("search_id", s.id)
-    .eq("stage", "screened")
+    .eq("stage", "judged")
     .is("drop_reason", null)
-    .order("screen_rank");
+    .neq("verdict", "rejected")
+    .order("look_score", { ascending: false });
   console.log(`\nShown ${shown?.length ?? 0}:`);
   for (const c of shown ?? []) {
     console.log(
-      `  [${c.source}] ${c.store} · ${c.price != null ? `$${c.price}${c.price_is_estimate ? " est." : ""}` : "no price"} · ${c.photo_url ? "photo" : "NO PHOTO"} · ${c.color_match} · ${c.title.slice(0, 55)}${c.link_is_google ? (c.product_token ? " · store lookup ready" : " · NO TOKEN") : ""}`,
+      `  L${c.look_score} F${c.fit_score} ${c.verdict}${c.caveat ? ` (${c.caveat})` : ""} · [${c.source}] ${c.store} · ${c.price != null ? `$${c.price}${c.price_is_estimate ? " est." : ""}` : "no price"} · ${c.photo_url ? "photo" : "NO PHOTO"} · ${c.color_match} · ${c.title.slice(0, 55)}${c.link_is_google ? (c.product_token ? " · store lookup ready" : " · NO TOKEN") : ""}`,
     );
   }
 }

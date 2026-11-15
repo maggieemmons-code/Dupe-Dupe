@@ -65,11 +65,11 @@ The shopper wants a piece that looks as high end as the original and is made of 
 The first image is the ORIGINAL. Each later image belongs to the candidate named beside it. Compare each candidate to the original and to the briefs.
 
 For every candidate:
-- anchors: judge each anchor in the visual brief, by its id. pass = clearly present; partial = present but changed; fail = absent; cannot_see = the photo doesn't show that part.
+- anchors: judge exactly the signature details listed under ANCHORS TO JUDGE, by their ids, and no others. pass = clearly present; partial = present but changed; fail = absent; cannot_see = the photo doesn't show that part.
 - color, silhouette, neckline, sleeves, length, sheen: match, close or different. "close" means a shopper would accept it without being told. Use the brief's acceptable and dealbreaker shades for color.
 - polish: would a shopper believe it cost about what the original did? Judge fabric weight and drape, finish (seams, lining, hardware) and construction from the photo and the listing. Shopper reviews that describe the fabric or finish count. as_polished, slightly_less, or looks_cheap.
 - fabric_tier: place the fabric using ONLY words in the listing text: stated fiber content or a named fabric. Quote them in fabric_evidence. Reviews alone don't set the fiber. If the listing doesn't state the fabric, answer unknown. Never infer fabric from the photo alone.
-- size_available: from the listing's sizes, compared with the shopper's sizes. unknown if the listing doesn't say.
+- size_available: yes only if the listing shows one of the shopper's sizes in stock; no only if it says the shopper's sizes are sold out or not made. A size in the title ("Gown in Red - size XL") is just the variant the store listed, not what's available, so on its own it means unknown.
 - stock_photo_suspected: true if the candidate's photo appears to be the original brand's own product image rather than a photo of this item.
 - biggest_difference: one plain sentence a shopper would understand.
 - confidence: low when the photo is small, cropped or unclear, or the listing says little.
@@ -93,6 +93,7 @@ export type JudgeCandidate = {
 
 export type JudgeOriginal = {
   name: string;
+  anchors: { id: string; label: string; dealbreaker?: boolean }[];
   photo: Buffer | null;
   fields: Record<string, unknown>;
   visualBrief: unknown;
@@ -121,6 +122,7 @@ export async function runJudge(original: JudgeOriginal, candidates: JudgeCandida
       `Visual brief: ${JSON.stringify(original.visualBrief)}`,
       `Composition brief: ${JSON.stringify(original.compositionBrief)}`,
       `Shopper's sizes: ${original.sizes.join(", ") || "not given"}`,
+      `ANCHORS TO JUDGE:\n${original.anchors.map((a) => `- ${a.id}: ${a.label}${a.dealbreaker ? " (must match)" : ""}`).join("\n") || "(none)"}`,
     ].join("\n"),
   });
   for (const c of candidates) {
@@ -158,7 +160,13 @@ export async function runJudge(original: JudgeOriginal, candidates: JudgeCandida
     const raw = (call?.input as { checklists?: (Checklist & { candidate_id: string })[] } | undefined)?.checklists;
     if (Array.isArray(raw) && raw.some((c) => ids.has(c.candidate_id))) {
       const out = new Map<string, Checklist>();
-      for (const c of raw) if (ids.has(c.candidate_id) && !out.has(c.candidate_id)) out.set(c.candidate_id, cleanChecklist(c));
+      const anchorIds = new Set(original.anchors.map((a) => a.id));
+      for (const c of raw) {
+        if (!ids.has(c.candidate_id) || out.has(c.candidate_id)) continue;
+        const clean = cleanChecklist(c);
+        clean.anchors = clean.anchors.filter((a) => anchorIds.has(a.id));
+        out.set(c.candidate_id, clean);
+      }
       return { checklists: out, usage };
     }
   }

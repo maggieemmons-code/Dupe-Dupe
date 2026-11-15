@@ -65,7 +65,7 @@ function total(parts: Part[]) {
 
 /** The pieces of each score, grouped the way See why shows them. */
 export function breakdown(c: Checklist, anchors: AnchorDef[], w: Weights = WEIGHTS) {
-  const anchorParts: Part[] = c.anchors.map((a) => ({
+  const anchorParts: Part[] = ownAnchors(c, anchors).map((a) => ({
     label: anchors.find((x) => x.id === a.id)?.label ?? a.id,
     points: ANCHOR_POINTS[a.result] ?? null,
     weight: w.anchor,
@@ -102,13 +102,14 @@ export function score(c: Checklist, anchors: AnchorDef[], w: Weights = WEIGHTS):
   const look = b.look.score ?? 0;
   const fit = b.fit.score ?? 0;
 
-  const failedDealbreaker = c.anchors.some((a) => a.result === "fail" && anchors.find((x) => x.id === a.id)?.dealbreaker);
+  const mine = ownAnchors(c, anchors);
+  const failedDealbreaker = mine.some((a) => a.result === "fail" && anchors.find((x) => x.id === a.id)?.dealbreaker);
   if (failedDealbreaker || c.fabric_tier === "dealbreaker" || look < 40) {
     return { look, fit, verdict: "rejected", caveat: null };
   }
 
   const notes: string[] = [];
-  for (const a of c.anchors) {
+  for (const a of mine) {
     if (a.result === "partial") notes.push(`${anchors.find((x) => x.id === a.id)?.label ?? "A detail"} differs`);
   }
   if (c.color === "different") notes.push("Different color");
@@ -120,6 +121,13 @@ export function score(c: Checklist, anchors: AnchorDef[], w: Weights = WEIGHTS):
   // Size unknown is shown on every card's size line ("Size not checked"), so it isn't repeated as a caveat.
 
   return notes.length ? { look, fit, verdict: "caveat", caveat: notes.slice(0, 3).join(" · ") } : { look, fit, verdict: "approved", caveat: null };
+}
+
+/** Only the friend's own signature details count; anything else the judge added is ignored. */
+function ownAnchors(c: Checklist, anchors: AnchorDef[]) {
+  if (!anchors.length) return [];
+  const ids = new Set(anchors.map((a) => a.id));
+  return c.anchors.filter((a) => ids.has(a.id));
 }
 
 function shortFabric(evidence: string) {

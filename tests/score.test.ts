@@ -85,3 +85,8 @@ test("not applicable and cannot see are left out of the total", () => {
   const c = { ...perfect, sleeves: "not_applicable" as const, anchors: [{ id: "a1", result: "pass" as const }, { id: "a2", result: "cannot_see" as const }] };
   assert.equal(score(c, anchors).look, 100);
 });
+
+test("details the judge adds on its own don't count", () => {
+  const c = { ...perfect, anchors: [...perfect.anchors, { id: "made-up", result: "fail" as const }] };
+  assert.deepEqual(score(c, anchors), score(perfect, anchors));
+});
