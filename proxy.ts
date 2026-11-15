@@ -1,8 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Pages anyone can open without being signed in.
-const PUBLIC_PATHS = ["/sign-in", "/auth/"];
+// Pages anyone can open without being signed in. /api/inngest is called by
+// Inngest itself, which signs every request with INNGEST_SIGNING_KEY.
+const PUBLIC_PATHS = ["/sign-in", "/auth/", "/api/inngest"];
 
 /**
  * Runs before every page: keeps the sign-in session fresh and sends

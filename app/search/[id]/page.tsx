@@ -2,13 +2,15 @@ import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/server/session";
 import { signedPhotoUrls } from "@/lib/server/photos";
-import type { SearchRow } from "@/lib/searches";
+import { searchHasRun, type SearchRow } from "@/lib/searches";
+import { CANDIDATE_FIELDS, type CandidateRow } from "@/lib/candidates";
 import Review from "./Review";
+import Results from "./Results";
 import ui from "../../ui.module.css";
 
-export const metadata = { title: "Review · Dupe Dupe" };
+export const metadata = { title: "Dupe Dupe" };
 
-async function ReviewLoader({ params }: { params: PageProps<"/search/[id]">["params"] }) {
+async function SearchLoader({ params }: { params: PageProps<"/search/[id]">["params"] }) {
   const { id } = await params;
   const session = await getSession();
   if (!session) redirect("/sign-in");
@@ -20,10 +22,21 @@ async function ReviewLoader({ params }: { params: PageProps<"/search/[id]">["par
   const urls = await signedPhotoUrls(session, search.photo_paths.slice(0, 1));
   const photoUrl = search.photo_paths[0] ? urls[search.photo_paths[0]] ?? null : null;
 
-  return <Review search={search} photoUrl={photoUrl} />;
+  if (!searchHasRun(search)) return <Review search={search} photoUrl={photoUrl} />;
+
+  // Results: candidates that passed (from phase 4, the judge's approved and caveat ones).
+  const { data: rows } = await session.supabase
+    .from("candidates")
+    .select(CANDIDATE_FIELDS)
+    .eq("search_id", id)
+    .in("stage", ["screened", "enriched", "judged"])
+    .is("drop_reason", null)
+    .order("screen_rank", { ascending: true });
+
+  return <Results search={search} photoUrl={photoUrl} candidates={(rows ?? []) as CandidateRow[]} />;
 }
 
-export default function ReviewPage({ params }: PageProps<"/search/[id]">) {
+export default function SearchPage({ params }: PageProps<"/search/[id]">) {
   return (
     <Suspense
       fallback={
@@ -32,7 +45,7 @@ export default function ReviewPage({ params }: PageProps<"/search/[id]">) {
         </main>
       }
     >
-      <ReviewLoader params={params} />
+      <SearchLoader params={params} />
     </Suspense>
   );
 }

@@ -32,7 +32,7 @@ function widthOf(url: string) {
 }
 
 /** Only public https addresses: no IP literals, no local names. */
-function safeUrl(raw: string) {
+export function safeUrl(raw: string) {
   try {
     const u = new URL(raw);
     if (u.protocol !== "https:") return null;
@@ -101,6 +101,25 @@ export async function downloadPhoto(url: string): Promise<Buffer | null> {
       .rotate()
       .resize({ width: 1024, height: 1024, fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: 82, mozjpeg: true })
+      .toBuffer();
+  } catch {
+    return null;
+  }
+}
+
+/** Downloads a result's small photo for the screener and shrinks it to 256px. Null if unusable. */
+export async function downloadThumb(url: string): Promise<Buffer | null> {
+  const safe = safeUrl(url);
+  if (!safe) return null;
+  try {
+    const res = await fetch(safe, { signal: AbortSignal.timeout(10000), redirect: "follow" });
+    if (!res.ok || !(res.headers.get("content-type") ?? "").startsWith("image/")) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length > MAX_BYTES) return null;
+    return await sharp(buf)
+      .resize({ width: 256, height: 256, fit: "inside", withoutEnlargement: true })
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 75 })
       .toBuffer();
   } catch {
     return null;

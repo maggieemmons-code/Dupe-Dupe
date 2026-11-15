@@ -1,0 +1,262 @@
+/* Item detail, new (DESIGN.md › Screens; design/screens/Detail.dc.html) */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 120px;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.side {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tile {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 22px;
+  background: var(--tile);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.tile img {
+  max-width: 88%;
+  max-height: 86%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.noPhoto {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #6b6b6b;
+}
+
+.badgeInk {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #0a0a0a;
+  color: #ffffff;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.imageLabel {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: #4a4a4a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.caption {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.store {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.price {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 24px;
+}
+
+.est {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.was {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.savings {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--muted-strong);
+  margin: 0;
+}
+
+.caveat {
+  margin: 0;
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 10px 14px;
+  font-size: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.why {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.why p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.collapse {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 4px 0;
+}
+
+.collapse summary {
+  list-style: none;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  padding-right: 32px;
+}
+
+.collapse summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapse summary::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  border-right: 1.8px solid var(--ink);
+  border-bottom: 1.8px solid var(--ink);
+  transform: translateY(-70%) rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.collapse[open] summary::after {
+  transform: translateY(-30%) rotate(-135deg);
+}
+
+.summaryLine {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rows {
+  margin: 4px 0 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.rows > div {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.rows dt {
+  width: 90px;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.rows dd {
+  margin: 0;
+}
+
+.buyBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 12px max(20px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px))
+    max(20px, env(safe-area-inset-left, 0px));
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.buyPrice {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.buyBar a {
+  flex: 1;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

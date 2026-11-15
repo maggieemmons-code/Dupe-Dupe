@@ -35,8 +35,15 @@ export type SearchRow = {
   visual_brief: { anchors?: Anchor[] } & Record<string, unknown> | null;
   brief_built_at: string | null;
   brief_stale: boolean;
+  ran_at: string | null;
+  missing_sources: string[];
   created_at: string;
 };
+
+/** True once "Looks right, search" was tapped: the page shows Results instead of Review. */
+export function searchHasRun(s: Pick<SearchRow, "status" | "ran_at">) {
+  return !!s.ran_at || ["queued", "gathering", "screening", "enriching", "judging", "done"].includes(s.status);
+}
 
 /** The name a search goes by on Find and Review. */
 export function searchName(s: Pick<SearchRow, "brand" | "style_name" | "pasted_text" | "source_links" | "photo_paths">) {

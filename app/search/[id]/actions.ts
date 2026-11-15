@@ -8,6 +8,7 @@ import { usdPriceFromPage } from "@/lib/server/price";
 import { runBriefBuilder } from "@/lib/agents/briefBuilder";
 import { SINGLE_CHOICE, MULTI_CHOICE, type Anchor, type ItemField } from "@/lib/fields";
 import type { SearchRow } from "@/lib/searches";
+import { inngest, SEARCH_CONFIRMED } from "@/lib/inngest/client";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -263,14 +264,32 @@ export async function saveChoices(
   return { ok: true };
 }
 
-/** "Looks right, search": saves the confirmed search as queued. The search itself runs from phase 3. */
+/**
+ * "Looks right, search": marks the search queued and hands it to the
+ * background job (lib/inngest/searchJob.ts). The daily cap was checked when
+ * the search was started on Find.
+ */
 export async function confirmSearch(searchId: string): Promise<Result> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Sign in again to continue." };
-  const { error } = await session.supabase
+  const { data, error } = await session.supabase
     .from("searches")
-    .update({ status: "queued" })
+    .update({ status: "queued", error: null })
     .eq("id", searchId)
-    .in("status", ["review", "queued"]);
-  return error ? { ok: false, error: "That didn't save. Try again." } : { ok: true };
+    .in("status", ["review", "queued", "failed"])
+    .not("brief_built_at", "is", null)
+    .select("id")
+    .maybeSingle();
+  if (error) return { ok: false, error: "That didn't save. Try again." };
+  if (!data) return { ok: true }; // already searching or done; the page shows where it is
+
+  try {
+    await inngest.send({ name: SEARCH_CONFIRMED, data: { searchId, userId: session.userId } });
+  } catch (e) {
+    console.error("Starting the search job failed", e);
+    await session.supabase.from("searches").update({ status: "review" }).eq("id", searchId);
+    return { ok: false, error: "The search didn't start. Try again in a minute." };
+  }
+  await session.supabase.from("events").insert({ type: "search_started", search_id: searchId });
+  return { ok: true };
 }

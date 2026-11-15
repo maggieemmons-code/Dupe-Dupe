@@ -373,6 +373,7 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
     });
   }
 
+  const router = useRouter();
   const [confirmed, setConfirmed] = useState(search.status === "queued");
   const guesses = ROWS.filter((r) => sources[r.field]?.from === "guess" && shown(r, values)).length;
 
@@ -757,7 +758,7 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
       <div className={styles.bottomBar}>
         {confirmed ? (
           <p className={styles.confirmed} role="status">
-            Saved. Searching arrives in the next phase.
+            Starting the search…
           </p>
         ) : (
           <>
@@ -777,6 +778,7 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
                   const r = await confirmSearch(search.id);
                   if (!r.ok) return setError(r.error);
                   setConfirmed(true);
+                  router.refresh(); // the page turns into Results
                 })
               }
             >
