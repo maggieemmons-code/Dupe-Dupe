@@ -34,10 +34,12 @@ export type CandidateRow = {
   fabric_evidence: string | null;
   checklist: import("@/lib/search/score").Checklist | null;
   store_details: string[];
+  /** in_stock, sold_out, or null when it couldn't be checked. */
+  availability: string | null;
 };
 
 export const CANDIDATE_FIELDS =
-  "id, search_id, kind, source, title, brand, store, store_domain, link_is_google, photo_url, thumb_url, price, old_price, price_is_estimate, price_checked_at, rating, reviews, delivery, size, color, color_match, screen_note, screen_rank, stage, look_score, fit_score, verdict, caveat, judge_note, confidence, fabric_tier, fabric_evidence, checklist, store_details";
+  "id, search_id, kind, source, title, brand, store, store_domain, link_is_google, photo_url, thumb_url, price, old_price, price_is_estimate, price_checked_at, rating, reviews, delivery, size, color, color_match, screen_note, screen_rank, stage, look_score, fit_score, verdict, caveat, judge_note, confidence, fabric_tier, fabric_evidence, checklist, store_details, availability";
 
 export function money(n: number | null) {
   if (n == null) return "";

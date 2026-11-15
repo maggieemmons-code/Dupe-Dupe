@@ -14,6 +14,7 @@ import {
 import { fetchPages } from "@/lib/server/tinyfish";
 import { usefulPageText } from "@/lib/search/listingText";
 import { usdPriceFromPage } from "@/lib/server/price";
+import { shopifyAvailable, pageAvailable, offersAvailable } from "@/lib/server/stock";
 import { runJudge, type JudgeCandidate } from "@/lib/agents/judge";
 import { score, type AnchorDef, type Weights } from "@/lib/search/score";
 import { anchorKind } from "@/lib/search/anchorKind";
@@ -142,7 +143,7 @@ export const runSearch = inngest.createFunction(
           .update({
             stage: "gathered", drop_reason: null, duplicate_of: null, screen_note: null, screen_rank: null, color_match: null,
             checklist: null, fabric_tier: null, fabric_evidence: null, stock_photo_flag: null, judge_note: null, confidence: null,
-            look_score: null, fit_score: null, verdict: null, caveat: null,
+            look_score: null, fit_score: null, verdict: null, caveat: null, availability: null,
           })
           .eq("search_id", searchId)
           .eq("user_id", userId);
@@ -386,18 +387,37 @@ export const runSearch = inngest.createFunction(
     await step.run("read-pages", async () => {
       const { data: rows } = await db
         .from("candidates")
-        .select("id, source, link, store_link, listing_text, price")
+        .select("id, source, link, store_link, listing_text, price, store_details, availability")
         .in("id", picks.map((p) => p.id));
       const urlFor = (r: { source: string; link: string; store_link: string | null }) =>
         r.source === "amazon" ? null : (r.store_link ?? (r.source === "shopping" ? null : r.link));
       const targets = (rows ?? []).filter((r) => urlFor(r));
+
+      // Stock (Maggie, Nov 15: results were sold out). Shopify's own data and Google's
+      // store offers first, then the page text below. Sold out → dropped.
+      const stock = new Map<string, boolean | null>();
+      await Promise.all(
+        (rows ?? []).map(async (r) => {
+          const fromOffers = offersAvailable(r.store_details ?? []);
+          const url = urlFor(r);
+          stock.set(r.id, fromOffers ?? (url ? await shopifyAvailable(url) : null));
+        }),
+      );
+
       if (targets.length) {
         try {
-          const { pages } = await fetchPages(
-            targets.map((r) => urlFor(r)!),
-            "Read a clothing product page: fabric content, lining, care, fit and sizes in stock",
-            20000,
-          );
+          // The reader takes 10 addresses a call: read them all, in parallel.
+          const chunks: string[][] = [];
+          for (let k = 0; k < targets.length; k += 10) chunks.push(targets.slice(k, k + 10).map((r) => urlFor(r)!));
+          const pages = (
+            await Promise.all(
+              chunks.map((urls) =>
+                fetchPages(urls, "Read a clothing product page: fabric content, lining, care, fit, sizes and whether it's in stock", 20000)
+                  .then((x) => x.pages)
+                  .catch(() => []),
+              ),
+            )
+          ).flat();
           // Match each page to its own address (two items from one store must not share a page).
           const key = (u: string) => {
             const x = new URL(u);
@@ -406,6 +426,7 @@ export const runSearch = inngest.createFunction(
           for (const r of targets) {
             const page = pages.find((pg) => pg.url === urlFor(r) || key(pg.url) === key(urlFor(r)!));
             const useful = page ? usefulPageText(page.text) : "";
+            if (page && stock.get(r.id) == null) stock.set(r.id, pageAvailable(page.text));
             // Lens matches that showed no price: read it from the page, and keep to the friend's range.
             const pagePrice = r.price == null && page ? usdPriceFromPage(page.text) : null;
             const priceUpdate =
@@ -433,6 +454,10 @@ export const runSearch = inngest.createFunction(
           await logJobCall({ userId, searchId, service: "tinyfish", stage: "enrich", ok: false, error: String(e) });
         }
       }
+      const soldOut = [...stock].filter(([, a]) => a === false).map(([id]) => id);
+      const inStock = [...stock].filter(([, a]) => a === true).map(([id]) => id);
+      if (soldOut.length) await db.from("candidates").update({ availability: "sold_out", drop_reason: "Sold out" }).in("id", soldOut);
+      if (inStock.length) await db.from("candidates").update({ availability: "in_stock" }).in("id", inStock);
       await db
         .from("candidates")
         .update({ stage: "enriched", enriched_at: new Date().toISOString() })
@@ -523,6 +548,58 @@ export const runSearch = inngest.createFunction(
         }),
       ),
     );
+
+    /*
+     * 6b. Stock check on the top 10: anything not yet confirmed in stock gets its store
+     *     page found (Google Shopping results: 1 SerpApi search each) and checked.
+     */
+    await step.run("check-stock", async () => {
+      const { data: top } = await db
+        .from("candidates")
+        .select("id, source, link, store_link, product_token, store, store_details, availability, look_score")
+        .eq("search_id", searchId)
+        .eq("stage", "judged")
+        .neq("verdict", "rejected")
+        .is("drop_reason", null)
+        .order("look_score", { ascending: false })
+        .limit(10);
+      const unsure = (top ?? []).filter((c) => c.availability !== "in_stock" && c.source !== "amazon");
+      const results = await Promise.all(
+        unsure.map(async (c) => {
+          let url: string | null = c.store_link ?? (c.source === "shopping" ? null : c.link);
+          let a: boolean | null = offersAvailable(c.store_details ?? []);
+          if (a == null && !url && c.product_token) {
+            try {
+              const d = await shoppingDetails(c.product_token, c.store);
+              await logJobCall({ userId, searchId, service: "serpapi", stage: "stock", units: { searches: 1 }, ok: true });
+              url = d.url;
+              a = offersAvailable(d.details);
+              if (d.url) await db.from("candidates").update({ store_link: d.url, store_details: d.details }).eq("id", c.id);
+            } catch (e) {
+              await logJobCall({ userId, searchId, service: "serpapi", stage: "stock", ok: false, error: String(e) });
+            }
+          }
+          if (a == null && url) a = await shopifyAvailable(url);
+          return { id: c.id, url, a };
+        }),
+      );
+      const toRead = results.filter((r) => r.a == null && r.url);
+      if (toRead.length) {
+        try {
+          const { pages } = await fetchPages(toRead.map((r) => r.url!), "Is this product in stock or sold out?", 20000);
+          for (const r of toRead) {
+            const pg = pages.find((p) => p.url === r.url || new URL(p.url).pathname === new URL(r.url!).pathname);
+            if (pg) r.a = pageAvailable(pg.text);
+          }
+        } catch {
+          /* leave unknown */
+        }
+      }
+      for (const r of results) {
+        if (r.a === false) await db.from("candidates").update({ availability: "sold_out", drop_reason: "Sold out" }).eq("id", r.id);
+        else if (r.a === true) await db.from("candidates").update({ availability: "in_stock" }).eq("id", r.id);
+      }
+    });
 
     /* 7. Done. */
     await step.run("finish", async () => {

@@ -341,8 +341,8 @@ function Card({ c }: { c: CandidateRow }) {
           </span>
         )}
         <span className={styles.sizeLine}>
-          <span className={styles.sizeDotHollow} aria-hidden="true" />
-          Size not checked
+          <span className={c.availability === "in_stock" ? styles.sizeDot : styles.sizeDotHollow} aria-hidden="true" />
+          {c.availability === "in_stock" ? "In stock · size not checked" : "Stock not checked"}
         </span>
         {c.verdict === "rejected" && c.judge_note && <span className={styles.caveat}>{c.judge_note}</span>}
         {c.verdict === "caveat" && c.caveat && (

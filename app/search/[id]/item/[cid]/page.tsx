@@ -184,6 +184,10 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
             <dd>{item.fabric_evidence ? `“${item.fabric_evidence}”` : "Not listed by the store."}</dd>
           </div>
           <div>
+            <dt>Stock</dt>
+            <dd>{item.availability === "in_stock" ? "In stock when we checked." : "Not confirmed. Check at the store."}</dd>
+          </div>
+          <div>
             <dt>Size</dt>
             <dd>Not checked yet. Check your size at the store.</dd>
           </div>
