@@ -27,10 +27,12 @@ export default function Results({
   search,
   photoUrl,
   candidates,
+  misses = [],
 }: {
   search: SearchRow;
   photoUrl: string | null;
   candidates: CandidateRow[];
+  misses?: CandidateRow[];
 }) {
   const router = useRouter();
   const running = RUNNING.includes(search.status);
@@ -224,6 +226,22 @@ export default function Results({
           </p>
         </section>
       )}
+      {misses.length > 0 && view !== "used" && (
+        <section className={styles.misses} aria-labelledby="misses-title">
+          <h2 id="misses-title" className={styles.missesTitle}>
+            Closest we found, not a true match
+          </h2>
+          <p className={styles.note}>These missed something that matters. Each says what&rsquo;s different.</p>
+          <ul className={styles.grid}>
+            {misses.map((c) => (
+              <li key={c.id}>
+                <Card c={c} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
     </main>
   );
 }
@@ -284,6 +302,7 @@ function Card({ c }: { c: CandidateRow }) {
           <span className={styles.sizeDotHollow} aria-hidden="true" />
           Size not checked
         </span>
+        {c.verdict === "rejected" && c.judge_note && <span className={styles.caveat}>{c.judge_note}</span>}
         {c.verdict === "caveat" && c.caveat && (
           <span className={styles.caveat}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

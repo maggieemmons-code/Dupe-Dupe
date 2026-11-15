@@ -97,12 +97,12 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
       </section>
 
       {/* Verdict and caveat */}
-      {item.verdict && item.verdict !== "rejected" && (
+      {item.verdict && (
         <section className={styles.verdictRow}>
           <span className={item.verdict === "approved" ? styles.pillInk : styles.pillOutline}>
-            {item.verdict === "approved" ? "Approved" : "Caveat"}
+            {item.verdict === "approved" ? "Approved" : item.verdict === "caveat" ? "Caveat" : "Not a true match"}
           </span>
-          {item.caveat && <span className={styles.caveatText}>{item.caveat}</span>}
+          {item.verdict === "caveat" && item.caveat && <span className={styles.caveatText}>{item.caveat}</span>}
         </section>
       )}
       {!item.verdict && item.color_match === "different" && (

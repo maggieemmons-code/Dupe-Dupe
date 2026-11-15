@@ -10,6 +10,8 @@ import ui from "../../ui.module.css";
 
 export const metadata = { title: "Dupe Dupe" };
 
+const MISSES_BELOW = 3;
+
 async function SearchLoader({ params }: { params: PageProps<"/search/[id]">["params"] }) {
   const { id } = await params;
   const session = await getSession();
@@ -37,8 +39,17 @@ async function SearchLoader({ params }: { params: PageProps<"/search/[id]">["par
   const judged = all.filter((c) => c.stage === "judged");
   const legacy = search.status === "done" && !judged.length && !all.some((c) => c.stage === "enriched");
   const shown = legacy ? all : judged.filter((c) => c.verdict !== "rejected");
+  // Maggie, Nov 15: when fewer than 3 dupes pass, show the closest rejected pieces,
+  // clearly apart from the dupes, each with its biggest difference.
+  const misses =
+    search.status === "done" && shown.length < MISSES_BELOW
+      ? judged
+          .filter((c) => c.verdict === "rejected" && (c.look_score ?? 0) >= 30)
+          .sort((a, b) => (b.look_score ?? 0) - (a.look_score ?? 0))
+          .slice(0, 3)
+      : [];
 
-  return <Results search={search} photoUrl={photoUrl} candidates={shown} />;
+  return <Results search={search} photoUrl={photoUrl} candidates={shown} misses={misses} />;
 }
 
 export default function SearchPage({ params }: PageProps<"/search/[id]">) {
