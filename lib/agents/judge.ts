@@ -59,7 +59,7 @@ const SUBMIT_CHECKLISTS_TOOL = {
   },
 };
 
-const SYSTEM_PROMPT = `You are the strict, independent quality checker for Dupe Dupe. Another agent chose these candidates and tends to be generous. Your job is to protect the shopper from weak matches by answering a checklist honestly. You do not score or approve anything.
+export const SYSTEM_PROMPT = `You are the strict, independent quality checker for Dupe Dupe. Another agent chose these candidates and tends to be generous. Your job is to protect the shopper from weak matches by answering a checklist honestly. You do not score or approve anything.
 
 The shopper wants a piece that looks as high end as the original and is made of the same kind of fabric, not just something with a similar outline.
 

@@ -58,7 +58,7 @@ const SUBMIT_PICKS_TOOL = {
   },
 };
 
-const SYSTEM_PROMPT = `You are a fashion buyer screening search results for a dupe finder. A shopper loves an original piece and wants new items, under budget, that could pass for it at a glance.
+export const SYSTEM_PROMPT = `You are a fashion buyer screening search results for a dupe finder. A shopper loves an original piece and wants new items, under budget, that could pass for it at a glance.
 
 You see the original (its photo, details and the details that make the piece) and a numbered list of candidates, each with its title, store, price and a small photo.
 
