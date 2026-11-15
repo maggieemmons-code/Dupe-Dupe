@@ -1,0 +1,859 @@
+<title>Dupe Dupe</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky swing-tag photo rail left, ticket-stub stepper + one tag card right; stacks on phones */
+:root{
+  --paper:#F6F4EF; --card:#FFFFFF; --ink:#1D1C1A; --muted:#857E74; --line:#E2DCD1;
+  --sage:#6F7E61; --sage-soft:#EBEFE6; --clay:#B8653F; --clay-soft:#F5E9E1; --warn:#9A3B2B;
+  --display:'Oswald','Arial Narrow',sans-serif; --body:'Work Sans',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#171614;--card:#211F1C;--ink:#EEEAE3;--muted:#A39B90;--line:#36322D;--sage:#9DAE8C;--sage-soft:#262B22;--clay:#DB8C66;--clay-soft:#33251E;--warn:#E07A66;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#171614;--card:#211F1C;--ink:#EEEAE3;--muted:#A39B90;--line:#36322D;--sage:#9DAE8C;--sage-soft:#262B22;--clay:#DB8C66;--clay-soft:#33251E;--warn:#E07A66;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.brand{font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:.08em}
+.brand small{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--muted);font-weight:400;margin-left:8px}
+.meta{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.body{display:grid;grid-template-columns:280px minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:860px){.body{grid-template-columns:1fr}}
+aside{position:sticky;top:20px;display:flex;flex-direction:column;gap:14px}
+@media (max-width:860px){aside{position:static}}
+.tag{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:26px 16px 16px;position:relative}
+.tag::before{content:"";position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:26px;height:26px;border-radius:50%;border:3px solid var(--muted);background:var(--paper)}
+.frame{border:1px dashed var(--line);border-radius:3px;min-height:260px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--muted);font-family:var(--mono);font-size:12px;text-align:center;padding:12px}
+.frame img{width:100%;height:300px;object-fit:cover;display:block}
+.frame.has{padding:0;border-style:solid}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.thumbs button{width:44px;height:44px;padding:0;border:1px solid var(--line);border-radius:3px;overflow:hidden;cursor:pointer;background:none}
+.thumbs button.on{outline:2px solid var(--sage);outline-offset:1px}
+.thumbs img{width:100%;height:100%;object-fit:cover}
+.summary{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:14px}
+.summary h4{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;font-weight:500}
+.summary dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px}
+.summary dt{color:var(--muted)} .summary dd{margin:0;text-align:right;font-weight:500;overflow-wrap:anywhere}
+main{display:flex;flex-direction:column;gap:18px;min-width:0}
+.ticket{display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.tk{padding:12px 6px;text-align:center;border-right:1px dashed var(--line);display:flex;flex-direction:column;gap:2px;background:none;border-top:0;border-bottom:0;border-left:0;color:var(--ink);cursor:pointer;font:inherit}
+.tk:last-child{border-right:0}
+.tk .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.tk .l{font-family:var(--display);font-size:12px;letter-spacing:.05em;text-transform:uppercase}
+.tk.active{background:var(--sage);color:var(--card)} .tk.active .n{color:var(--card)}
+.tk.done .l,.tk.done .n{color:var(--clay)}
+.tk:disabled{cursor:default}
+@media (max-width:560px){.tk .l{display:none}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:28px}
+@media (max-width:560px){.card{padding:18px}}
+h2{font-family:var(--display);font-weight:600;font-size:26px;margin:0 0 4px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 22px;max-width:60ch}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}}
+.stack{display:flex;flex-direction:column;gap:18px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field>span:first-child{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.hint{font-size:12px;color:var(--muted)}
+input,select,textarea{font:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:3px;background:var(--paper);color:var(--ink);width:100%}
+textarea{min-height:110px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--sage);outline-offset:1px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{font:inherit;font-size:13px;padding:7px 14px;border:1px solid var(--line);border-radius:999px;background:var(--paper);color:var(--ink);cursor:pointer}
+.pill:hover{border-color:var(--sage)}
+.pill.on{background:var(--sage);border-color:var(--sage);color:var(--card)}
+.drop{border:1px dashed var(--line);border-radius:4px;padding:28px 16px;text-align:center;cursor:pointer;color:var(--muted)}
+.drop:hover,.drop.over{border-color:var(--sage);background:var(--sage-soft)}
+.drop strong{display:block;color:var(--ink);font-weight:500;margin-bottom:4px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row input{flex:1 1 240px}
+.links{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.links li{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:3px;font-size:13px;min-width:0}
+.links .u{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:12px}
+.chip{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.chip.ok{color:var(--sage);border-color:var(--sage)} .chip.bad{color:var(--warn);border-color:var(--warn)} .chip.wait{color:var(--muted)}
+.x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px}
+.note{padding:14px 16px;background:var(--clay-soft);border-left:3px solid var(--clay);border-radius:0 3px 3px 0;font-size:13px}
+.note b{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--clay);font-weight:500;margin-bottom:6px}
+.note ul{margin:0;padding-left:18px}
+.found{border:1px solid var(--sage);background:var(--sage-soft);border-radius:4px;padding:14px 16px;font-size:13px}
+.found b{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--sage);display:block;margin-bottom:6px}
+.nav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.btn{font-family:var(--display);font-size:14px;letter-spacing:.05em;text-transform:uppercase;padding:12px 26px;border-radius:3px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper)}
+.btn:hover:not(:disabled){background:var(--sage);border-color:var(--sage)}
+.btn:disabled{background:var(--line);border-color:var(--line);color:var(--muted);cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover:not(:disabled){border-color:var(--ink);background:transparent}
+.btn.sm{padding:9px 16px;font-size:13px}
+button:focus-visible,.tk:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+.results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:700px){.results{grid-template-columns:1fr}}
+.dupe{border:1px solid var(--line);border-radius:4px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.dupe .top{display:flex;justify-content:space-between;align-items:flex-start}
+.score{font-family:var(--display);font-size:30px;font-weight:600;color:var(--sage);line-height:1}
+.score small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:400;margin-top:4px}
+.rate{font-size:13px;color:var(--clay);font-variant-numeric:tabular-nums}
+.rate span{color:var(--muted)}
+.dupe h3{font-family:var(--display);font-weight:500;font-size:18px;margin:4px 0 0}
+.ret{color:var(--muted);font-size:13px;margin:0}
+.price{font-family:var(--mono);font-size:16px;margin:0}
+.comp{font-family:var(--mono);font-size:12px;color:var(--muted);margin:0}
+.why{font-size:13px;margin:4px 0}
+.badges{display:flex;flex-wrap:wrap;gap:6px}
+.badge{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px;background:var(--clay-soft);color:var(--clay)}
+.shop{margin-top:auto;padding-top:8px;display:flex;gap:14px;flex-wrap:wrap}
+.shop a{font-size:13px;font-weight:500;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--ink)}
+.shop a:hover{color:var(--sage);border-color:var(--sage)}
+.hright{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.tabs{display:flex;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px}
+.tab{font-family:var(--display);font-size:13px;letter-spacing:.05em;text-transform:uppercase;padding:7px 16px;border-radius:999px;border:0;background:none;color:var(--muted);cursor:pointer}
+.tab.on{background:var(--ink);color:var(--paper)}
+.item-line{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px dashed var(--line);border-radius:4px;font-size:14px}
+.item-line strong{font-family:var(--display);font-weight:500;font-size:17px}
+.sec-h{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin:6px 0 0;font-weight:500}
+.qlist{display:flex;flex-direction:column;gap:10px}
+.qrow{border:1px solid var(--line);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.qtype{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--clay)}
+.qtext{font-family:var(--mono);font-size:13px;overflow-wrap:anywhere}
+.qwhy{font-size:13px;color:var(--muted);margin:0}
+.plinks{display:flex;flex-wrap:wrap;gap:6px}
+.plink{font-size:12px;padding:5px 10px;border:1px solid var(--line);border-radius:3px;color:var(--ink);text-decoration:none;background:var(--paper)}
+.plink:hover{border-color:var(--sage);color:var(--sage)}
+.brands{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.brands{grid-template-columns:1fr}}
+.era{font-family:var(--mono);font-size:11px;color:var(--sage)}
+.fb{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px dashed var(--line);padding-top:10px;margin-top:8px}
+.fb textarea{min-height:70px}
+.vote{font-size:16px;line-height:1;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--paper);cursor:pointer}
+.vote:hover{border-color:var(--sage)}
+.fbdone{font-size:13px;flex:1;min-width:0;overflow-wrap:anywhere}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font:inherit;font-size:12px;padding:0}
+.scope-tag{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 6px;margin-left:4px;white-space:nowrap}
+.kind{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.kind.new{background:var(--clay-soft);color:var(--clay)}
+.kind.used{background:var(--sage-soft);color:var(--sage)}
+.kinds{display:flex;gap:4px}
+.kind.fav{background:var(--clay-soft);color:var(--clay)}
+.prefrow{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+.linkbtn.faved{color:var(--clay);text-decoration:none;font-weight:600}
+.pchips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pchips .sec-h{margin:0 6px 0 0}
+.pchip{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:5px 6px 5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card)}
+.pchip.favorites{border-color:var(--clay);color:var(--clay)}
+.pchip.excluded{color:var(--muted);text-decoration:line-through}
+.pchip button{background:none;border:0;color:inherit;cursor:pointer;font-size:14px;padding:0 4px;text-decoration:none}
+.kind.live{background:var(--ink);color:var(--paper)}
+.disclose{font-size:12px;color:var(--muted);text-align:center;margin-top:28px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:560px){.grid3{grid-template-columns:1fr}}
+details.msel{position:relative}
+details.msel summary{list-style:none;cursor:pointer;font-size:14px;padding:10px 32px 10px 12px;border:1px solid var(--line);border-radius:3px;background:var(--paper);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.msel summary::-webkit-details-marker{display:none}
+details.msel summary::after{content:"▾";position:absolute;right:12px;top:10px;color:var(--muted)}
+details.msel[open] summary{outline:2px solid var(--sage);outline-offset:1px}
+details.msel .ph{color:var(--muted)}
+.mopts{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);background:var(--card);border:1px solid var(--line);border-radius:4px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:260px;overflow:auto;padding:6px}
+.mopts label{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:3px;font-size:14px;cursor:pointer}
+.mopts label:hover{background:var(--sage-soft)}
+.mopts input{width:auto;accent-color:var(--sage)}
+.sortbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 16px}
+.sortbar .sec-h{margin:0}
+.clr{font-weight:500;color:var(--ink)}
+.diffclr{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:999px;background:var(--clay-soft);color:var(--clay);white-space:nowrap}
+.scores{display:flex;gap:16px}
+.jnote{font-size:13px;margin:4px 0;padding:8px 10px;background:var(--sage-soft);border-radius:3px}
+.jnote b{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sage);font-weight:500}
+.kind.photo{background:var(--sage-soft);color:var(--sage)}
+.learn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--sage);margin:0 0 14px}
+.status{font-family:var(--mono);font-size:12px;color:var(--muted);min-height:18px}
+.status.err{color:var(--warn)}
+.loading{display:flex;flex-direction:column;align-items:center;gap:12px;padding:48px 0;color:var(--muted);font-family:var(--mono);font-size:12px;text-align:center}
+.bar{width:180px;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar::after{content:"";display:block;width:40%;height:100%;background:var(--sage);animation:slide 1.2s ease-in-out infinite}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+@media (prefers-reduced-motion:reduce){.bar::after{animation:none;width:100%}}
+.brandbtn{background:none;border:0;padding:0;color:var(--ink);cursor:pointer;font:inherit}
+.home{display:flex;flex-direction:column;gap:32px;max-width:860px;margin:0 auto}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--clay);margin:0 0 10px}
+.hero h1{font-family:var(--display);font-weight:600;font-size:clamp(34px,6vw,54px);line-height:1.02;letter-spacing:.01em;text-transform:uppercase;margin:0 0 14px;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--sage)}
+.lede{color:var(--muted);font-size:16px;max-width:58ch;margin:0}
+.starter{display:flex;flex-direction:column;gap:14px;padding:30px 22px 22px}
+.starter textarea{min-height:64px;font-size:16px}
+.starter .drop{padding:16px}
+.newthumbs{display:flex;gap:6px;flex-wrap:wrap}
+.newthumbs img{width:48px;height:48px;object-fit:cover;border-radius:3px;border:1px solid var(--line)}
+.recent-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:14px}
+.recent-h h2{font-size:20px;margin:0}
+.rlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.rcard{background:var(--card);border:1px solid var(--line);border-radius:4px;display:flex;gap:12px;padding:12px;align-items:center;min-width:0;position:relative}
+.rcard:hover{border-color:var(--sage)}
+.rthumb{width:64px;height:64px;flex-shrink:0;border-radius:3px;overflow:hidden;background:var(--sage-soft);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:22px;color:var(--sage)}
+.rthumb img{width:100%;height:100%;object-fit:cover}
+.rbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ropen{background:none;border:0;padding:0;text-align:left;cursor:pointer;color:var(--ink);font-family:var(--display);font-size:16px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ropen::after{content:"";position:absolute;inset:0}
+.rmeta{font-size:12px;color:var(--muted)}
+.rstate{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sage)}
+.rstate.run{color:var(--clay)}
+.rdel{position:relative;z-index:1;align-self:flex-start;background:none;border:0;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 4px}
+.rdel.confirm{color:var(--warn);font-weight:600}
+.empty{border:1px dashed var(--line);border-radius:4px;padding:28px;text-align:center;color:var(--muted)}
+.shead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.shead h2{margin:0}
+.tabs.in{align-self:flex-start;border-radius:999px}
+.tab .q{font-family:var(--mono);font-size:9px;letter-spacing:.08em;margin-left:6px;padding:2px 6px;border-radius:999px;background:var(--sage-soft);color:var(--sage)}
+.tab.on .q{background:var(--sage);color:var(--card)}
+.tab .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--clay);margin-left:6px;vertical-align:middle;animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.tab .dot{animation:none}}
+.review dl{display:grid;grid-template-columns:140px minmax(0,1fr);gap:10px 16px;margin:0 0 22px;font-size:14px}
+.review dt{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+.review dd{margin:0;overflow-wrap:anywhere}
+.review dd.miss{color:var(--muted);font-style:italic}
+@media (max-width:560px){.review dl{grid-template-columns:1fr;gap:2px 0}.review dd{margin-bottom:8px}}
+.inline-load{display:flex;align-items:center;gap:12px;color:var(--muted);font-family:var(--mono);font-size:12px;padding:8px 0}
+</style>
+
+<div class="wrap">
+  <header>
+    <button class="brand brandbtn" id="homeBtn" aria-label="Dupe Dupe home">DUPE DUPE</button>
+    <div class="hright" id="hright"></div>
+  </header>
+  <div id="app"></div>
+  <p class="disclose" id="disclose" hidden></p>
+  <input type="file" id="fileIn" accept="image/*" multiple hidden>
+</div>
+
+<script>
+const STEPS=["Sources","Item Info","Sizing & Fit","Fabric","Design Details"];
+const CATS=["Dress","Top / Blouse","Sweater / Knit","Outerwear","Bottoms","Denim","Activewear","Shoes","Bag / Accessory"];
+const FITS=["Slim","Relaxed","Oversized","Tailored","Cropped","Bodycon"];
+const STRETCH=["None","Slight","Moderate","Very stretchy"];
+const SIZES=["XXS","XS","S","M","L","XL","XXL","1X","2X","3X","00","0","2","4","6","8","10","12","14","16","18","20","22","24","One size"];
+const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>String(a+i));
+const MEAS={bust:range(26,60),waist:range(20,56),hip:range(28,64)};
+const MULTI=["fitStyle","stretch","sizeLabel"];
+const arr=v=>Array.isArray(v)?v:(v?String(v).split(/\s*,\s*/).filter(Boolean):[]);
+const listTxt=v=>arr(v).join(", ");
+const FABRICS=["Cotton","Linen","Wool","Silk","Polyester","Viscose / Rayon","Nylon","Spandex / Elastane","Cashmere","Denim","Leather","Acetate"];
+const CARE=["Machine wash","Hand wash","Dry clean only","Spot clean"];
+const VIBES=["Old Money","Coastal","Streetwear","Minimalist","Boho","Y2K","Preppy","Edgy","Romantic"];
+const NECK=["Crew","V-neck","Collared","Off-shoulder","Halter","Square","Turtleneck","Scoop","None"];
+const SLEEVE=["Sleeveless","Cap","Short","3/4","Long","Long puff"];
+const HEM=["Cropped","Regular / Hip","Mini","Knee-length","Midi","Maxi"];
+const CLOSE=["Pullover","Zipper","Buttons","Tie / Wrap","Snap","Hook & eye"];
+const OCC=["Everyday","Work","Date night","Vacation","Special event","Loungewear"];
+const BLANK={brand:"",productName:"",category:"",originalPrice:"",maxBudget:"",sizeLabel:[],bust:"",waist:"",hip:"",fitStyle:[],stretch:[],fabrics:[],composition:"",care:[],color:"",vibes:[],neckline:"",sleeve:"",hem:"",closure:"",features:"",occasion:""};
+const PLATFORMS=[
+ {id:"poshmark",name:"Poshmark",best:"Contemporary and mall brands, lots of new with tags",url:q=>`https://poshmark.com/search?query=${q}&type=listings`},
+ {id:"therealreal",name:"The RealReal",best:"Authenticated designer",url:q=>`https://www.therealreal.com/products?keywords=${q}`},
+ {id:"vestiaire",name:"Vestiaire",best:"Designer, strong on European labels",url:q=>`https://www.vestiairecollective.com/search/?q=${q}`},
+ {id:"depop",name:"Depop",best:"Vintage, Y2K and indie labels",url:q=>`https://www.depop.com/search/?q=${q}`},
+ {id:"thredup",name:"ThredUp",best:"Mall brands at the lowest prices",url:q=>`https://www.thredup.com/search?search_text=${q}`},
+ {id:"ebay",name:"eBay",best:"Older seasons and sold-price research",url:q=>`https://www.ebay.com/sch/i.html?_nkw=${q}`},
+ {id:"mercari",name:"Mercari",best:"Underpriced finds from casual sellers",url:q=>`https://www.mercari.com/search/?keyword=${q}`},
+ {id:"etsy",name:"Etsy vintage",best:"True vintage, 20+ years old",url:q=>`https://www.etsy.com/search?q=${q}%20vintage`}
+];
+function loadPlat(){try{const v=JSON.parse(localStorage.getItem("df-plat"));if(Array.isArray(v)&&v.length)return v}catch(e){}return PLATFORMS.map(p=>p.id)}
+
+/* ---------- state ---------- */
+const SEARCHES={};
+const G={view:"home",curId:null,plat:loadPlat(),newPhotos:[],homeText:"",status:"",statusErr:false,viewPref:(()=>{try{return localStorage.getItem("dd-view")||"all"}catch(e){return "all"}})(),sort:(()=>{try{return (v=>v==="match"?"look":v)(localStorage.getItem("dd-sort")||"look")}catch(e){return "match"}})(),fbOpen:null,fbScope:(()=>{try{return localStorage.getItem("dd-scope")||"taste"}catch(e){return "taste"}})(),delConfirm:null,loaded:false,dirty:false};
+let sampleNS=null,mcpNS=null,store=null,FB=[];
+const cur=()=>SEARCHES[G.curId];
+const F=()=>cur().form;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clean=s=>String(s||"").replace(/^Example:\s*/i,"").trim();
+const join=(...a)=>a.map(clean).filter(Boolean).join(" ").replace(/\s+/g," ").trim();
+const nameOf=s=>join(s.form.brand,s.form.productName)||s.seed||"Untitled search";
+const isBusy=s=>s.busyRead||s.busyPlan||s.busyDupe||s.busyList;
+function ago(t){const m=Math.round((Date.now()-t)/60000);if(m<1)return"just now";if(m<60)return m+" min ago";const h=Math.round(m/60);if(h<24)return h+" hr ago";const d=Math.round(h/24);return d===1?"yesterday":d+" days ago"}
+
+function newSearch(){const id="s-"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const s={id,form:JSON.parse(JSON.stringify(BLANK)),links:[],pasted:"",photos:[],active:0,thumb:"",scraped:null,results:null,tips:[],plan:null,reviewed:false,tab:G.viewPref,step:0,seed:"",err:"",planErr:"",at:Date.now(),updated:Date.now()};
+  SEARCHES[id]=s;return s}
+function hydrate(d){const fm={...BLANK,...(d.form||{})};MULTI.forEach(k=>fm[k]=arr(fm[k]));const s={...newSearch(),...d,form:fm,links:(d.links||[]).map(l=>({url:l.url,state:"",msg:"Saved"})),photos:[],active:0,busyRead:false,busyPlan:false,busyDupe:false,busyList:false};return s}
+
+/* ---------- persistence ---------- */
+function persist(s){
+  s.updated=Date.now();
+  const body={kind:"search",id:s.id,seed:s.seed,form:s.form,links:s.links.map(l=>({url:l.url})),pasted:(s.pasted||"").slice(0,20000),scraped:s.scraped||null,thumb:s.thumb||"",results:s.results||null,tips:s.tips||[],plan:s.plan||null,listings:s.listings||null,listedAt:s.listedAt||0,changedAt:s.changedAt||0,ranAt:s.ranAt||0,reviewed:!!s.reviewed,at:s.at,updated:s.updated};
+  if(store){s._p=(s._p||Promise.resolve()).then(()=>store.doc(s.id).set(body)).catch(()=>{});return}
+  try{const all=JSON.parse(localStorage.getItem("dd-searches")||"{}");all[s.id]=body;localStorage.setItem("dd-searches",JSON.stringify(all))}catch(e){}
+}
+function removeSearch(id){delete SEARCHES[id];
+  if(store){store.doc(id).delete().catch(()=>{});return}
+  try{const all=JSON.parse(localStorage.getItem("dd-searches")||"{}");delete all[id];localStorage.setItem("dd-searches",JSON.stringify(all))}catch(e){}}
+let PREFS={favorites:[],excluded:[]};
+const norm=x=>String(x||"").trim().toLowerCase();
+const isFav=n=>n&&PREFS.favorites.some(x=>norm(x)===norm(n));
+const isHidden=n=>n&&PREFS.excluded.some(x=>norm(x)===norm(n));
+function savePrefs(){if(store){store.doc("prefs").set({kind:"prefs",...PREFS}).catch(()=>{});return}try{localStorage.setItem("dd-prefs",JSON.stringify(PREFS))}catch(e){}}
+function togglePref(list,n){const other=list==="favorites"?"excluded":"favorites",has=PREFS[list].some(x=>norm(x)===norm(n));
+  PREFS[other]=PREFS[other].filter(x=>norm(x)!==norm(n));
+  PREFS[list]=has?PREFS[list].filter(x=>norm(x)!==norm(n)):[...PREFS[list],n];savePrefs();render()}
+function prefPrompt(){let o="";
+  if(PREFS.favorites.length)o+="HER FAVORITE STORES AND BRANDS: check these first and include them whenever they have a fitting option: "+PREFS.favorites.join(", ")+"\n";
+  if(PREFS.excluded.length)o+="NEVER suggest anything from these stores or brands: "+PREFS.excluded.join(", ")+"\n";return o}
+const shownNew=s=>(s.results||[]).filter(d=>!isHidden(d.retailer));
+const shownUsed=s=>usedItems(s).filter(x=>!isHidden(x.brand));
+function hiddenNote(s,which){const n=(which!=="used"?(s.results||[]).length-shownNew(s).length:0)+(which!=="new"?usedItems(s).length-shownUsed(s).length:0);
+  return n?`<p class="hint">${n} match${n>1?"es":""} hidden by your exclusions. Searching again replaces them.</p>`:""}
+function prefBtns(n){if(!n)return "";return `<div class="prefrow"><button class="linkbtn${isFav(n)?" faved":""}" data-fav="${esc(n)}">${isFav(n)?"★ Favorite":"☆ Favorite "+esc(n)}</button><button class="linkbtn" data-hide="${esc(n)}">Hide ${esc(n)}</button></div>`}
+function prefsManager(){if(!PREFS.favorites.length&&!PREFS.excluded.length)return "";
+  const chip=(n,list)=>`<span class="pchip ${list}">${list==="favorites"?"★ ":""}${esc(n)}<button data-unpref="${esc(n)}" data-list="${list}" aria-label="Remove ${esc(n)}">×</button></span>`;
+  return `<div><div class="recent-h"><h2>Stores and brands</h2><span class="hint">Set from your results</span></div><div class="stack" style="gap:10px">
+  ${PREFS.favorites.length?`<div class="pchips"><span class="sec-h">Favorites</span>${PREFS.favorites.map(n=>chip(n,"favorites")).join("")}</div>`:""}
+  ${PREFS.excluded.length?`<div class="pchips"><span class="sec-h">Hidden</span>${PREFS.excluded.map(n=>chip(n,"excluded")).join("")}</div>`:""}</div></div>`}
+function loadLocal(){try{const p=JSON.parse(localStorage.getItem("dd-prefs")||"null");if(p)PREFS={favorites:p.favorites||[],excluded:p.excluded||[]}}catch(e){}try{const all=JSON.parse(localStorage.getItem("dd-searches")||"{}");for(const id in all)if(!SEARCHES[id])SEARCHES[id]=hydrate(all[id])}catch(e){}}
+
+(async()=>{
+  const timer=setTimeout(()=>{if(!G.loaded){G.loaded=true;loadLocal();softRender()}},10000);
+  try{sampleNS=await claude.use("sample")}catch(e){}
+  try{mcpNS=await claude.use("mcp")}catch(e){}
+  try{const db=await claude.use("db"),u=await claude.use("user"),id=u&&await u.id();
+    if(db&&id){store=db.collection("data/users/"+id);
+      store.onSnapshot(snap=>{clearTimeout(timer);const fb=[];
+        snap.docs.forEach(d=>{const v=d.data();if(!v)return;
+          if(v.kind==="search"){if(!SEARCHES[d.id])SEARCHES[d.id]=hydrate(v)}
+          else if(v.kind==="prefs")PREFS={favorites:v.favorites||[],excluded:v.excluded||[]};
+          else fb.push({id:d.id,...v})});
+        FB=fb;G.loaded=true;softRender()},()=>{clearTimeout(timer);G.loaded=true;loadLocal();softRender()});
+    }else{clearTimeout(timer);G.loaded=true;loadLocal()}
+  }catch(e){clearTimeout(timer);G.loaded=true;loadLocal()}
+  softRender();
+})();
+
+function softRender(){const a=document.activeElement;
+  if(a&&a.id&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){G.dirty=true;return}
+  if(G.fbOpen){G.dirty=true;return}
+  render()}
+document.addEventListener("focusout",()=>setTimeout(()=>{if(G.dirty&&!G.fbOpen){const a=document.activeElement;if(!(a&&a.id&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))){G.dirty=false;render()}}},150));
+
+/* ---------- photos ---------- */
+let photoTarget=null;
+$("#fileIn").addEventListener("change",e=>{addFiles(e.target.files,photoTarget);e.target.value=""});
+function makeThumb(url){return new Promise(r=>{const i=new Image();i.onload=()=>{const c=document.createElement("canvas"),z=160,k=Math.max(z/i.width,z/i.height);c.width=c.height=z;c.getContext("2d").drawImage(i,(z-i.width*k)/2,(z-i.height*k)/2,i.width*k,i.height*k);try{r(c.toDataURL("image/jpeg",.7))}catch(e){r("")}};i.onerror=()=>r("");i.src=url})}
+function addFiles(list,s){
+  [...list].filter(f=>f.type.startsWith("image/")).slice(0,6).forEach(f=>{
+    const r=new FileReader();r.onload=async()=>{
+      if(s){s.photos.push({url:r.result,blob:f});if(!s.thumb){s.thumb=await makeThumb(r.result);persist(s)}}
+      else G.newPhotos.push({url:r.result,blob:f});
+      render()};r.readAsDataURL(f)});
+}
+
+/* ---------- Claude calls (each bound to its own search, so several can run at once) ---------- */
+async function readLink(s,item){
+  item.state="wait";item.msg="Reading…";softRender();
+  if(!mcpNS){item.state="bad";item.msg="Link reading needs the Claude desktop app";softRender();return}
+  try{
+    await mcpNS.callTool("host:claude_browser","navigate",{url:item.url});
+    const res=await mcpNS.callTool("host:claude_browser","get_page_text",{});
+    let text=typeof res.payload==="string"?res.payload:(res.content||[]).map(c=>c.text||"").join("\n");
+    if(!text&&res.payload)text=JSON.stringify(res.payload);
+    item.text=text.slice(0,30000);item.state="ok";item.msg="Page read";
+  }catch(e){item.state="bad";item.msg="Couldn't read in this view"}
+  softRender();
+}
+async function extract(s){
+  if(!sampleNS){s.reviewed=false;s.err="Claude isn't available in this view. Fill in the details by hand.";softRender();return}
+  const pages=s.links.filter(l=>l.text).map(l=>`SOURCE ${l.url}\n${l.text}`).join("\n\n");
+  const linkOnly=s.links.filter(l=>!l.text).map(l=>l.url).join("\n");
+  const src=[pages,s.pasted?"PASTED OR TYPED BY USER:\n"+s.pasted:"",linkOnly?"PRODUCT LINKS (page text unavailable; use what the URL itself reveals, such as brand, style name and color):\n"+linkOnly:""].filter(Boolean).join("\n\n");
+  s.busyRead=true;s.err="";softRender();
+  try{
+    const prompt=`You extract garment facts from retail product pages, user notes, product URLs and/or photos. Only report what the sources state, the URL clearly names or the photo clearly shows; use "" or [] when unknown. Never invent a composition percentage.
+Allowed values: category one of ${JSON.stringify(CATS)}; fitStyle subset of ${JSON.stringify(FITS)}; stretch subset of ${JSON.stringify(STRETCH)}; fabrics subset of ${JSON.stringify(FABRICS)}; care subset of ${JSON.stringify(CARE)}; neckline one of ${JSON.stringify(NECK)}; sleeve one of ${JSON.stringify(SLEEVE)}; hem one of ${JSON.stringify(HEM)}; closure one of ${JSON.stringify(CLOSE)}; occasion one of ${JSON.stringify(OCC)}; vibes up to 3 of ${JSON.stringify(VIBES)}.
+Return JSON: {"brand":"","productName":"","category":"","originalPrice":"(number only)","composition":"","fabrics":[],"care":[],"fitStyle":[],"stretch":[],"color":"","neckline":"","sleeve":"","hem":"","closure":"","features":"","occasion":"","vibes":[],"sizeNotes":""}
+
+SOURCES:
+${src.slice(0,60000)||"(photos only)"}`;
+    const opts={modelTier:"default"};
+    const lim=await sampleNS.limits().catch(()=>null);
+    if(s.photos.length&&lim?.images)opts.images=s.photos.slice(0,lim.images.maxCount||4).map(p=>p.blob);
+    const d=await sampleNS.json(prompt,opts);
+    const f=s.form;
+    for(const k of MULTI)if(d[k]&&k!=="sizeLabel"){const v=arr(d[k]).filter(x=>(k==="fitStyle"?FITS:STRETCH).includes(x));if(v.length)f[k]=v}
+    for(const k of ["brand","productName","category","originalPrice","composition","color","neckline","sleeve","hem","closure","features","occasion"])if(d[k])f[k]=String(d[k]);
+    for(const k of ["fabrics","care","vibes"])if(Array.isArray(d[k])&&d[k].length)f[k]=d[k].slice(0,k==="vibes"?3:12);
+    s.scraped=d;
+  }catch(e){s.err=e?.code==="not_granted"?"Claude access was declined. Fill in the details by hand.":e?.code==="rate_limited"?"Too many requests right now. Wait a minute and try again.":"Couldn't read the details. Fill them in by hand or try again."}
+  s.busyRead=false;persist(s);softRender();
+}
+
+const fbKey=d=>("fb-"+(d.retailer+"-"+d.name).toLowerCase().replace(/[^a-z0-9]+/g,"-")).slice(0,100);
+const origOf=s=>join(s.form.brand,s.form.productName).toLowerCase();
+function fbSplit(s){const o=origOf(s),sorted=[...FB].sort((a,b)=>(b.at||0)-(a.at||0));
+  return {taste:sorted.filter(x=>x.scope!=="item").slice(0,40),item:sorted.filter(x=>x.scope==="item"&&(x.searchId===s.id||(x.original||"").toLowerCase()===o))}}
+function fbPrompt(s){const {taste,item}=fbSplit(s);if(!taste.length&&!item.length)return "";
+  const line=x=>`${x.vote==="up"?"LIKED":"REJECTED"}: ${x.dupe} (${x.retailer}) for ${x.original||"an item"}${x.reason?" | her note: "+x.reason:""}`;
+  let out="";
+  if(taste.length)out+="HER GENERAL DUPE STANDARDS, learned from past ratings across all items. Infer how literal she is about a match, which visual differences she will and won't accept (neckline, silhouette, length, fabric sheen, pattern scale, color shade) and apply those rules to this item:\n"+taste.map(line).join("\n")+"\n";
+  if(item.length)out+="NOTES ABOUT THIS ITEM ONLY. Apply them here and nowhere else; never suggest a product she rejected:\n"+item.map(line).join("\n");
+  return out}
+
+/* ---------- live data: Shop catalog (new) + TinyFish page reading (resale) ---------- */
+// Affiliate settings. Leave blank until accounts are approved; links pass through unchanged.
+const AFF={
+  skimlinksId:"",          // e.g. "123456X789012" from Skimlinks / Sovrn-style link wrapping
+  ebayCampaignId:"",       // eBay Partner Network campid
+  disclosure:"Some links may earn Dupe Dupe a commission at no cost to you."
+};
+const affOn=()=>!!(AFF.skimlinksId||AFF.ebayCampaignId);
+function aff(url){if(!url)return url;try{const u=new URL(url);
+  if(AFF.ebayCampaignId&&/(^|\.)ebay\.com$/.test(u.hostname)){u.searchParams.set("mkcid","1");u.searchParams.set("mkrid","711-53200-19255-0");u.searchParams.set("campid",AFF.ebayCampaignId);u.searchParams.set("toolid","10001");u.searchParams.set("mkevt","1");return u.toString()}
+  if(AFF.skimlinksId)return `https://go.skimresources.com/?id=${encodeURIComponent(AFF.skimlinksId)}&url=${encodeURIComponent(url)}`;
+}catch(e){}return url}
+async function callJSON(server,tool,input){const r=await mcpNS.callTool(server,tool,input);let p=r.payload;
+  if(p==null){const t=(r.content||[]).map(c=>c.text||"").join("");try{p=JSON.parse(t)}catch(e){p=t}}return p}
+const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,"")}catch(e){return ""}};
+async function photoRef(s){const src=s.photos[0]?.url||s.thumb;if(!src)return null;
+  return new Promise(r=>{const i=new Image();i.onload=()=>{const z=640,k=Math.min(1,z/Math.max(i.width,i.height)),c=document.createElement("canvas");c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext("2d").drawImage(i,0,0,c.width,c.height);
+    try{const u=c.toDataURL("image/jpeg",.82);r({content_type:"image/jpeg",data:u.split(",")[1]})}catch(e){r(null)}};i.onerror=()=>r(null);i.src=src})}
+async function photoBlobs(s,lim){if(!lim?.images)return [];if(s.photos.length)return s.photos.slice(0,lim.images.maxCount||4).map(p=>p.blob);
+  if(s.thumb){try{const b=await (await fetch(s.thumb)).blob();return [b]}catch(e){}}return []}
+async function shopSearch(q,max,cond,img){
+  const filters={condition:[cond]};if(max)filters.price={max:Math.round(max*100)};
+  const catalog={filters,context:{address_country:"US",currency:"USD"},pagination:{limit:12}};if(q)catalog.query=q;if(img)catalog.like=[{image:img}];
+  const p=await callJSON("Shop","search_catalog",{catalog});
+  return (p?.products||[]).map(pr=>{const v=(pr.variants||[])[0]||{},url=v.url||"",amt=v.price?.amount??pr.price_range?.min?.amount;
+    return {title:pr.title||v.title||"",price:amt!=null?Math.round(amt)/100:null,url,store:(v.seller?.name&&v.seller.name!=="My Store"?v.seller.name:hostOf(v.seller?.url||url)),
+      byPhoto:!!img,opts:(pr.options||[]).flatMap(o=>(o.values||[]).map(v=>v.label)).slice(0,24).join(", "),desc:String(pr.description?.plain||"").replace(/<[^>]+>/g," ").replace(/\s+/g," ").slice(0,220)}}).filter(x=>x.url&&x.price!=null)}
+const RESALE={
+  ebay:{name:"eBay",url:q=>`https://www.ebay.com/sch/i.html?_nkw=${q}&LH_ItemCondition=3000|2500|1500`,pat:/ebay\.com\/itm\//},
+  poshmark:{name:"Poshmark",url:q=>`https://poshmark.com/search?query=${q}&type=listings`,pat:/poshmark\.com\/listing\//},
+  depop:{name:"Depop",url:q=>`https://www.depop.com/search/?q=${q}`,pat:/depop\.com\/products\//},
+  thredup:{name:"ThredUp",url:q=>`https://www.thredup.com/search?search_text=${q}`,pat:/thredup\.com\/product\//},
+  therealreal:{name:"The RealReal",url:q=>`https://www.therealreal.com/products?keywords=${q}`,pat:/therealreal\.com\/products\/.+\/.+/},
+  mercari:{name:"Mercari",url:q=>`https://www.mercari.com/search/?keyword=${q}`,pat:/mercari\.com\/us\/item\//},
+  vestiaire:{name:"Vestiaire",url:q=>`https://www.vestiairecollective.com/search/?q=${q}`,pat:/vestiairecollective\.com\/.+-\d+\.shtml/}
+};
+async function judge(s,items,describe){
+  if(!sampleNS||!items?.length)return;const f=s.form;
+  try{const lim=await sampleNS.limits().catch(()=>null);const ims=await photoBlobs(s,lim);
+    const d=await sampleNS.json(`You are an independent, strict judge for a dupe finder. You did not choose these candidates; another agent did, and it tends to be generous. Your job is to protect the shopper from weak matches.
+ORIGINAL GARMENT: ${JSON.stringify({...f,brand:clean(f.brand)})}
+${ims.length?"The attached photo(s) show the ORIGINAL. Study its color, pattern or weave, neckline, sleeves, silhouette, length, structure and details.":"No photo of the original is available; judge from its details."}
+You cannot see the candidates' photos. Judge them from their text, and lower your confidence when the text is thin.
+${fbPrompt(s)}
+${prefPrompt()}
+Score each candidate separately:
+- look (0-100): would it read as the same garment in a photo? Color family, pattern or weave, neckline, sleeves, silhouette, length, signature details.
+- fit (0-100): would it wear and feel the same? Fabric and sheen, drape, stretch, structure (boning, lining), and whether her sizes (${listTxt(f.sizeLabel)||"unknown"}) are likely available.
+Be harsh: 90+ only when nearly identical; 70s is a decent dupe; below 50 is a stretch. Apply her standards above.
+note: one plain sentence naming the single biggest difference from the original.
+confidence: high, medium or low.
+CANDIDATES:
+${items.map((x,i)=>`[${i}] ${describe(x)}`).join("\n")}
+Return JSON {"scores":[{"i":0,"look":0,"fit":0,"note":"","confidence":""}]}`,{modelTier:"complex",...(ims.length?{images:ims}:{})});
+    (d.scores||[]).forEach(r=>{const x=items[r.i];if(!x)return;x.look=r.look;x.fitScore=r.fit;x.jnote=r.note;x.conf=r.confidence});
+  }catch(e){}
+}
+async function findListings(s){
+  if(!sampleNS||!mcpNS){s.listErr="Live listings need the TinyFish and Shop connectors.";softRender();return}
+  s.busyList=true;s.listErr="";softRender();
+  const f=s.form,qs=[];
+  const exact=join(f.brand,f.productName),visual=join(f.color,fabricWord(f),f.neckline&&f.neckline!=="None"?f.neckline:"",catWord(f));
+  if(exact)qs.push(exact);if(visual)qs.push(visual);
+  const plats=Object.keys(RESALE).filter(id=>G.plat.includes(id));
+  const jobs=[];for(const q of qs)for(const id of plats)jobs.push({id,q,url:RESALE[id].url(encodeURIComponent(q))});
+  const pages=[],allowed=new Set();
+  try{
+    const batch=jobs.slice(0,10);
+    const [fx,shopUsed]=await Promise.all([
+      batch.length?callJSON("TinyFish","fetch_content",{urls:batch.map(j=>j.url),format:"markdown",links:true,image_links:false,iframe_links:false,page_metadata:false,per_url_timeout_ms:45000,purpose:"Read current resale listings (title, price, size, link) to compare against a garment"}).catch(()=>null):null,
+      photoRef(s).then(img=>Promise.all([img?shopSearch(visual||exact,0,"secondhand",img).catch(()=>[]):[],...qs.map(q=>shopSearch(q,0,"secondhand").catch(()=>[]))])).then(a=>a.flat())]);
+    (fx?.results||[]).forEach((r,i)=>{const j=batch.find(b=>b.url===r.url)||batch[i];if(!j)return;
+      const links=(r.links||[]).filter(l=>RESALE[j.id].pat.test(l)).slice(0,40);links.forEach(l=>allowed.add(l));
+      pages.push(`=== ${RESALE[j.id].name} search "${j.q}" ===\n${String(r.text||"").slice(0,5000)}\nLISTING LINKS:\n${links.join("\n")}`)});
+    shopUsed.slice(0,16).forEach(p=>{allowed.add(p.url);pages.push(`=== Shop (secondhand)${p.byPhoto?", found by photo similarity":""} === ${p.title} | ${p.store} | $${p.price} | ${p.url}${p.desc?" | "+p.desc:""}`)});
+    if(!allowed.size){s.listings=[];s.listErr="No live listings came back this time. The searches below still work.";}
+    else{
+      const d=await sampleNS.json(`You compare live secondhand listings to an original garment.
+ORIGINAL: ${JSON.stringify({...f,brand:clean(f.brand)})}
+${fbPrompt(s)}
+${prefPrompt()}
+Below are search result pages and listing links read just now. Listing titles are often only in the link slug; prices may appear in the page text. Pick up to 8 listings that best match the original's look (exact piece or a convincing look-alike). Use ONLY urls that appear below, copied exactly. Leave price null if you cannot tie a price to that listing; never guess one. Skip anything you are unsure is a real listing.
+Return JSON {"listings":[{"url":"","platform":"","title":"(readable)","brand":"","price":number or null,"size":"(as listed)","color":"(the item's color as listed or clearly shown)","sameColor":true/false (same color family as the original),"exact":true/false,"fit":0-100,"why":"one sentence: what matches and what differs"}]}
+
+${pages.join("\n\n").slice(0,70000)}`,{modelTier:"default"});
+      s.listings=(d.listings||[]).filter(x=>allowed.has(x.url));
+      if(!s.listings.length)s.listErr="Listings were found but none matched closely. Try the searches below.";
+      else{s.judging=true;softRender();await judge(s,s.listings,x=>`${x.title} | ${x.platform} | ${x.brand||""} | ${x.price!=null?"$"+x.price:"price unknown"} | color: ${x.color||"?"} | size: ${x.size||"?"} | finder said: ${x.why||""}`);s.judging=false}
+    }
+  }catch(e){s.listErr=e?.code==="not_granted"?"Allow TinyFish and Shop for this page to see live listings.":e?.code==="server_not_connected"?"Connect TinyFish and Shop in claude.ai to see live listings.":"Live listings didn't load this time. Try again."}
+  s.busyList=false;s.listedAt=Date.now();persist(s);softRender();
+}
+const shownList=s=>(s.listings||[]).filter(x=>!isHidden(x.brand)&&!isHidden(x.platform));
+const asListRef=x=>({name:x.title,retailer:x.platform,price:x.price!=null?"$"+x.price:""});
+function listingCard(x){
+  return `<article class="dupe"><div class="top">${scoreHTML(x,x.exact?"Exact piece":"Look match")}<span class="kinds">${x.exact?`<span class="kind photo">Exact piece</span>`:""}${isFav(x.brand)?`<span class="kind fav">★</span>`:""}<span class="kind live">Live</span><span class="kind used">Secondhand</span></span></div>
+  <h3>${esc(x.title)}</h3>${metaLine(x.brand||"Brand not listed",x.size?"Size "+x.size:"",x.platform,x)}<p class="price">${x.price!=null?"$"+esc(x.price):"See listing for price"}</p>
+  ${judgeLine(x)}<p class="why">${esc(x.why)}</p><div class="shop"><a href="${esc(aff(x.url))}" target="_blank" rel="noopener sponsored">View listing</a></div>${prefBtns(x.brand)}${fbHTML(asListRef(x))}</article>`}
+async function findDupes(s){
+  if(!sampleNS){s.dupeErr="Claude isn't available in this view.";softRender();return}
+  s.busyDupe=true;s.dupeErr="";s.results=null;softRender();
+  const f=s.form,max=parseFloat(f.maxBudget)||0;
+  const base=`You are a fashion buyer finding look-alike AND feel-alike dupes of higher-end pieces. Match on silhouette, fabric composition and drape first, then color and details. Prefer fiber content close to the original.
+ORIGINAL: ${JSON.stringify({...f,brand:clean(f.brand)})}
+${s.scraped?.sizeNotes?"PAGE SIZE NOTES: "+s.scraped.sizeNotes:""}
+${fbPrompt(s)}
+${prefPrompt()}`;
+  const opts={modelTier:"complex"};
+  try{const lim=await sampleNS.limits().catch(()=>null);const ims=await photoBlobs(s,lim);if(ims.length)opts.images=ims}catch(e){}
+  let cands=[];const img=mcpNS?await photoRef(s):null;
+  if(mcpNS){const qs=[...new Set([join(f.color,fabricWord(f),f.neckline&&f.neckline!=="None"?f.neckline:"",catWord(f)),join(f.color,catWord(f),f.hem),f.vibes?.length?join(f.vibes[0],f.color,catWord(f)):""].filter(Boolean))].slice(0,3);
+    const res=await Promise.all([img?shopSearch(qs[0]||join(f.color,catWord(f)),max,"new",img).catch(()=>[]):[],...qs.map(q=>shopSearch(q,max,"new").catch(()=>[]))]);const seen=new Set();
+    res.flat().forEach(p=>{if(!seen.has(p.url)&&!isHidden(p.store)){seen.add(p.url);cands.push(p)}});cands=cands.slice(0,30)}
+  try{
+    if(cands.length>=3){
+      const d=await sampleNS.json(`${base}
+These are REAL products in stock right now, with live prices:
+${cands.map((c,i)=>`[${i}] ${c.title}${c.byPhoto?" (found by photo similarity)":""} | ${c.store} | $${c.price}${c.opts?" | options: "+c.opts:""}${c.desc?" | "+c.desc:""}`).join("\n")}
+Pick the 4-6 that best match the original's look and feel. Fewer is fine if the rest are weak. Return JSON {"picks":[{"i":0,"fit":0-100,"color":"(the item's color as listed or clearly shown)","sameColor":true/false (same color family as the original),"sizes":"(sizes offered, from the options, compact e.g. XS-XL or 0-14)","badges":["2-3 of: Best Value, Fabric Match, Fit Match, Closest Look, Budget Pick, Natural Fiber"],"why":"one sentence on what matches and what differs","composition":"(only if stated above, else 'Check listing')"}],"tips":["2-3 honest shopping tips specific to this item"]}`,opts);
+      s.results=(d.picks||[]).filter(p=>cands[p.i]).map(p=>{const c=cands[p.i];return {byPhoto:c.byPhoto,opts:c.opts,desc:c.desc,name:c.title,retailer:c.store,price:"$"+c.price,url:c.url,live:true,color:p.color,sameColor:p.sameColor,size:p.sizes,fit:p.fit,badges:p.badges,why:p.why,composition:p.composition}});
+      s.tips=d.tips||[];
+    }
+    if(!s.results||!s.results.length){
+      const d=await sampleNS.json(`${base}
+Respect the budget: every dupe price must be at or under $${f.maxBudget||"(no cap; aim well under the original price)"}.
+Suggest 4 real products sold new by well-known retailers that you are confident exist. Do not invent URLs. For each give search terms that will find it on the retailer's site.
+Return JSON: {"dupes":[{"name":"","retailer":"","color":"(the item's color as listed or clearly shown)","sameColor":true/false (same color family as the original),"retailerDomain":"(e.g. nordstrom.com)","price":"$","composition":"(best known fiber content or 'Check listing')","fit":0-100,"badges":["2-3 of: Best Value, Fabric Match, Fit Match, Closest Look, Budget Pick, Natural Fiber"],"why":"one sentence on what matches and what differs","query":"search terms"}],"tips":["2-3 honest shopping tips specific to this item"]}`,opts);
+      s.results=(d.dupes||[]).slice(0,4);s.tips=d.tips||[];
+    }
+  }catch(e){s.dupeErr=e?.code==="rate_limited"?"Too many requests right now. Wait a minute and try again.":"The dupe search didn't finish. Try again."}
+  if(s.results?.length){s.judging=true;softRender();await judge(s,s.results,x=>`${x.name} | ${x.retailer} | ${x.price} | color: ${x.color||"?"} | sizes: ${x.size||"?"} | ${x.composition||""} | ${x.desc||""} ${x.byPhoto?"| surfaced by photo similarity":""}`);s.judging=false}
+  s.busyDupe=false;persist(s);softRender();
+}
+async function buildPlan(s){
+  if(!sampleNS){s.planErr="Claude isn't available in this view. The starter searches still work.";softRender();return}
+  s.busyPlan=true;s.planErr="";softRender();
+  const f=s.form;
+  const prompt=`You are an expert resale sourcer who finds designer and quality pieces on Poshmark, Depop, ThredUp, The RealReal, Vestiaire Collective, eBay, Mercari and Etsy.
+ITEM: ${JSON.stringify({...f,brand:clean(f.brand)})}
+${s.scraped?.sizeNotes?"FIT NOTES: "+s.scraped.sizeNotes:""}
+0. items: 4-6 specific things to hunt for secondhand, mixing: the exact piece (kind "exact") only if it plausibly resells, pieces that would look the same in a photo from any brand (kind "visual"), and pieces from older, better-made labels (kind "label"). For each: name, brand ("" if any brand), era ("" if not relevant), composition if known, realistic typical USD resale range estLow and estHigh as numbers (be conservative and honest; these are estimates, not listings), fit 0-100 for how closely it matches the look, why (one sentence: what matches and what differs), q (a 2-6 word search string).
+Build a search plan to find (a) this exact piece secondhand, (b) pieces that LOOK the same in photos from any brand, and (c) older, better-made alternatives. Visual matches count as wins, the exact garment is not required.
+1. queries: 6-8 short search strings (2-6 words each) the way resale sellers actually title listings. Include: the exact style, the brand with plain descriptors, common misspellings or spacing of the brand if they exist, other colorways or sister styles from the same brand if you know them, and at least 3 unbranded visual-match searches built from what shows in a photo (color, pattern or weave, neckline, silhouette, length) labeled "Visual match". Label each and give a one-line why.
+2. brands: 4-6 labels with a similar aesthetic whose secondhand pieces are often better made than new fast fashion. Prefer cases where an older era really was higher quality. Give a realistic era (years) only if you are confident, else "". One search string per brand. Never claim a brand made this exact item.
+3. checks: 4-6 things to verify in any listing for THIS item (fiber tag photo, flat measurements to compare to the original, structure like boning or lining, condition flaws typical for this fabric).
+4. priceNote: one sentence on what a fair secondhand price looks like relative to the $${f.originalPrice||"?"} retail, framed as a rule of thumb, not a quote.
+${fbPrompt(s)}
+${prefPrompt()}
+Return JSON: {"items":[{"kind":"","name":"","brand":"","color":"(the item's color as listed or clearly shown)","sameColor":true/false (same color family as the original),"era":"","composition":"","estLow":0,"estHigh":0,"fit":0,"why":"","q":""}],"queries":[{"label":"","q":"","why":""}],"brands":[{"name":"","era":"","why":"","q":""}],"checks":[""],"priceNote":""}`;
+  try{s.plan=await sampleNS.json(prompt,{modelTier:"default"})}
+  catch(e){s.planErr=e?.code==="rate_limited"?"Too many requests right now. Wait a minute and try again.":"The secondhand plan didn't finish. Try again."}
+  s.busyPlan=false;persist(s);softRender();
+}
+const hasRun=s=>!!(s.results||s.plan||s.listings);
+const touch=s=>{s.changedAt=Date.now();G.saved=true;clearTimeout(s._t);s._t=setTimeout(()=>persist(s),600)};
+function staleBanner(s){return hasRun(s)&&(s.changedAt||0)>(s.ranAt||0)?`<div class="found" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span>You've edited the details since this search ran.</span><button class="btn sm" id="update">Rerun search</button></div>`:""}
+function runFor(s){s.reviewed=true;s.ranAt=Date.now();persist(s);ensureRun(s)}
+
+async function startSearch(){
+  const text=G.homeText.trim();
+  if(!text&&!G.newPhotos.length){G.status="Paste a link, type the item or add a photo to start.";G.statusErr=true;render();return}
+  const s=newSearch();
+  const urls=text.match(/https?:\/\/\S+/g)||[];
+  const rest=text.replace(/https?:\/\/\S+/g,"").trim();
+  s.links=urls.map(u=>({url:u,state:"",msg:""}));
+  s.pasted=rest;
+  s.seed=rest.slice(0,80)||(urls[0]?decodeURIComponent(urls[0].split("/").filter(Boolean).pop()||"").replace(/[-_]/g," ").replace(/\?.*/,"").slice(0,80):"Photo search");
+  s.photos=G.newPhotos;G.newPhotos=[];G.homeText="";G.status="";
+  if(s.photos[0])s.thumb=await makeThumb(s.photos[0].url);
+  G.view="search";G.curId=s.id;persist(s);render();
+  await Promise.all(s.links.map(l=>readLink(s,l)));
+  await extract(s);
+}
+
+/* ---------- secondhand helpers ---------- */
+function fabricWord(f){const t=(f.productName+" "+f.composition+" "+f.features).toLowerCase();
+  for(const w of ["jacquard","satin","velvet","silk","linen","cashmere","wool","lace","tweed","crepe","leather","denim","knit","cotton"])if(t.includes(w))return w;return ""}
+function catWord(f){const c=f.category;return {"Top / Blouse":"top","Sweater / Knit":"sweater","Bag / Accessory":"bag","Bottoms":"pants","Outerwear":"coat"}[c]||(c||"").toLowerCase()}
+function baseQueries(f){const fw=fabricWord(f),cw=catWord(f),out=[];
+  if(f.brand&&f.productName)out.push({label:"Exact item",q:join(f.brand,f.productName,f.color),why:"Finds listings that kept the official name."});
+  if(f.brand)out.push({label:"Brand + description",q:join(f.brand,f.color,fw,cw),why:"Resellers often drop the style name. This catches those."});
+  const desc=join(f.color,fw,f.neckline&&f.neckline!=="None"?f.neckline:"",cw);
+  if(desc)out.push({label:"Look-alike, any brand",q:desc,why:"Surfaces older or unbranded pieces with the same look."});
+  return out}
+function retailerSearch(dom,t){const q=encodeURIComponent(t),m={
+  "nordstrom.com":`https://www.nordstrom.com/sr?keyword=${q}`,"nordstromrack.com":`https://www.nordstromrack.com/sr?keyword=${q}`,
+  "amazon.com":`https://www.amazon.com/s?k=${q}`,"target.com":`https://www.target.com/s?searchTerm=${q}`,
+  "asos.com":`https://www.asos.com/us/search/?q=${q}`,"revolve.com":`https://www.revolve.com/r/Search.jsp?search=${q}`,
+  "hm.com":`https://www2.hm.com/en_us/search-results.html?q=${q}`,"uniqlo.com":`https://www.uniqlo.com/us/en/search?q=${q}`,
+  "lulus.com":`https://www.lulus.com/search?q=${q}`,"zara.com":`https://www.zara.com/us/en/search?searchTerm=${q}`};
+  return m[dom]||`https://www.google.com/search?q=${encodeURIComponent("site:"+dom+" "+t)}`}
+function linksFor(q){const enc=encodeURIComponent(q);return `<div class="plinks">${PLATFORMS.filter(p=>G.plat.includes(p.id)).map(p=>`<a class="plink" href="${p.url(enc)}" target="_blank" rel="noopener">${esc(p.name)}</a>`).join("")||`<span class="hint">Turn on at least one site above.</span>`}</div>`}
+function qRow(x){return `<div class="qrow"><span class="qtype">${esc(x.label)}</span><span class="qtext">${esc(x.q)}</span>${x.why?`<p class="qwhy">${esc(x.why)}</p>`:""}${linksFor(x.q)}</div>`}
+
+/* ---------- views ---------- */
+function homeHTML(){
+  const list=Object.values(SEARCHES).sort((a,b)=>(b.updated||0)-(a.updated||0));
+  return `<section class="home">
+  <div class="hero"><p class="eyebrow">Higher-end looks for less</p><h1>Find the look.<br><em>New or secondhand.</em></h1>
+    <p class="lede">Drop in a piece you love. Dupe Dupe reads its fabric and fit, then finds new dupes under your budget, the piece secondhand or older, better-made look-alikes. You choose what to see.</p></div>
+  <form class="tag starter" id="startForm">
+    <label class="field"><span>Paste a link, or type the brand and style</span>
+      <textarea id="homeIn" placeholder="https://www.sau-lee.com/products/joanna-jacquard-gown   or   Sau Lee Joanna jacquard gown, burnt red">${esc(G.homeText)}</textarea></label>
+    <div class="drop" id="drop" tabindex="0" role="button"><strong>${G.newPhotos.length?G.newPhotos.length+" photo"+(G.newPhotos.length>1?"s":"")+" added":"Add photos (optional)"}</strong>Screenshots from the listing work great. Include the fabric tag if you have it.</div>
+    ${G.newPhotos.length?`<div class="newthumbs">${G.newPhotos.map(p=>`<img src="${p.url}" alt="">`).join("")}</div>`:""}
+    <div class="row" style="align-items:center"><button class="btn" type="submit">Start search</button><span class="status${G.statusErr?" err":""}">${esc(G.status)}</span></div>
+  </form>
+  ${prefsManager()}
+  <div>
+    <div class="recent-h"><h2>Your searches</h2><span class="hint">${list.length?list.length+" saved · several can run at once":""}</span></div>
+    ${!G.loaded?`<div class="empty">Loading your searches…</div>`:
+      list.length?`<div class="rlist">${list.map(s=>{
+        const st=isBusy(s)?`<span class="rstate run">Searching…</span>`:!s.reviewed?`<span class="rstate run">Needs review</span>`:`<span class="rstate">${s.plan?"Secondhand plan":"No plan yet"} · ${(s.results||[]).length} dupes</span>`;
+        return `<div class="rcard"><div class="rthumb">${s.thumb?`<img src="${s.thumb}" alt="">`:esc((s.form.category||nameOf(s)||"?").charAt(0).toUpperCase())}</div>
+        <div class="rbody"><button class="ropen" data-open="${s.id}">${esc(nameOf(s))}</button>${st}<span class="rmeta">${esc(ago(s.updated||s.at))}</span></div>
+        <button class="rdel${G.delConfirm===s.id?" confirm":""}" data-del="${s.id}" aria-label="Remove search">${G.delConfirm===s.id?"Remove?":"✕"}</button></div>`}).join("")}</div>`
+      :`<div class="empty">Your searches will be listed here so you can come back to them or run a few at once. Start with any piece you've been eyeing.</div>`}
+  </div></section>`;
+}
+
+function asideHTML(s){
+  const f=s.form,rows=[["Brand",clean(f.brand)],["Item",f.productName],["Fabric",f.composition||f.fabrics.join(", ")],["Fit",listTxt(f.fitStyle)],["Size",listTxt(f.sizeLabel)],["Retail",f.originalPrice&&"$"+f.originalPrice],["Budget",f.maxBudget&&"$"+f.maxBudget]].filter(r=>r[1]);
+  return `<aside><div class="tag">
+    <div class="frame${s.photos.length||s.thumb?" has":""}">${s.photos.length?`<img src="${s.photos[s.active].url}" alt="Garment photo">`:s.thumb?`<img src="${s.thumb}" alt="Garment photo">`:"Add a photo so Claude can see the look"}</div>
+    <div class="thumbs">${s.photos.map((p,i)=>`<button class="${i===s.active?"on":""}" data-ph="${i}" aria-label="Show photo ${i+1}"><img src="${p.url}" alt=""></button>`).join("")}<button data-addph="1" aria-label="Add photo" style="font-size:18px;color:var(--muted)">+</button></div>
+    ${!s.photos.length&&s.thumb?`<p class="hint" style="margin:8px 0 0">Re-add full photos to use them in a new search.</p>`:""}
+  </div>
+  ${rows.length?`<div class="summary"><h4>On file</h4><dl>${rows.map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join("")}</dl></div>`:""}</aside>`;
+}
+
+function reviewHTML(s){
+  if(s.busyRead)return `<div class="loading"><div class="bar"></div>Reading fabric, fit and details${s.links.length?" from your link":""}…</div>`;
+  const f=s.form,v=x=>x&&x.length?esc(Array.isArray(x)?x.join(", "):x):"";
+  const rows=[["Item",join(f.brand,f.productName)],["Color",f.color],["Fabric",f.composition||v(f.fabrics)],["Care",v(f.care)],["Fit",join(listTxt(f.fitStyle),arr(f.stretch).filter(x=>x!=="None").length?"· "+listTxt(f.stretch).toLowerCase()+" stretch":"")],["Shape",join(f.neckline,f.sleeve&&f.sleeve+" sleeve",f.hem,f.category)],["Details",f.features],["Retail price",f.originalPrice&&"$"+f.originalPrice]];
+  return `<div class="review"><p class="eyebrow">Step 1 of 2 · Check what we found</p><h2>Here's what we read</h2><p class="sub">Fix anything that's off before searching. Fabric and fit matter most.</p>
+  ${s.err?`<p class="status err">${esc(s.err)}</p>`:""}
+  ${s.links.some(l=>l.state==="bad")?`<p class="hint">The page itself couldn't be opened here, so these come from the link and anything you typed. Pasting the listing's Details and Fabric & Care text into Details › Sources improves accuracy.</p>`:""}
+  <dl>${rows.map(r=>`<dt>${r[0]}</dt><dd class="${r[1]?"":"miss"}">${r[1]?esc(r[1]):"Not found yet"}</dd>`).join("")}</dl>
+  <div class="grid2" style="margin-bottom:22px">
+    <label class="field"><span>Max budget for new dupes ($)</span><input id="rv-budget" data-k="maxBudget" inputmode="decimal" placeholder="e.g. 150" value="${esc(f.maxBudget)}"></label>
+    ${msel("sizeLabel","Your size",SIZES,"Choose one or more sizes")}
+  </div>
+  <div class="field" style="margin-bottom:18px"><span>Show me</span><div class="pills">${VIEWS.map(([v,l])=>`<button type="button" class="pill${s.tab===v?" on":""}" data-view="${v}">${l}</button>`).join("")}</div><span class="hint">You can switch any time. Only what you pick runs now.</span></div>
+  <div class="row"><button class="btn" id="looksRight">Looks right, search</button><button class="btn ghost" id="fixDetails">Fix details</button></div></div>`;
+}
+
+const input=(k,label,ph,hint,mode)=>`<label class="field"><span>${label}</span><input id="f-${k}" data-k="${k}" placeholder="${esc(ph)}" value="${esc(F()[k])}"${mode?` inputmode="${mode}"`:""}>${hint?`<span class="hint">${hint}</span>`:""}</label>`;
+const select=(k,label,opts,ph)=>`<label class="field"><span>${label}</span><select id="f-${k}" data-k="${k}"><option value="">${ph}</option>${opts.map(o=>`<option${F()[k]===o?" selected":""}>${esc(o)}</option>`).join("")}</select></label>`;
+const msel=(k,label,opts,ph)=>{const sel=arr(F()[k]);return `<div class="field"><span>${label}</span><details class="msel" id="ms-${k}"><summary>${sel.length?esc(sel.join(", ")):`<span class="ph">${esc(ph)}</span>`}</summary><div class="mopts">${opts.map(o=>`<label><input type="checkbox" data-mk="${k}" value="${esc(o)}"${sel.includes(o)?" checked":""}> ${esc(o)}</label>`).join("")}</div></details></div>`};
+const pills=(k,label,opts,max)=>`<div class="field"><span>${label}${max?` <span class="hint">· ${F()[k].length}/${max}</span>`:""}</span><div class="pills">${opts.map(o=>`<button type="button" class="pill${F()[k].includes(o)?" on":""}" data-p="${k}" data-v="${esc(o)}" data-max="${max||0}">${esc(o)}</button>`).join("")}</div></div>`;
+
+function detailsHTML(s){
+  const f=s.form;let body="";
+  switch(s.step){
+  case 0:body=`<h2>Sources</h2><p class="sub">Add more links, paste listing text or add photos, then read them again.</p><div class="stack">
+    <div class="field"><span>Product links</span><form class="row" id="linkForm"><input id="linkIn" type="url" placeholder="https://www.retailer.com/product/..."><button class="btn sm" type="submit">Add link</button></form></div>
+    ${s.links.length?`<ul class="links">${s.links.map((l,i)=>`<li><span class="u" title="${esc(l.url)}">${esc(l.url)}</span><span class="chip ${l.state||"wait"}">${esc(l.msg||"Saved")}</span><button class="x" data-rm="${i}" aria-label="Remove link">×</button></li>`).join("")}</ul>`:""}
+    <label class="field"><span>Listing text</span><textarea id="pasteIn" placeholder="Paste the Details, Fabric & Care and Size & Fit sections from the product page">${esc(s.pasted)}</textarea><span class="hint">The most reliable source when a page can't be opened here.</span></label>
+    <div class="row" style="align-items:center"><button class="btn" id="reread"${s.busyRead?" disabled":""}>${s.busyRead?"Reading…":"Read sources again"}</button><span class="status${s.err?" err":""}">${esc(s.err)}</span></div></div>`;break;
+  case 1:body=`<h2>What it is</h2><p class="sub">The basics narrow the search.</p><div class="grid2">
+    ${input("brand","Brand name","e.g. Sau Lee")}${input("productName","Product name","e.g. Joanna Jacquard Gown")}
+    ${select("category","Category",CATS,"Choose a category")}${input("originalPrice","Original price ($)","750","","decimal")}
+    ${input("maxBudget","Max dupe budget ($)","150","New dupes over this price are left out","decimal")}</div>`;break;
+  case 2:body=`<h2>Sizing & fit</h2><p class="sub">This makes a dupe feel alike, not just look alike. Check every option that applies.</p><div class="grid2">
+    ${msel("sizeLabel","Your size",SIZES,"Choose one or more sizes")}${msel("fitStyle","Fit style",FITS,"How it sits on the body")}
+    ${msel("stretch","Stretch level",STRETCH,"How much give")}</div>
+    <p class="sec-h" style="margin:24px 0 10px">Measurements (optional, inches)</p><div class="grid3">
+    ${select("bust","Bust / chest",MEAS.bust,"Select")}${select("waist","Waist",MEAS.waist,"Select")}${select("hip","Hip",MEAS.hip,"Select")}</div>
+    ${s.scraped?.sizeNotes?`<div class="found" style="margin-top:18px"><b>Fit notes from the listing</b>${esc(s.scraped.sizeNotes)}</div>`:""}`;break;
+  case 3:body=`<h2>Fabric composition</h2><p class="sub">From the care label or the Fabric & Care section of the listing.</p><div class="stack">
+    ${pills("fabrics","Fibers present",FABRICS)}${input("composition","Exact composition","e.g. 95% Cotton, 5% Elastane")}${pills("care","Care instructions",CARE)}
+    <div class="note"><b>Why this matters</b>A dry clean only tag usually signals a higher tier. Secondhand is often where you get that tier at a fraction of the price.</div></div>`;break;
+  case 4:body=`<h2>Design details</h2><p class="sub">The finer points that separate a close match from a near miss.</p><div class="stack">
+    ${input("color","Color / pattern","e.g. Burnt red jacquard")}${pills("vibes","Style vibe",VIBES,3)}
+    <div class="grid2">${select("neckline","Neckline",NECK,"Select")}${select("sleeve","Sleeve length",SLEEVE,"Select")}${select("hem","Hem length",HEM,"Select")}${select("closure","Closure",CLOSE,"Select")}${select("occasion","Occasion",OCC,"Select")}</div>
+    ${input("features","Special features","e.g. boned bodice, smocked waist")}</div>`;break;}
+  return {ticket:`<nav class="ticket" aria-label="Detail sections">${STEPS.map((x,i)=>`<button class="tk ${i===s.step?"active":"done"}" data-go="${i}"><span class="n">${String(i+1).padStart(2,"0")}</span><span class="l">${x}</span></button>`).join("")}</nav>`,
+    body,nav:`<button class="btn ghost" id="back"${s.step===0?" disabled":""}>Back</button><div class="row" style="align-items:center"><span class="status" id="savedNote">${G.saved?"Saved":""}</span>
+      ${hasRun(s)?`<button class="btn ghost" id="update">Rerun search</button>`:""}
+      ${s.step<4?`<button class="btn" id="next">Save, next: ${STEPS[s.step+1]}</button>`:hasRun(s)?`<button class="btn" id="doneEdit">Save, back to results</button>`:`<button class="btn" id="update">Save and run search</button>`}</div>`};
+}
+
+function thriftHTML(s){
+  const f=s.form,qs=s.plan?.queries?.length?s.plan.queries:baseQueries(f);
+  return `<p class="sub" style="margin-bottom:18px">The real thing resold, a piece that looks the same or an older, better-made version. Usually the higher-quality road. Each search opens on the site you pick${arr(f.sizeLabel).length?`, so filter to size ${esc(listTxt(f.sizeLabel))} there`:""}.</p>
+  <div class="stack">
+    <div class="field"><span>Sites to search</span><div class="pills">${PLATFORMS.map(p=>`<button type="button" class="pill${G.plat.includes(p.id)?" on":""}" data-plat="${p.id}" title="${esc(p.best)}">${esc(p.name)}</button>`).join("")}</div></div>
+    ${s.busyPlan?`<div class="inline-load"><div class="bar"></div>Building your secondhand plan. Starter searches below work now.</div>`:""}
+    ${s.planErr?`<p class="status err">${esc(s.planErr)}</p>`:""}
+    <p class="sec-h">${s.plan?"Search plan":"Starter searches"}</p>
+    <div class="found"><b>Search by photo</b>Exact matches are a bonus. Look-alikes in a better fabric are just as good. For a true image match, upload your photo to <a href="https://lens.google.com/" target="_blank" rel="noopener">Google Lens</a> and add "poshmark" or "therealreal" to the results search. The eBay and Mercari apps also have search by photo.</div>
+    <div class="qlist">${qs.map(qRow).join("")}</div>
+    ${s.plan?.brands?.length?`<p class="sec-h">Older labels worth checking</p><div class="brands">${s.plan.brands.map(b=>`<div class="qrow"><span class="qtype">${esc(b.name)}</span>${b.era?`<span class="era">Best era: ${esc(b.era)}</span>`:""}<p class="qwhy">${esc(b.why)}</p><span class="qtext">${esc(b.q)}</span>${linksFor(b.q)}</div>`).join("")}</div>`:""}
+    ${s.plan?.checks?.length?`<div class="note"><b>Check every listing for</b><ul>${s.plan.checks.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>${s.plan.priceNote?`<p style="margin:8px 0 0">${esc(s.plan.priceNote)}</p>`:""}</div>`:""}
+    ${!s.busyPlan?`<button class="btn ghost sm" id="replan" style="align-self:flex-start">${s.plan?"Rebuild plan":"Build secondhand plan"}</button>`:""}
+  </div>`;
+}
+
+function fbHTML(d){const k=fbKey(d),fb=FB.find(x=>x.id===k);
+  if(fb)return `<div class="fb"><span class="fbdone">${fb.vote==="up"?"👍 Good dupe":"👎 Not a dupe"}${fb.reason?": "+esc(fb.reason):""} <span class="scope-tag">${fb.scope==="item"?"This item":"My taste"}</span></span><button class="linkbtn" data-fbundo="${k}">Change</button></div>`;
+  if(G.fbOpen&&G.fbOpen.k===k){const up=G.fbOpen.vote==="up";return `<div class="fb" style="flex-direction:column;align-items:stretch"><label class="field"><span>${up?"What makes it work? (optional)":"What's different from the original?"}</span><textarea id="fbr-${k}" placeholder="${up?"e.g. the neckline and length are right, a slightly different red is fine":"e.g. neckline is too low, skirt flares instead of a column, sheen looks cheap"}"></textarea></label>
+    <div class="field"><span>Apply this to</span><div class="pills"><button type="button" class="pill${G.fbScope!=="item"?" on":""}" data-scope="taste">My taste overall</button><button type="button" class="pill${G.fbScope==="item"?" on":""}" data-scope="item">Just this item</button></div>
+    <span class="hint">${G.fbScope==="item"?"Used only when searching for this piece.":"Teaches how literal you are about a match on every future search."}</span></div>
+    <div class="row"><button class="btn sm" data-fbsave="${k}">Save</button><button class="btn ghost sm" data-fbcancel="1">Cancel</button></div></div>`}
+  return `<div class="fb"><button class="vote" data-fbup="${k}" aria-label="Good dupe">👍</button><button class="vote" data-fbdown="${k}" aria-label="Not a good dupe">👎</button><span class="hint">Rate it so future picks fit your taste</span></div>`}
+
+const VIEWS=[["all","All by price"],["new","New only"],["used","Secondhand only"]];
+const priceNum=p=>{const n=parseFloat(String(p??"").replace(/[^0-9.]/g,""));return isNaN(n)?Infinity:n};
+const usedItems=s=>(s.plan?.items||[]);
+const asUsedRef=x=>({name:x.name,retailer:"Secondhand",price:x.estLow?"$"+x.estLow:""});
+function tunedLine(s){const {taste,item}=fbSplit(s);const parts=[];if(taste.length)parts.push(`${taste.length} taste note${taste.length>1?"s":""}`);if(item.length)parts.push(`${item.length} for this item`);if(PREFS.favorites.length)parts.push(`${PREFS.favorites.length} favorite${PREFS.favorites.length>1?"s":""}`);if(PREFS.excluded.length)parts.push(`${PREFS.excluded.length} hidden`);return parts.length?`<p class="learn">Tuned by ${parts.join(" · ")}</p>`:""}
+function scoreHTML(x,label){if(x.look!=null)return `<div class="scores"><div class="score">${Math.round(x.look)}%<small>Look</small></div><div class="score">${Math.round(x.fitScore??0)}%<small>Fit</small></div></div>`;
+  return `<div class="score">${Math.round(x.fit||0)}%<small>${esc(label)}</small></div>`}
+const judgeLine=x=>x.jnote?`<p class="jnote"><b>Judge${x.conf&&x.conf!=="high"?` · ${esc(x.conf)} confidence`:""}:</b> ${esc(x.jnote)}</p>`:"";
+const srcTag=x=>x.byPhoto?`<span class="kind photo">Photo match</span>`:"";
+const metaLine=(brand,size,extra,x)=>{const bits=[brand?esc(brand):"",x.color?`<span class="clr">${esc(x.color)}</span>${x.sameColor===false?` <span class="diffclr">Different color</span>`:""}`:"",size?esc(size):"",extra?esc(extra):""].filter(Boolean);return `<p class="ret">${bits.join(" · ")}</p>`};
+function newCard(d){
+  const q=encodeURIComponent(`${d.retailer} ${d.query||d.name}`),terms=d.query||d.name,dom=(d.retailerDomain||"").replace(/^https?:\/\//,"").replace(/^www\./,"").split("/")[0];
+  const direct=dom?`https://duckduckgo.com/?q=${encodeURIComponent("!ducky site:"+dom+" "+terms)}`:"",site=dom?retailerSearch(dom,terms):"";
+  return `<article class="dupe"><div class="top">${scoreHTML(d,"match")}<span class="kinds">${srcTag(d)}${isFav(d.retailer)?`<span class="kind fav">★</span>`:""}${d.live?`<span class="kind live">Live price</span>`:""}<span class="kind new">New</span></span></div>
+  <h3>${esc(d.name)}</h3>${metaLine(d.retailer,d.size?"Sizes "+d.size:"","",d)}<p class="price">${esc(d.price)}</p><p class="comp">${esc(d.composition)}</p>
+  <div class="badges">${(d.badges||[]).slice(0,3).map(b=>`<span class="badge">${esc(b)}</span>`).join("")}</div>${judgeLine(d)}<p class="why">${esc(d.why)}</p>
+  <div class="shop">${d.url?`<a href="${esc(aff(d.url))}" target="_blank" rel="noopener sponsored">View this item</a>`:`${direct?`<a href="${direct}" target="_blank" rel="noopener">View this item</a>`:""}${site?`<a href="${site}" target="_blank" rel="noopener">Search ${esc(d.retailer)}</a>`:""}`}<a href="https://www.google.com/search?tbm=shop&q=${q}" target="_blank" rel="noopener">Compare prices</a></div>${prefBtns(d.retailer)}${fbHTML(d)}</article>`}
+function usedCard(x){
+  const kind={exact:"Exact piece",visual:"Look match",label:"Older label"}[x.kind]||"Look match";
+  const est=x.estLow&&x.estHigh?`Est. $${x.estLow}–$${x.estHigh}`:x.estLow?`Est. from $${x.estLow}`:"Price varies";
+  return `<article class="dupe"><div class="top">${scoreHTML(x,kind)}<span class="kinds">${isFav(x.brand)?`<span class="kind fav">★</span>`:""}<span class="kind used">Secondhand</span></span></div>
+  <h3>${esc(x.name)}</h3>${metaLine(x.brand||"Any brand","",x.era,x)}<p class="price">${esc(est)}</p>${x.composition?`<p class="comp">${esc(x.composition)}</p>`:""}
+  ${judgeLine(x)}<p class="why">${esc(x.why)}</p><span class="qtext">${esc(x.q)}</span>${linksFor(x.q)}${prefBtns(x.brand)}${fbHTML(asUsedRef(x))}</article>`}
+function loadLine(on,t){return on?`<div class="inline-load"><div class="bar"></div>${t}</div>`:""}
+function errs(s,which){return [which!=="used"&&s.dupeErr,which!=="new"&&s.planErr].filter(Boolean).map(e=>`<p class="status err">${esc(e)}</p>`).join("")}
+const SORTS=[["look","Best look"],["fit","Best fit"],["low","Price: low to high"],["high","Price: high to low"]];
+function cmp(a,b){const lo=x=>x===Infinity||x==null||isNaN(x)?null:x,pa=lo(a.p),pb=lo(b.p);
+  if(G.sort==="low"||G.sort==="high"){if(pa==null&&pb==null)return (b.f||0)-(a.f||0);if(pa==null)return 1;if(pb==null)return -1;return G.sort==="low"?pa-pb:pb-pa}
+  return ((b.f||0)-(a.f||0))||((pa??1e9)-(pb??1e9))}
+const scoreFor=x=>G.sort==="fit"?(x.fitScore??x.fit):(x.look??x.fit);
+const sortList=(list,p,f)=>[...list].map(x=>({x,p:p(x),f:f(x)})).sort(cmp).map(o=>o.x);
+function sortBar(){return `<div class="sortbar"><span class="sec-h">Sort by</span><div class="pills">${SORTS.map(([v,l])=>`<button type="button" class="pill${G.sort===v?" on":""}" data-sort="${v}">${l}</button>`).join("")}</div></div>`}
+function allHTML(s){
+  const cards=[...shownNew(s).map(d=>({p:priceNum(d.price),f:scoreFor(d),h:newCard(d)})),...shownList(s).map(x=>({p:x.price??Infinity,f:scoreFor(x),h:listingCard(x)})),...(shownList(s).length?[]:shownUsed(s).map(x=>({p:priceNum(x.estLow),f:scoreFor(x),h:usedCard(x)})))].sort(cmp);
+  if(!cards.length&&(s.busyDupe||s.busyPlan||s.busyList))return `<div class="loading"><div class="bar"></div>Finding new and secondhand matches</div>`;
+  return `${staleBanner(s)}<p class="sub" style="margin-bottom:12px">New and secondhand together. Cards marked Live show today's price. Anything without that tag is an estimate.</p>
+  ${loadLine(s.judging,"Judge is checking each match against your photo…")}${loadLine(s.busyDupe&&!s.judging,"Still finding new dupes…")}${loadLine(s.busyList,"Reading live resale listings…")}${loadLine(s.busyPlan&&!shownList(s).length,"Still finding secondhand matches…")}${errs(s,"all")}${tunedLine(s)}${hiddenNote(s,"all")}
+  ${cards.length>1?sortBar():""}${cards.length?`<div class="results">${cards.map(c=>c.h).join("")}</div>`:`<div class="empty">No matches yet.</div>`}
+  <div class="row" style="margin-top:18px">${!s.busyDupe?`<button class="btn ghost sm" id="redupe">Refresh new</button>`:""}${!s.busyList?`<button class="btn ghost sm" id="relist">Refresh secondhand</button>`:""}</div>`}
+function newHTML(s){
+  const r=sortList(shownNew(s),d=>priceNum(d.price),scoreFor);
+  if(s.busyDupe&&!r.length)return `<div class="loading"><div class="bar"></div>Matching fabric, fit and details${s.form.maxBudget?` under $${esc(s.form.maxBudget)}`:""}</div>`;
+  return `${staleBanner(s)}<p class="sub" style="margin-bottom:12px">New look-alikes you can buy now. Confirm price, stock and fiber content on each listing.</p>
+  ${loadLine(s.judging,"Judge is checking each match against your photo…")}${loadLine(s.busyDupe&&!s.judging,"Refreshing…")}${errs(s,"new")}${tunedLine(s)}${hiddenNote(s,"new")}
+  ${r.length>1?sortBar():""}${r.length?`<div class="results">${r.map(newCard).join("")}</div>`:`<div class="empty">No new dupes yet.</div>`}
+  ${s.tips?.length?`<div class="note" style="margin-top:20px"><b>Before you buy</b><ul>${s.tips.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`:""}
+  ${!s.busyDupe?`<button class="btn ghost sm" id="redupe" style="margin-top:18px">Search again</button>`:""}`}
+function usedHTML(s){
+  const items=sortList(shownUsed(s),x=>priceNum(x.estLow),scoreFor);
+  const live=sortList(shownList(s),x=>x.price??Infinity,scoreFor);
+  if(s.busyPlan&&s.busyList&&!items.length&&!live.length)return `<div class="loading"><div class="bar"></div>Reading live listings on resale sites</div>`;
+  return `${staleBanner(s)}${errs(s,"used")}${s.listErr?`<p class="status err">${esc(s.listErr)}</p>`:""}${tunedLine(s)}${hiddenNote(s,"used")}
+  ${loadLine(s.busyList,"Reading live resale listings…")}
+  ${live.length+items.length>1?sortBar():""}${live.length?`<div class="recent-h"><p class="sec-h">Live listings</p><span class="hint">Read ${esc(ago(s.listedAt||Date.now()))}${!s.busyList?` · <button class="linkbtn" id="relist">Refresh</button>`:""}</span></div><div class="results" style="margin-bottom:28px">${live.map(listingCard).join("")}</div>`:(!s.busyList&&!s.listings?`<button class="btn sm" id="relist" style="margin-bottom:22px">Find live listings</button>`:"")}
+  ${items.length?`<p class="sec-h" style="margin-bottom:12px">${live.length?"More to look for (estimated prices)":"What to look for (estimated prices)"}</p><div class="results" style="margin-bottom:28px">${items.map(usedCard).join("")}</div>`:""}${thriftHTML(s)}`}
+function ensureRun(s){const v=s.tab;
+  if((v==="all"||v==="new")&&!s.results&&!s.busyDupe)findDupes(s);
+  if((v==="all"||v==="used")&&!s.plan&&!s.busyPlan)buildPlan(s);
+  if((v==="all"||v==="used")&&!s.listings&&!s.busyList&&mcpNS)findListings(s)}
+
+function searchHTML(s){
+  let tabs="",card="",nav="",ticket="";
+  if(!s.reviewed){card=reviewHTML(s)}
+  else{
+    const dot=v=>(v!=="used"&&s.busyDupe&&v!=="details")||(v!=="new"&&(s.busyPlan||s.busyList)&&v!=="details")?`<span class="dot"></span>`:"";
+    tabs=`<div class="tabs in" role="tablist">${[...VIEWS,["details","Details"]].map(([v,l])=>`<button class="tab${s.tab===v?" on":""}" data-tab="${v}" role="tab">${l}${dot(v)}</button>`).join("")}</div>`;
+    if(s.tab==="all")card=allHTML(s);
+    else if(s.tab==="new")card=newHTML(s);
+    else if(s.tab==="used")card=usedHTML(s);
+    else{const d=detailsHTML(s);ticket=d.ticket;card=d.body;nav=d.nav}
+  }
+  return `<div class="body">${asideHTML(s)}<main>
+    <div class="shead"><div><p class="eyebrow" style="margin-bottom:4px">${s.reviewed?"Search":"New search"}</p><h2>${esc(nameOf(s))}</h2></div>${s.reviewed&&s.tab!=="details"?`<button class="btn ghost sm" id="editDetails">Edit details</button>`:""}</div>
+    ${tabs}${ticket}<div class="card">${card}</div>${nav?`<div class="nav">${nav}</div>`:""}</main></div>`;
+}
+
+function render(){
+  G.dirty=false;
+  const dc=$("#disclose");if(dc){dc.hidden=!affOn();dc.textContent=AFF.disclosure}
+  const hr=$("#hright");
+  if(G.view==="home"){
+    const running=Object.values(SEARCHES).filter(isBusy).length;
+    hr.innerHTML=running?`<span class="meta">${running} search${running>1?"es":""} running</span>`:"";
+    $("#app").innerHTML=homeHTML();
+  }else{
+    const s=cur();if(!s){G.view="home";return render()}
+    const others=Object.values(SEARCHES).filter(x=>x.id!==s.id&&isBusy(x)).length;
+    hr.innerHTML=`${others?`<span class="meta">${others} other running</span>`:""}<button class="btn ghost sm" id="toHome">All searches</button><button class="btn sm" id="newBtn">New search</button>`;
+    $("#app").innerHTML=searchHTML(s);
+  }
+  bind();
+}
+
+/* ---------- events ---------- */
+function bind(){
+  const on=(id,fn)=>{const el=$(id);if(el)el.onclick=fn};
+  on("#homeBtn",()=>{G.view="home";G.delConfirm=null;render()});
+  on("#toHome",()=>{G.view="home";G.delConfirm=null;render()});
+  on("#newBtn",()=>{G.view="home";render();const h=$("#homeIn");if(h)h.focus()});
+  const sf=$("#startForm");if(sf)sf.onsubmit=e=>{e.preventDefault();startSearch()};
+  const hi=$("#homeIn");if(hi){hi.oninput=()=>{G.homeText=hi.value};hi.onkeydown=e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)){e.preventDefault();startSearch()}}}
+  const dr=$("#drop");if(dr){dr.onclick=()=>{photoTarget=null;$("#fileIn").click()};dr.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();photoTarget=null;$("#fileIn").click()}};
+    dr.ondragover=e=>{e.preventDefault();dr.classList.add("over")};dr.ondragleave=()=>dr.classList.remove("over");dr.ondrop=e=>{e.preventDefault();addFiles(e.dataTransfer.files,null)}}
+  document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{G.curId=b.dataset.open;G.view="search";G.delConfirm=null;render();window.scrollTo(0,0)});
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=e=>{e.stopPropagation();const id=b.dataset.del;
+    if(G.delConfirm===id){removeSearch(id);G.delConfirm=null}else G.delConfirm=id;render()});
+  document.querySelectorAll("[data-unpref]").forEach(b=>b.onclick=()=>togglePref(b.dataset.list,b.dataset.unpref));
+  document.querySelectorAll("[data-fav]").forEach(b=>b.onclick=()=>togglePref("favorites",b.dataset.fav));
+  document.querySelectorAll("[data-hide]").forEach(b=>b.onclick=()=>togglePref("excluded",b.dataset.hide));
+  document.querySelectorAll("[data-sort]").forEach(b=>b.onclick=()=>{G.sort=b.dataset.sort;try{localStorage.setItem("dd-sort",G.sort)}catch(e){}render()});
+  if(G.view!=="search")return;
+  const s=cur();
+  document.querySelectorAll("[data-ph]").forEach(b=>b.onclick=()=>{s.active=+b.dataset.ph;render()});
+  on("[data-addph]",()=>{photoTarget=s;$("#fileIn").click()});
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{s.tab=b.dataset.tab;if(s.tab!=="details"){G.viewPref=s.tab;try{localStorage.setItem("dd-view",s.tab)}catch(e){}ensureRun(s)}render()});
+  document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{s.tab=G.viewPref=b.dataset.view;try{localStorage.setItem("dd-view",s.tab)}catch(e){}render()});
+  document.querySelectorAll("[data-k]").forEach(el=>{el.addEventListener(el.tagName==="SELECT"?"change":"input",()=>{s.form[el.dataset.k]=el.value;touch(s)})});
+  document.querySelectorAll("[data-mk]").forEach(cb=>cb.onchange=()=>{const k=cb.dataset.mk,cur=arr(s.form[k]);
+    s.form[k]=cb.checked?[...cur.filter(x=>x!==cb.value),cb.value]:cur.filter(x=>x!==cb.value);touch(s);
+    const sm=cb.closest("details").querySelector("summary");sm.textContent=s.form[k].length?s.form[k].join(", "):"Choose…"});
+  document.addEventListener("click",e=>{document.querySelectorAll("details.msel[open]").forEach(d=>{if(!d.contains(e.target))d.open=false})},{once:true});
+  on("#editDetails",()=>{s.tab="details";s.step=1;G.saved=false;render();window.scrollTo(0,0)});
+  on("#doneEdit",()=>{persist(s);G.saved=false;s.tab=G.viewPref;render()});
+  document.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>{const k=b.dataset.p,v=b.dataset.v,max=+b.dataset.max,a=s.form[k];
+    if(a.includes(v))s.form[k]=a.filter(x=>x!==v);else if(!max||a.length<max)s.form[k]=[...a,v];touch(s);render()});
+  on("#looksRight",()=>{if(s.tab==="details")s.tab=G.viewPref;runFor(s);render()});
+  on("#fixDetails",()=>{s.reviewed=true;s.tab="details";s.step=1;persist(s);render()});
+  document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{s.step=+b.dataset.go;render()});
+  on("#back",()=>{s.step=Math.max(0,s.step-1);render()});
+  on("#next",()=>{persist(s);s.step=Math.min(4,s.step+1);G.saved=false;render();window.scrollTo(0,0)});
+  document.querySelectorAll("#update").forEach(b=>b.onclick=()=>{persist(s);G.saved=false;s.tab=G.viewPref;s.results=null;s.plan=null;s.listings=null;runFor(s);render();window.scrollTo(0,0)});
+  const lf=$("#linkForm");if(lf)lf.onsubmit=e=>{e.preventDefault();const v=$("#linkIn").value.trim();
+    if(!/^https?:\/\//i.test(v)){s.err="Enter a full link starting with https://";render();return}
+    const item={url:v,state:"",msg:""};s.links.push(item);persist(s);readLink(s,item)};
+  document.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{s.links.splice(+b.dataset.rm,1);persist(s);render()});
+  const pi=$("#pasteIn");if(pi)pi.oninput=()=>{s.pasted=pi.value;clearTimeout(s._t);s._t=setTimeout(()=>persist(s),800)};
+  on("#reread",async()=>{await Promise.all(s.links.filter(l=>!l.text).map(l=>readLink(s,l)));extract(s)});
+  on("#replan",()=>buildPlan(s));
+  document.querySelectorAll("#relist").forEach(b=>b.onclick=()=>findListings(s));
+  on("#redupe",()=>findDupes(s));
+  document.querySelectorAll("[data-plat]").forEach(b=>b.onclick=()=>{const id=b.dataset.plat;
+    G.plat=G.plat.includes(id)?G.plat.filter(x=>x!==id):[...G.plat,id];try{localStorage.setItem("df-plat",JSON.stringify(G.plat))}catch(e){}render()});
+  const dupeFor=k=>[...(s.results||[]),...usedItems(s).map(asUsedRef),...(s.listings||[]).map(asListRef)].find(d=>fbKey(d)===k);
+  const openFb=(k,vote)=>{G.fbOpen={k,vote};render();const t=document.getElementById("fbr-"+k);if(t)t.focus()};
+  document.querySelectorAll("[data-fbup]").forEach(b=>b.onclick=()=>openFb(b.dataset.fbup,"up"));
+  document.querySelectorAll("[data-fbdown]").forEach(b=>b.onclick=()=>openFb(b.dataset.fbdown,"down"));
+  document.querySelectorAll("[data-scope]").forEach(b=>b.onclick=()=>{const t=G.fbOpen&&document.getElementById("fbr-"+G.fbOpen.k),keep=t?t.value:"";G.fbScope=b.dataset.scope;try{localStorage.setItem("dd-scope",G.fbScope)}catch(e){}render();const n=G.fbOpen&&document.getElementById("fbr-"+G.fbOpen.k);if(n){n.value=keep;n.focus()}});
+  document.querySelectorAll("[data-fbsave]").forEach(b=>b.onclick=()=>{const k=b.dataset.fbsave,t=document.getElementById("fbr-"+k);saveFb(s,dupeFor(k),G.fbOpen.vote,t?t.value.trim():"")});
+  document.querySelectorAll("[data-fbcancel]").forEach(b=>b.onclick=()=>{G.fbOpen=null;render()});
+  document.querySelectorAll("[data-fbundo]").forEach(b=>b.onclick=async()=>{const k=b.dataset.fbundo;FB=FB.filter(x=>x.id!==k);render();if(store)try{await store.doc(k).delete()}catch(e){}});
+}
+async function saveFb(s,d,vote,reason){if(!d){G.fbOpen=null;render();return}
+  const f=s.form,body={kind:"rating",vote,reason,scope:G.fbScope==="item"?"item":"taste",searchId:s.id,dupe:d.name,retailer:d.retailer,price:d.price||"",original:join(f.brand,f.productName),category:f.category||"",at:Date.now()};
+  G.fbOpen=null;FB=[...FB.filter(x=>x.id!==fbKey(d)),{id:fbKey(d),...body}];render();
+  if(!store){s.dupeErr="Ratings can only be saved when you're signed in to claude.ai.";render();return}
+  try{await store.doc(fbKey(d)).set(body)}catch(e){s.dupeErr="Couldn't save that rating. Try again.";render()}}
+render();
+</script>
