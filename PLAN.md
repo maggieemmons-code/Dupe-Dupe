@@ -241,6 +241,34 @@ The main risks are a leaked API key and reading sites whose terms forbid it. The
 - When affiliate links go on, show the FTC disclosure on every results screen, and mark links `rel="sponsored"`.
 - Talk to a lawyer before any public launch, especially about scraping and affiliate terms.
 
+## AliExpress (opt-in)
+
+Maggie, Nov 15: "the user can opt into AliExpress… but we need specific rules written for AliExpress and what it serves up." AliExpress has real finds, but also counterfeits, stolen product photos and unverified fabric claims, so it follows its own rules.
+
+**Turning it on**
+- Off by default. Each friend turns it on in the menu (Settings › Show AliExpress finds); saved in `profiles.allow_aliexpress`. When off, AliExpress stays on the block list for them.
+- When on, each search adds one Google Shopping search for the shortest look-alike phrasing plus "aliexpress", and Lens's AliExpress matches are kept.
+
+**Checks before showing anything (code, from the listing page)**
+- Every AliExpress pick is looked up: its AliExpress page is found through Google's product lookup (1 SerpApi search) and read (TinyFish, free) for the review count and rating, units sold, store name, store positive-feedback rate, followers, store age when shown, and the listing's photos.
+- **No reviews: hidden.** Rated under 4.5 stars with 10 or more reviews: hidden. Store positive feedback under 90%: hidden.
+- **Few reviews (under 10): shown with the caveat "Only N reviews".** A new store (open under a year) is shown, flagged "New store, open since …". Store age not found: "Store age not checked".
+- A page that can't be read is hidden (its reviews can't be checked).
+
+**What the judge checks extra (checklist, then code decides)**
+- `brand_copy`: the title, photo or listing uses the original's brand name, another designer's name, a logo, or "inspired by". **Always rejected**, never shown (no counterfeits).
+- `stock_photo_suspected` (already in the checklist): for AliExpress this **rejects** rather than cautions, since stolen designer photos are a common bait.
+- `real_photos`: the listing (or its reviews) includes photos of the actual item, such as on a mannequin, in the factory, flat, or close-ups of details, not only model shots. If only model shots: caveat "Only model photos, no photos of the real item".
+- The judge sees up to 5 of the listing's own photos for this.
+
+**Fabric and fit**
+- AliExpress fabric claims aren't trusted: the fabric tier is at most "acceptable swap", with the caveat "Fabric claim not verified".
+- Made-to-order or "customized" listings are shown with the caveat "Made to order: longer wait, usually no returns".
+
+**On screen**
+- An "AliExpress" badge on the card, and on Item detail the standing note: "Ships in about 2–4 weeks · Sizes often run small · Returns can be hard."
+- At most 4 AliExpress results per search (the best by look score), so they don't crowd out other stores.
+
 ## Affiliate links
 
 Affiliate links earn on purchases but never decide what a friend sees. Results, verdicts and their order are fixed before any link is checked for a commission, and the code is built so it can't be otherwise.
