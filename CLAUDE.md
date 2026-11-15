@@ -12,7 +12,7 @@ A private, invite-only web app for Maggie and up to 20 friends. A friend drops i
 
 **Done when:** 5 test invites all land in the inbox, not spam, within 2 minutes; an uninvited email is turned away.
 
-**Phase 0 passed on 2026-11-14:** "Hello Dupe Dupe" loads at https://dupe-dupe.vercel.app. Repo: https://github.com/maggieemmons-code/Dupe-Dupe (Vercel deploys from `main` on every push). Still open from Phase 0, needed before or during Phase 1: buy the domain (Resend needs it), open the Supabase and Resend accounts, send the eBay Partner Network application, open the other accounts in `PLAN.md` › Stack and accounts.
+**Phase 0 passed on 2026-11-14:** "Hello Dupe Dupe" loads at https://dupe-dupe.vercel.app. Repo: https://github.com/maggieemmons-code/Dupe-Dupe (Vercel deploys from `main` on every push). Domain: **dupedupe.studio**, registered at Squarespace (DNS on Squarespace's nameservers), so Resend's DNS records and any Vercel domain records are added in Squarespace's DNS settings. Still open from Phase 0: open the Supabase and Resend accounts, send the eBay Partner Network application, open the other accounts in `PLAN.md` › Stack and accounts.
 
 **Uploading:** `gh` lives at `~/.local/bin/gh` (not on PATH). Claude's auto mode has blocked `git push`, so Maggie runs `cd ~/Documents/"Dupe Dupe" && git push` in Terminal unless she adds a permission for it.
 
