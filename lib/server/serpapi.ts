@@ -99,6 +99,7 @@ export async function lensSearch(photoUrl: string, hint: string): Promise<Gather
   const query = hint.trim() ? `Photo + "${hint.trim()}"` : "Photo";
 
   return matches
+    .filter((m) => !isSponsored(m))
     .filter((m) => m.link && /^https?:\/\//.test(m.link))
     .map((m) => {
       const domain = hostOf(m.link!);
@@ -149,7 +150,9 @@ export async function shoppingSearch(q: string, maxPrice: number | null): Promis
   const params: Record<string, string> = { engine: "google_shopping", q, gl: "us", hl: "en" };
   if (maxPrice) params.max_price = String(Math.round(maxPrice));
   const body = await serp(params);
-  const results = (body.shopping_results as ShoppingResult[] | undefined) ?? [];
+  // Only Google's unpaid listings: paid Shopping ads come in separate blocks we never read,
+  // and anything still marked sponsored is skipped (PLAN.md › Affiliate links › Integrity rules).
+  const results = ((body.shopping_results as ShoppingResult[] | undefined) ?? []).filter((r) => !isSponsored(r));
 
   return results
     .map((r): Gathered | null => {
@@ -234,7 +237,8 @@ type AmazonResult = {
 
 export async function amazonSearch(q: string, maxPrice: number | null): Promise<Gathered[]> {
   const body = await serp({ engine: "amazon", k: q, amazon_domain: "amazon.com" });
-  const results = (body.organic_results as AmazonResult[] | undefined) ?? [];
+  // Organic results only; sponsored placements are skipped.
+  const results = ((body.organic_results as AmazonResult[] | undefined) ?? []).filter((r) => !isSponsored(r));
 
   return results
     .map((r): Gathered | null => {
@@ -270,6 +274,14 @@ export async function amazonSearch(q: string, maxPrice: number | null): Promise<
 }
 
 /* ---------- helpers ---------- */
+
+/** True for anything a source marks as paid placement. */
+function isSponsored(item: object) {
+  const r = item as { sponsored?: unknown; tag?: unknown; extensions?: unknown; badges?: unknown };
+  if (r.sponsored === true) return true;
+  const labels = [r.tag, ...(Array.isArray(r.extensions) ? r.extensions : []), ...(Array.isArray(r.badges) ? r.badges : [])];
+  return labels.some((l) => typeof l === "string" && /^(sponsored|ad)$/i.test(l.trim()));
+}
 
 const SECONDHAND = [
   "therealreal", "poshmark", "depop", "ebay", "vestiairecollective", "vestiaire", "thredup", "grailed",

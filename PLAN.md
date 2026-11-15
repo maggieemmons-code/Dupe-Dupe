@@ -256,6 +256,7 @@ Affiliate links earn on purchases but never decide what a friend sees. Results, 
 - **Agents never see commission data.** No affiliate field, rate or program name reaches the brief builder, screeners, judge or planner.
 - **Only the click route knows about affiliates.** Affiliate settings live in one separate module that only `/go` may import. An automated test fails the build if any search, screening, judging or sorting code imports it.
 - **Every result looks the same.** No badge, color or position marks a paying store.
+- **No paid placement gets in.** Only unpaid listings are read: Google Shopping's organic results (paid Shopping ads come in separate blocks that are never read) and Amazon's organic results; anything marked sponsored is skipped. A source's own ranking only decides which items get screened first; what friends see, and its order, comes from the screener and judge (Maggie, Nov 15).
 - **No source is dropped for not paying.** Poshmark, Depop and other resale sites stay in every search whether or not they have a program.
 - **Favorites and hidden stores stay the friend's choice.** The app never favorites a store on its own.
 - **A monthly check:** compare how often paying stores appear in the top 3 against how often they appear overall. A widening gap means something is leaking and gets fixed before anything else.
