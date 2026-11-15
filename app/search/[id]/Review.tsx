@@ -332,6 +332,14 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
   const [anchors, setAnchors] = useState<Anchor[]>(search.visual_brief?.anchors ?? []);
   const [sigOpen, setSigOpen] = useState(false);
   const [custom, setCustom] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<{ id: string; draft: string } | null>(null);
+
+  function renameAnchor() {
+    if (!renaming) return;
+    const label = renaming.draft.trim().slice(0, 60);
+    if (label) updateAnchors(anchors.map((a) => (a.id === renaming.id ? { ...a, label } : a)));
+    setRenaming(null);
+  }
 
   function updateAnchors(next: Anchor[]) {
     setAnchors(next);
@@ -343,7 +351,7 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
   function addAnchor(label: string) {
     const v = label.trim();
     if (v && !anchors.some((a) => a.label.toLowerCase() === v.toLowerCase())) {
-      updateAnchors([...anchors, { id: `custom-${Date.now()}`, label: v, dealbreaker: false }]);
+      updateAnchors([...anchors, { id: `custom-${v.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}`, label: v, dealbreaker: false }]);
     }
   }
   const mustCount = anchors.filter((a) => a.dealbreaker).length;
@@ -381,99 +389,6 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
       </div>
 
       <Original search={search} photoUrl={photoUrl} subtitle={sourcesLine(search)} color={String(values.color || "")} />
-
-      {/* Signature details */}
-      <section className={styles.sig}>
-        <button className={styles.sigHead} aria-expanded={sigOpen} onClick={() => setSigOpen(!sigOpen)}>
-          <span className={styles.sigText}>
-            <span className={styles.sigTitleRow}>
-              <span className={styles.sigTitle}>Signature details</span>
-              <span className={styles.optional}>Optional</span>
-            </span>
-            <span className={styles.sigSummary}>{sigSummary}</span>
-          </span>
-          <span className={sigOpen ? styles.chevOpen : styles.chev}>
-            <Chevron />
-          </span>
-        </button>
-
-        {sigOpen && (
-          <div className={styles.sigBody}>
-            <p className={styles.sigNote}>
-              We already picked these, so you can skip this. Turn on Must match and we reject anything without that detail.
-            </p>
-            {anchors.map((a, i) => (
-              <div key={a.id} className={a.dealbreaker ? styles.anchorOn : styles.anchor}>
-                <span className={styles.anchorLabel}>{a.label}</span>
-                <span className={styles.mustLabel}>Must match</span>
-                <button
-                  role="switch"
-                  aria-checked={a.dealbreaker}
-                  aria-label={`Must match: ${a.label}`}
-                  className={a.dealbreaker ? styles.switchOn : styles.switch}
-                  onClick={() => updateAnchors(anchors.map((x, j) => (j === i ? { ...x, dealbreaker: !x.dealbreaker } : x)))}
-                >
-                  <span />
-                </button>
-                <button className={styles.remove} aria-label={`Remove ${a.label}`} onClick={() => updateAnchors(anchors.filter((_, j) => j !== i))}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-                    <path d="M6 6l12 12M18 6L6 18" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-            {custom !== null ? (
-              <input
-                className={styles.addInput}
-                aria-label="Describe the detail"
-                placeholder="e.g. Fold-over off-shoulder band"
-                value={custom}
-                autoFocus
-                maxLength={60}
-                onChange={(e) => setCustom(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addAnchor(custom);
-                    setCustom(null);
-                  }
-                  if (e.key === "Escape") setCustom(null);
-                }}
-                onBlur={() => {
-                  addAnchor(custom);
-                  setCustom(null);
-                }}
-              />
-            ) : (
-              <label className={styles.addBtn}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                Add a detail
-                <select
-                  className={styles.overlaySelect}
-                  aria-label="Add a signature detail"
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value === "__other") setCustom("");
-                    else addAnchor(e.target.value);
-                  }}
-                >
-                  <option value="" disabled>
-                    Add a detail
-                  </option>
-                  {addable.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                  <option value="__other">Something else…</option>
-                </select>
-              </label>
-            )}
-          </div>
-        )}
-      </section>
 
       {/* Search for: view, size and budget */}
       <section className={styles.choices}>
@@ -557,6 +472,12 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
         )}
       </section>
 
+      {search.error && search.status !== "failed" && (
+        <p className={ui.error} role="status">
+          {search.error}
+        </p>
+      )}
+
       {stale && (
         <p className={ui.error}>You changed details since we read this piece. We&apos;ll update the search brief when it runs.</p>
       )}
@@ -568,6 +489,128 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
             The details
           </h2>
         </div>
+
+        {/* Signature details: the first item in The details */}
+        <div className={styles.sig}>
+        <button className={styles.sigHead} aria-expanded={sigOpen} onClick={() => setSigOpen(!sigOpen)}>
+          <span className={styles.sigText}>
+            <span className={styles.sigTitleRow}>
+              <span className={styles.sigTitle}>Signature details</span>
+              <span className={styles.optional}>Optional</span>
+            </span>
+            <span className={styles.sigSummary}>{sigSummary}</span>
+          </span>
+          <span className={sigOpen ? styles.chevOpen : styles.chev}>
+            <Chevron />
+          </span>
+        </button>
+
+        {sigOpen && (
+          <div className={styles.sigBody}>
+            <p className={styles.sigNote}>
+              We already picked these, so you can skip this. Tap a detail to reword it. Turn on Must match and we reject anything without that detail.
+            </p>
+            {anchors.map((a, i) => (
+              <div key={a.id} className={a.dealbreaker ? styles.anchorOn : styles.anchor}>
+                {renaming?.id === a.id ? (
+                  <input
+                    className={styles.renameInput}
+                    aria-label={`Reword ${a.label}`}
+                    value={renaming.draft}
+                    autoFocus
+                    onFocus={(e) => e.currentTarget.select()}
+                    maxLength={60}
+                    onChange={(e) => setRenaming({ id: a.id, draft: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        renameAnchor();
+                      }
+                      if (e.key === "Escape") setRenaming(null);
+                    }}
+                    onBlur={renameAnchor}
+                  />
+                ) : (
+                  <button
+                    className={styles.anchorLabel}
+                    aria-label={`Reword ${a.label}`}
+                    onClick={() => setRenaming({ id: a.id, draft: a.label })}
+                  >
+                    {a.label}
+                    <Pencil />
+                  </button>
+                )}
+                <span className={styles.mustLabel}>Must match</span>
+                <button
+                  role="switch"
+                  aria-checked={a.dealbreaker}
+                  aria-label={`Must match: ${a.label}`}
+                  className={a.dealbreaker ? styles.switchOn : styles.switch}
+                  onClick={() => updateAnchors(anchors.map((x, j) => (j === i ? { ...x, dealbreaker: !x.dealbreaker } : x)))}
+                >
+                  <span />
+                </button>
+                <button className={styles.remove} aria-label={`Remove ${a.label}`} onClick={() => updateAnchors(anchors.filter((_, j) => j !== i))}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+            {custom !== null ? (
+              <input
+                className={styles.addInput}
+                aria-label="Describe the detail"
+                placeholder="e.g. Fold-over off-shoulder band"
+                value={custom}
+                autoFocus
+                maxLength={60}
+                onChange={(e) => setCustom(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addAnchor(custom);
+                    setCustom(null);
+                  }
+                  if (e.key === "Escape") setCustom(null);
+                }}
+                onBlur={() => {
+                  addAnchor(custom);
+                  setCustom(null);
+                }}
+              />
+            ) : (
+              <label className={styles.addBtn}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Add a detail
+                <select
+                  className={styles.overlaySelect}
+                  aria-label="Add a signature detail"
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value === "__other") setCustom("");
+                    else addAnchor(e.target.value);
+                  }}
+                >
+                  <option value="" disabled>
+                    Add a detail
+                  </option>
+                  {addable.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                  <option value="__other">Something else…</option>
+                </select>
+              </label>
+            )}
+          </div>
+        )}
+        </div>
+
+
 
         {ROWS.map((row) => {
           const text = shown(row, values);

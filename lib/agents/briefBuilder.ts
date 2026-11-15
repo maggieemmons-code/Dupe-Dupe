@@ -282,7 +282,8 @@ export async function runBriefBuilder(input: BriefInput) {
   if (!model) throw new Error("ANTHROPIC_JUDGE_MODEL is not set");
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
 
-  const client = new Anthropic();
+  // Tolerate a stray space, line break or quotes from pasting the key into settings.
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY.trim().replace(/^["']|["']$/g, "") });
   const productPhotos = input.productPhotos ?? [];
 
   const parts: string[] = [];

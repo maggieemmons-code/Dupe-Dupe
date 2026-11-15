@@ -9,7 +9,8 @@ export type FetchedPage = { url: string; title: string; text: string; images: st
  * plus the image links on each page. Returns the pages that loaded and the URLs that failed.
  */
 export async function fetchPages(urls: string[], purpose: string) {
-  const key = process.env.TINYFISH_API_KEY;
+  // Tolerate a stray space, line break or quotes from pasting the key into settings.
+  const key = process.env.TINYFISH_API_KEY?.trim().replace(/^["']|["']$/g, "");
   if (!key) throw new Error("TINYFISH_API_KEY is not set");
 
   const res = await fetch(FETCH_URL, {

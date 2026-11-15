@@ -116,6 +116,9 @@ export async function buildBrief(searchId: string): Promise<Result> {
         brief_built_at: new Date().toISOString(),
         brief_stale: false,
         status: "review",
+        error: unreadLinks.length
+          ? "We couldn't open the product page, so we only read what the web address says. Add a screenshot or check the details below."
+          : null,
       })
       .eq("id", searchId);
     if (error) throw new Error(error.message);
