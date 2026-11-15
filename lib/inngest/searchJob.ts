@@ -13,6 +13,7 @@ import {
 } from "@/lib/server/serpapi";
 import { fetchPages } from "@/lib/server/tinyfish";
 import { usefulPageText } from "@/lib/search/listingText";
+import { usdPriceFromPage } from "@/lib/server/price";
 import { runJudge, type JudgeCandidate } from "@/lib/agents/judge";
 import { score, type AnchorDef } from "@/lib/search/score";
 import { downloadThumb } from "@/lib/server/linkPhotos";
@@ -31,8 +32,14 @@ import { lowEnd } from "@/lib/search/priceFloor";
 
 /** Pause searches when SerpApi gets this low (PLAN.md › Costs and guardrails). */
 const SERP_FLOOR = 30;
-/** How many screened picks go on to the judge (PLAN.md: up to 10 new; a few more since the judge now does the filtering). */
-const MAX_RESULTS = 12;
+/**
+ * How many screened picks go on to the judge. Maggie, Nov 15: "I'd rather pay for
+ * more searches than get bad results"; at 12 the screener cut two of her own good
+ * test-set picks before the judge saw them.
+ */
+const MAX_RESULTS = 20;
+/** Google Lens runs on this many of the original's photos (visual matches matter most). */
+const LENS_PHOTOS = 2;
 /**
  * Google Shopping runs every look-alike phrasing from the brief (up to 4: each
  * brings different stores), plus one search per store below, scoped by adding
@@ -43,9 +50,9 @@ const MAX_RESULTS = 12;
 const MAX_PHRASINGS = 4;
 const STORE_SEARCHES = ["Revolve", "Nordstrom"];
 const BATCH = 20;
-const MAX_BATCHES = 3;
+const MAX_BATCHES = 4;
 /** Paid product lookups (1 SerpApi search each) per search, for the top picks (Maggie, Nov 15: top picks, open to upgrading). */
-const MAX_LOOKUPS = 8;
+const MAX_LOOKUPS = 12;
 /** Candidates per judge call (PLAN.md). */
 const JUDGE_BATCH = 5;
 
@@ -53,6 +60,7 @@ type Ctx = {
   userId: string;
   name: string;
   photoPath: string | null;
+  photoPaths: string[];
   lensHint: string;
   lookAlike: string[];
   budget: number | null;
@@ -126,6 +134,7 @@ export const runSearch = inngest.createFunction(
         userId,
         name: searchName(s),
         photoPath: s.photo_paths?.[0] ?? null,
+        photoPaths: (s.photo_paths ?? []).slice(0, LENS_PHOTOS),
         lensHint: (q.lens_hint || fallback).slice(0, 80),
         lookAlike: (q.look_alike ?? []).filter(Boolean).length ? q.look_alike!.filter(Boolean) : [fallback || searchName(s)],
         budget: s.budget ?? null,
@@ -142,12 +151,14 @@ export const runSearch = inngest.createFunction(
     if (!ctx) return { skipped: true };
 
     /* 2. Gather, all sources at once. A source that still fails after a retry is skipped. */
-    const gather = (name: string, label: string, run: () => Promise<Gathered[]>) =>
+    const gather = (name: string, label: string, run: () => Promise<Gathered[] | { items: Gathered[]; searches: number }>) =>
       step.run(name, async () => {
         try {
-          const items = await run();
+          const out = await run();
+          const items = Array.isArray(out) ? out : out.items;
+          const searches = Array.isArray(out) ? 1 : out.searches;
           await saveGathered(searchId, userId, items);
-          await logJobCall({ userId, searchId, service: "serpapi", stage: name, units: { searches: 1, results: items.length }, ok: true });
+          await logJobCall({ userId, searchId, service: "serpapi", stage: name, units: { searches, results: items.length }, ok: true });
           return { name, label, found: items.length, failed: false };
         } catch (e) {
           await logJobCall({ userId, searchId, service: "serpapi", stage: name, ok: false, error: String(e) });
@@ -157,13 +168,14 @@ export const runSearch = inngest.createFunction(
       });
 
     const sources = await Promise.all([
-      ctx.photoPath
-        ? gather("lens", "Google Lens", async () => {
-            const { data, error } = await db.storage.from("photos").createSignedUrl(ctx.photoPath!, 600);
-            if (error || !data) throw new Error(`Signed photo link failed: ${error?.message}`);
-            return lensSearch(data.signedUrl, ctx.lensHint);
-          })
-        : Promise.resolve(null),
+      ...ctx.photoPaths.map((path, i) =>
+        gather(`lens-${i + 1}`, "Google Lens", async () => {
+          const { data, error } = await db.storage.from("photos").createSignedUrl(path, 600);
+          if (error || !data) throw new Error(`Signed photo link failed: ${error?.message}`);
+          // The first photo goes with a few words; the second goes alone, for purely visual matches.
+          return lensSearch(data.signedUrl, i === 0 ? ctx.lensHint : "");
+        }),
+      ),
       ...ctx.lookAlike
         .slice(0, MAX_PHRASINGS)
         .map((q, i) => gather(`shopping-${i + 1}`, "Google Shopping", () => shoppingSearch(q, ctx.budget, ctx.priceFloor))),
@@ -212,17 +224,21 @@ export const runSearch = inngest.createFunction(
       const keptIds = new Set(results.filter((r) => !r.drop_reason).map((r) => r.id));
       if (keptIds.size) await db.from("candidates").update({ stage: "cleaned" }).in("id", [...keptIds]);
 
-      // Screening order: take turns between searches (Lens, each Shopping search, Amazon),
-      // each in its own ranking order, so the store search isn't buried.
+      // Screening order: Lens's visual matches first (Maggie, Nov 15: visual matches
+      // matter most), then the other searches taking turns, each in its own ranking order.
       const kept = all.filter((r) => keptIds.has(r.id) && r.kind === "new");
-      const bySource = new Map<string, typeof kept>();
-      for (const r of kept.sort((a, b) => (a.position ?? 999) - (b.position ?? 999))) {
-        const k = `${r.source}|${r.query}`;
-        bySource.set(k, [...(bySource.get(k) ?? []), r]);
-      }
-      const order: string[] = [];
-      const lists = [...bySource.values()];
-      for (let i = 0; order.length < kept.length; i++) for (const l of lists) if (l[i]) order.push(l[i].id);
+      const interleave = (rows: typeof kept) => {
+        const byQuery = new Map<string, typeof kept>();
+        for (const r of [...rows].sort((a, b) => (a.position ?? 999) - (b.position ?? 999))) {
+          const k = `${r.source}|${r.query}`;
+          byQuery.set(k, [...(byQuery.get(k) ?? []), r]);
+        }
+        const out: string[] = [];
+        const lists = [...byQuery.values()];
+        for (let i = 0; out.length < rows.length; i++) for (const l of lists) if (l[i]) out.push(l[i].id);
+        return out;
+      };
+      const order = [...interleave(kept.filter((r) => r.source === "lens")), ...interleave(kept.filter((r) => r.source !== "lens"))];
       return order.slice(0, BATCH * MAX_BATCHES);
     });
 
@@ -329,7 +345,7 @@ export const runSearch = inngest.createFunction(
     await step.run("read-pages", async () => {
       const { data: rows } = await db
         .from("candidates")
-        .select("id, source, link, store_link, listing_text")
+        .select("id, source, link, store_link, listing_text, price")
         .in("id", picks.map((p) => p.id));
       const urlFor = (r: { source: string; link: string; store_link: string | null }) =>
         r.source === "amazon" ? null : (r.store_link ?? (r.source === "shopping" ? null : r.link));
@@ -349,10 +365,25 @@ export const runSearch = inngest.createFunction(
           for (const r of targets) {
             const page = pages.find((pg) => pg.url === urlFor(r) || key(pg.url) === key(urlFor(r)!));
             const useful = page ? usefulPageText(page.text) : "";
-            if (useful) {
+            // Lens matches that showed no price: read it from the page, and keep to the friend's range.
+            const pagePrice = r.price == null && page ? usdPriceFromPage(page.text) : null;
+            const priceUpdate =
+              pagePrice != null
+                ? {
+                    price: pagePrice,
+                    price_is_estimate: false,
+                    price_checked_at: new Date().toISOString(),
+                    ...(ctx.budget && pagePrice > ctx.budget ? { drop_reason: "Over budget" } : {}),
+                    ...(ctx.priceFloor && pagePrice < ctx.priceFloor ? { drop_reason: "Under the price floor" } : {}),
+                  }
+                : {};
+            if (useful || pagePrice != null) {
               await db
                 .from("candidates")
-                .update({ listing_text: [r.listing_text, `From the store's page:\n${useful}`].filter(Boolean).join("\n\n") })
+                .update({
+                  ...(useful ? { listing_text: [r.listing_text, `From the store's page:\n${useful}`].filter(Boolean).join("\n\n") } : {}),
+                  ...priceUpdate,
+                })
                 .eq("id", r.id);
             }
           }

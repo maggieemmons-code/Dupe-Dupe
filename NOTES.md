@@ -95,3 +95,12 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - **Same-brand results stay** (Max Mara Poldo's top 3 were cheaper Max Mara and S Max Mara coats). Maggie didn't answer; kept as the default.
 - **Where her 26 good dupes went:** found 5 (Dessy, LilySilk, Windsor, Nordstrom Cassie, plus the Dessy copy). Judged well: Dessy (#1, L83), LilySilk (L87 F86). Turned down by the screener: Windsor coat, Cassie boot. Never gathered: 20, mostly smaller brands (Club L, Selfie Leslie, Rosier, Cult Mia, Dolls Kill, Akira, Femme LA, H&M, Theory, Aritzia, Allegra K, Babyboo, Terry Costa, Mac Duggal) and two Nookie gowns at Revolve. The Mulberry bag's picks are all secondhand (phase 5). **Gathering is the main gap; the screener is second.**
 - The JD June brief had no price ($?), so no budget; the Mulberry link names no color and Google's first listing was pink.
+
+### Visual matches first (Nov 15)
+
+- Maggie: "Visual matches is the most important part of this tool, then composition… I'd rather pay for more searches than get bad results… exclude sites rather than rule everything out."
+- **Lens found all three of her Amaya picks** (Club L, Selfie Leslie, Meshki) when run on the original's photo, but in the real search Lens had returned 0 results: Lens sometimes answers empty, and SerpApi caches identical searches for an hour. `lensSearch()` now retries an empty answer with `no_cache=true`, then without the words. The `products` Lens type is discontinued.
+- Lens runs on the first two photos (`LENS_PHOTOS`); the second photo found other stores (Babyboo, Bec + Bridge, Net-a-Porter).
+- About two-thirds of Lens matches have no price. They're kept now: the read-pages step reads the price from the store's page (`usdPriceFromPage`) and drops it if outside the range; otherwise the card says "Price at store".
+- Store vetting flipped to a block list (see `lib/stores.ts` header). The approved list stays only to recognize known stores. `scripts/unknown-stores.ts` lists stores on neither list that reached the judge.
+- Screening puts Lens matches first, then the other searches taking turns; up to 80 are screened, 20 go to the judge (was 12), and the top 12 get product lookups (was 8).

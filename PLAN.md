@@ -99,7 +99,7 @@ A search runs as a background job in six stages: brief, gather, clean, screen, e
 
    **The friend confirms the anchors.** The review card shows them as editable chips under "What makes this piece?", each with a dealbreaker toggle. A wrong anchor makes every later stage wrong, so this is the one check a person makes before the search runs.
 2. **Gather** (no AI, all at once).
-   - Google Lens through SerpApi, visual matches: the main photo goes by a 10-minute signed link from Supabase Storage, with a short description in `q`.
+   - Google Lens through SerpApi, visual matches, the most important source (Maggie, Nov 15): the first two photos go by 10-minute signed links from Supabase Storage, the first with a short description in `q`, the second alone. Lens sometimes answers with nothing and SerpApi caches that for an hour, so an empty answer is retried with the cache off. Lens matches without a price are kept; the price is read from the store's page before judging, or the card says "Price at store".
    - Google Shopping through SerpApi: the first look-alike query, and the same words plus "revolve", which brings back Revolve's own listings (Maggie, Nov 15), filtered to the budget.
    - Amazon through SerpApi: the first look-alike query, filtered to the budget (Maggie, Nov 14).
    - eBay Browse API: exact, look-alike and peer-brand queries.
@@ -107,7 +107,7 @@ A search runs as a background job in six stages: brief, gather, clean, screen, e
 
    Every item gathered is saved to the `candidates` table, and each later stage records how far it got and why it was dropped.
 3. **Clean** (code, no AI). Every candidate becomes one shape: source, link, title, brand, price, condition, size, color, photo link, store. Then code, not an agent:
-   - shows only approved stores (`lib/stores.ts`: established retailers and real brands' own sites), never blocked ones (ultra-cheap fast fashion and scam-prone marketplaces such as Shein, Temu, AliExpress, Fashion Nova), and Amazon items only with 4 stars or more from at least 100 reviews (Maggie, Nov 15). Unapproved stores are kept with a drop reason so Maggie can approve good ones;
+   - allows every store except blocked ones (`lib/stores.ts`: ultra-cheap fast fashion and scam-prone marketplaces such as Shein, Temu, AliExpress, Fashion Nova; doubtful sites seen in results; marketplace sellers; sites that aren't stores), and shows Amazon items only with 4 stars or more from at least 100 reviews. An approved-only list was tried first and hid most of Maggie's own good test-set dupes, so it was flipped (Maggie, Nov 15: "exclude sites rather than rule everything out");
    - drops hidden stores, new items outside the friend's price range and items already rated thumbs down. The budget is a range set with a two-handle slider on Review: the friend sets both ends, and each starts where they left it on their last search. A floor worked out from the original's price was tried and dropped, because a very expensive original skews it (Maggie, Nov 15);
    - filters secondhand listings to the friend's sizes, keeping listings whose size is unknown;
    - merges the same product sold by several stores into one candidate, showing the cheapest.

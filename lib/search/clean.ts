@@ -53,9 +53,8 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
   function dropReason(r: CleanRow): string | null {
     if (isNotAStore(r.store_domain, r.store)) return "Not a store";
     if (isRental(r.store_domain, r.store, r.title)) return "Rental, not for sale";
-    const vet = vetStore(r.store, r.store_domain);
-    if (vet === "blocked") return "Blocked store";
-    if (vet === "unknown") return "Store not approved";
+    // Every store is allowed unless blocked (lib/stores.ts).
+    if (vetStore(r.store, r.store_domain) === "blocked") return "Blocked store";
     if (hidden.some((h) => norm(r.store).includes(h) || norm(r.store_domain).includes(h))) return "Hidden store";
     if (r.source === "amazon" && ((r.rating ?? 0) < AMAZON_MIN_RATING || (r.reviews ?? 0) < AMAZON_MIN_REVIEWS)) {
       return "Amazon: under 4 stars or 100 reviews";
@@ -69,9 +68,9 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
       if (r.size && ctx.sizes.length && !sizeMatches(r.size, ctx.sizes)) return "Not your size";
       return null;
     }
-    if (r.price == null) return "No price shown";
-    if (ctx.budget && r.price > ctx.budget) return "Over budget";
-    if (ctx.priceFloor && r.price < ctx.priceFloor) return "Under the price floor";
+    if (r.price == null && r.source !== "lens") return "No price shown";
+    if (r.price != null && ctx.budget && r.price > ctx.budget) return "Over budget";
+    if (r.price != null && ctx.priceFloor && r.price < ctx.priceFloor) return "Under the price floor";
     if (r.in_stock === false) return "Out of stock";
     return null;
   }

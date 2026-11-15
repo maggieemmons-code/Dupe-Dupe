@@ -39,8 +39,13 @@ const reason = (r: CleanRow, c = ctx) => cleanCandidates([r], c)[0].drop_reason;
 test("approved store in range is kept", () => assert.equal(reason(row({})), null));
 test("over budget is dropped", () => assert.equal(reason(row({ price: 350 })), "Over budget"));
 test("under the price floor is dropped", () => assert.equal(reason(row({ price: 60 })), "Under the price floor"));
-test("no price is dropped", () => assert.equal(reason(row({ price: null })), "No price shown"));
-test("unknown store is hidden", () => assert.equal(reason(row({ store: "Pomuyoo" })), "Store not approved"));
+test("no price is dropped for Shopping", () => assert.equal(reason(row({ price: null })), "No price shown"));
+test("a Lens match without a price stays (its price is read later)", () =>
+  assert.equal(reason(row({ price: null, source: "lens", store: "Club L London", store_domain: "clubllondon.us" })), null));
+test("an unknown store is allowed", () => assert.equal(reason(row({ store: "Some New Label" })), null));
+test("a doubtful site is blocked", () => assert.equal(reason(row({ store: "Pomuyoo" })), "Blocked store"));
+test("a marketplace seller under a big store's name is blocked", () =>
+  assert.equal(reason(row({ store: "Walmart - Pocketful Deals" })), "Blocked store"));
 test("blocked store is hidden", () => assert.equal(reason(row({ store: "SHEIN" })), "Blocked store"));
 test("social sites aren't stores", () => assert.equal(reason(row({ store: "Instagram", store_domain: "instagram.com" })), "Not a store"));
 test("the original itself is dropped", () =>
@@ -65,5 +70,6 @@ test("store names match however Google writes them", () => {
   assert.equal(vetStore("Oh Polly US", ""), "approved");
   assert.equal(vetStore("", "www.revolve.com"), "approved");
   assert.equal(vetStore("Fashion Nova", ""), "blocked");
-  assert.equal(vetStore("ohcici.us", "ohcici.us"), "unknown");
+  assert.equal(vetStore("ohcici.us", "ohcici.us"), "blocked");
+  assert.equal(vetStore("Some New Label", "somenewlabel.com"), "unknown");
 });

@@ -1,10 +1,14 @@
 /*
- * Which stores Dupe Dupe sends friends to (Maggie, Nov 15).
- * - Only APPROVED stores show: established retailers and real brands' own sites.
- *   Anything else is hidden with the reason "Store not approved", and
- *   `scripts/unknown-stores.ts` lists those so Maggie can approve good ones.
- * - BLOCKED stores never show, even if added to APPROVED by mistake: ultra-cheap
- *   fast fashion and marketplaces known for poor quality or scams.
+ * Which stores Dupe Dupe sends friends to.
+ * - Every store shows unless it's BLOCKED (Maggie, Nov 15: "exclude sites rather
+ *   than rule everything out because we would lose a lot of really good options").
+ *   An approved-only list hid 19 of her 26 good test-set dupes' stores at first.
+ * - BLOCKED: ultra-cheap fast fashion, marketplaces known for poor quality or
+ *   scams, doubtful sites seen in results, marketplace sellers under a big
+ *   store's name, and sites that aren't stores. Add to it as bad ones show up;
+ *   `scripts/unknown-stores.ts` lists stores that aren't on either list.
+ * - APPROVED: established retailers and brands' own sites. Kept to recognize
+ *   known stores (it no longer hides anything).
  * - Amazon shows only items rated 4 stars or more with at least 100 reviews.
  *
  * Each entry is "domain | other names it goes by". A store matches by its web
@@ -83,7 +87,20 @@ const BLOCKED_ENTRIES = [
   "miniinthebox.com | MiniInTheBox", "emmacloth.com | Emmacloth", "cider.com | shopcider.com | Cider", "jjshouse.com | JJsHouse",
   "patpat.com | PatPat", "halara.com | Halara", "cupshe.com | Cupshe", "bloomchic.com | BloomChic", "sammydress.com | SammyDress",
   "yoins.com | YOINS", "berrylook.com | Berrylook", "noracora.com | Noracora", "chicwish.com | Chicwish",
+  // Doubtful sites seen in Dupe Dupe's own results (Nov 15)
+  "ohcici.us | ohcici", "pomuyoo.com | Pomuyoo", "lavetir.com | Lavetir", "chicsew.com | chicsew | ChicSew", "wedtrend.com | Wedtrend",
+  "dresstells.com | Dresstells | Dresstells US", "homrain.com | Homrain | Homrain US", "zapakasa.com | Zapaka | Zapakasa | ZAPAKASA",
+  "kissprom.com | KissProm", "dorriswedding.com | Dorris Wedding", "catchallstore.com", "lethanhhoa.com", "jessicabara.com | jessicabara",
+  "buganco.com", "chicida.com", "rihoas.com", "myfashion.com | www.MyFashion.com", "viniodress.com | Viniodress",
+  "dressafford.com | Dress Afford", "formalgowns.com | formalgowns", "missord.com | missord", "ombreprom.com | Ombreprom",
+  "yesbabyonline.com | Yesbabyonline", "sunfere.com | sunfere", "stacees.com | Stacees",
+  // Not stores: news, blogs and magazines that Lens returns
+  "wwd.com", "fashionandstyleedit.com", "vogue.com", "harpersbazaar.com", "elle.com", "whowhatwear.com", "refinery29.com",
+  "popsugar.com", "buzzfeed.com", "nytimes.com",
 ];
+
+/** Marketplace sellers listed under a big store's name ("Walmart - Pocketful Deals"). */
+const MARKETPLACE_SELLER = /^(walmart|amazon|ebay|target)\s*[-–]\s*\S/i;
 
 type Entry = { domains: string[]; names: string[] };
 
@@ -125,7 +142,7 @@ function matches(list: Entry[], store: string, domain: string) {
 export type StoreVerdict = "approved" | "blocked" | "unknown";
 
 export function vetStore(store: string, domain: string): StoreVerdict {
-  if (matches(BLOCKED, store, domain)) return "blocked";
+  if (matches(BLOCKED, store, domain) || MARKETPLACE_SELLER.test(store.trim())) return "blocked";
   if (matches(APPROVED, store, domain)) return "approved";
   return "unknown";
 }

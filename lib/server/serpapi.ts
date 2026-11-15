@@ -85,20 +85,36 @@ type LensMatch = {
   image?: string;
 };
 
-export async function lensSearch(photoUrl: string, hint: string): Promise<Gathered[]> {
-  const params: Record<string, string> = {
+/**
+ * Google Lens visual matches for one photo. Lens sometimes answers with nothing
+ * for a photo that gives 60 matches a moment later, and SerpApi caches that empty
+ * answer for an hour (Nov 15: this lost all of Maggie's picks for one test item),
+ * so an empty answer is retried once with the cache off, then without the words.
+ */
+export async function lensSearch(photoUrl: string, hint: string): Promise<{ items: Gathered[]; searches: number }> {
+  const base: Record<string, string> = {
     engine: "google_lens",
     type: "visual_matches",
     url: photoUrl,
     hl: "en",
     country: "us",
   };
-  if (hint.trim()) params.q = hint.trim();
-  const body = await serp(params);
-  const matches = (body.visual_matches as LensMatch[] | undefined) ?? [];
-  const query = hint.trim() ? `Photo + "${hint.trim()}"` : "Photo";
+  const tries: Record<string, string>[] = hint.trim()
+    ? [{ ...base, q: hint.trim() }, { ...base, q: hint.trim(), no_cache: "true" }, { ...base, no_cache: "true" }]
+    : [base, { ...base, no_cache: "true" }];
+  let matches: LensMatch[] = [];
+  let searches = 0;
+  let used = tries[0];
+  for (const params of tries) {
+    searches++;
+    used = params;
+    const body = await serp(params);
+    matches = (body.visual_matches as LensMatch[] | undefined) ?? [];
+    if (matches.length) break;
+  }
+  const query = used.q ? `Photo + "${used.q}"` : "Photo";
 
-  return matches
+  const items: Gathered[] = matches
     .filter((m) => !isSponsored(m))
     .filter((m) => m.link && /^https?:\/\//.test(m.link))
     .map((m) => {
@@ -126,6 +142,7 @@ export async function lensSearch(photoUrl: string, hint: string): Promise<Gather
         in_stock: typeof m.in_stock === "boolean" ? m.in_stock : null,
       };
     });
+  return { items, searches };
 }
 
 /* ---------- Shopping ---------- */
