@@ -37,9 +37,10 @@ const SERP_FLOOR = 30;
 /**
  * How many screened picks go on to the judge. Maggie, Nov 15: "I'd rather pay for
  * more searches than get bad results"; at 12 the screener cut two of her own good
- * test-set picks before the judge saw them. The best-rated 30 (3/5 or better) go on.
+ * test-set picks before the judge saw them. The best-rated 45 (3/5 or better) go on:
+ * at 30, her own picks rated 3/5 by the screener still missed the cut.
  */
-const MAX_RESULTS = 30;
+const MAX_RESULTS = 45;
 /** The lowest screener rating (1–5) that can go on to the judge. */
 const MIN_SCREEN_SCORE = 3;
 /** Google Lens runs on this many of the original's photos (visual matches matter most). */
@@ -286,7 +287,8 @@ export const runSearch = inngest.createFunction(
             const ordered = ids.map((id) => byId.get(id)).filter((r): r is NonNullable<typeof r> => !!r);
             const [original, ...thumbs] = await Promise.all([
               originalPhoto(ctx.photoPath),
-              ...ordered.map((r) => downloadThumb(r.thumb_url ?? r.photo_url ?? "")),
+              // 384px: at 256 the screener couldn't see line, proportion or texture well.
+              ...ordered.map((r) => downloadThumb(r.photo_url ?? r.thumb_url ?? "", 384).then((x) => x ?? downloadThumb(r.thumb_url ?? "", 384))),
             ]);
             const items: ScreenItem[] = ordered.map((r, i) => ({ n: i + 1, title: r.title, brand: r.brand, store: r.store, price: r.price, photo: thumbs[i] }));
             try {
