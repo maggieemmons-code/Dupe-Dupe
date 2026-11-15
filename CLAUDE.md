@@ -15,6 +15,8 @@ A private, invite-only web app for Maggie and up to 20 friends. A friend drops i
 
 **Needs before coding:** an Inngest account and its keys (`INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, plus connecting Inngest to the Vercel project), and a SerpApi key (`SERPAPI_API_KEY`) with usage alerts on. Maggie pastes key values into `.env.local` and Vercel herself; Vercel only picks up changed settings on the next deployment.
 
+**Status (Nov 14):** built and passing on Maggie's Mac (Sau Lee: 9 shown, 7 with live prices, all with photos). Added at her request: Amazon as a source, and Shop buttons that look up the store's own page for Google Shopping results. Waiting on the live-site check after push. Details in `NOTES.md` › Phase 3.
+
 **Watch for:** Claude Sonnet 5.5 and Haiku 5.5 behavior with tools is in `NOTES.md` › Phase 2 (no forced `tool_choice`; large schemas can't use strict mode). Lens takes the search's first photo by a 10-minute signed link; link-only searches now have product photos saved from the page.
 
 **Phase 2 passed on 2026-11-15:** on the live site, the Sau Lee link (https://www.sau-lee.com/products/joanna-gown-red-date) fills in 100% polyester jacquard, true to size, $750, the product photos, and anchors covering the off-shoulder neckline, red jacquard and the structured (boned) bodice. Changes Maggie asked for along the way: every detail is a pick from a list (`lib/fields.ts`), stretch is inferred from fabric, product photos on the link are read, Review order is original → Search for → The details (Signature details first, each rewordable). Details in `NOTES.md` › Phase 2.

@@ -101,6 +101,7 @@ A search runs as a background job in six stages: brief, gather, clean, screen, e
 2. **Gather** (no AI, all at once).
    - Google Lens through SerpApi, visual matches: the main photo goes by a 10-minute signed link from Supabase Storage, with a short description in `q`.
    - Google Shopping through SerpApi: the look-alike queries, filtered to the budget.
+   - Amazon through SerpApi: the first look-alike query, filtered to the budget (Maggie, Nov 14).
    - eBay Browse API: exact, look-alike and peer-brand queries.
    - TinyFish resale search pages: look-alike and peer-brand queries on every site the friend has on, exact queries on the top 3.
 
@@ -245,7 +246,7 @@ Affiliate links earn on purchases but never decide what a friend sees. Results, 
 
 **How a click works**
 
-1. Every "View item" button points to the app's own link, `/go/<result id>`, from phase 3 on. Before affiliates exist, it only logs the click and forwards to the store, which is how click-through is measured in the friends test.
+1. Every "View item" button points to the app's own link, `/go/<result id>`, from phase 3 on. Before affiliates exist, it only logs the click and forwards to the store, which is how click-through is measured in the friends test. Google Shopping only gives a link to Google's product page, so the first tap on one of its results looks up the store's own page (1 SerpApi search, at most 30 per friend a day), saves it and forwards there (Maggie, Nov 14).
 2. Once programs are approved, the same route decides per link at the moment of the click: eBay links get eBay Partner Network tracking, stores a link-wrapping network covers (Skimlinks or Sovrn Commerce) get wrapped, and every other link goes through unchanged.
 3. Each tracked link carries the result's ID, so network reports show which searches and which kinds of match actually lead to purchases.
 
@@ -338,7 +339,7 @@ At 20 friends doing 10 searches a month, the app uses about 600 of SerpApi's 1,0
 
 | Per search | Uses | Estimated cost |
 | --- | --- | --- |
-| SerpApi | 1 Lens search, 2 Shopping searches (3 more in a retry) | Covered by the $25 plan up to about 330 searches a month |
+| SerpApi | 1 Lens search, 2 Shopping searches, 1 Amazon search (3 more in a retry), plus 1 store lookup per first tap on a Shopping result | Covered by the $25 plan up to about 200 searches a month |
 | Claude | Brief builder and judge with both photos and listing text (Sonnet 5.5), 2 screeners (Haiku 5.5) | About $0.11; the judge and the brief are most of it. Re-ranking after a rating costs nothing |
 | TinyFish | About 9 search pages plus up to 20 listing pages | $0 today |
 | eBay | About 6 searches and up to 10 item calls | $0, well under 5,000 a day |
@@ -347,7 +348,7 @@ At 20 friends doing 10 searches a month, the app uses about 600 of SerpApi's 1,0
 
 - **Daily cap:** 5 searches per friend per day; Maggie unlimited. A friendly message explains the limit.
 - **Monthly stop:** searches pause for everyone at 900 SerpApi searches or $35 of Claude spend in a month, and Maggie gets an email.
-- **Provider limits:** set a monthly spend limit in the Anthropic Console, and turn on usage alerts in SerpApi.
+- **Provider limits:** set a monthly spend limit in the Anthropic Console. SerpApi has no usage alerts, so keep its Automatic Early Renewal off; the search job checks SerpApi's free account endpoint first and pauses searches under 30 left.
 - **One retry, never two:** the automatic retry runs at most once per search, so a weak search can't loop.
 - **Caching:** save gathered candidates with each search. Editing details and rerunning reuses them unless the photo or links changed, so a rerun costs only Claude.
 - **Lens cache:** the same photo (matched by file fingerprint) within 7 days reuses the earlier Lens results.

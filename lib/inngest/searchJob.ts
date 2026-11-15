@@ -236,6 +236,13 @@ export const runSearch = inngest.createFunction(
 
     /* 5. Done (enrich and judge arrive in later phases). */
     await step.run("finish", async () => {
+      // Cleaned items the screener never reached (it stops once it has enough).
+      await db
+        .from("candidates")
+        .update({ drop_reason: "Not screened, enough picks" })
+        .eq("search_id", searchId)
+        .eq("stage", "cleaned")
+        .is("drop_reason", null);
       await db.from("searches").update({ status: "done" }).eq("id", searchId).eq("user_id", userId);
     });
 
