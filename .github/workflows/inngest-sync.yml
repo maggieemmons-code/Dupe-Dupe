@@ -1,0 +1,14 @@
+# After each production deploy on Vercel, tell Inngest about the new version of the
+# search job. The Vercel integration didn't do this on its own (NOTES.md › Phase 3),
+# so searches kept running old code until someone ran this by hand.
+name: Sync Inngest after deploy
+
+on: deployment_status
+
+jobs:
+  sync:
+    if: github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Register the app with Inngest
+        run: curl -fsS -m 60 -X PUT https://dupe-dupe.vercel.app/api/inngest
