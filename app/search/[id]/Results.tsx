@@ -15,8 +15,8 @@ import ui from "../../ui.module.css";
 const RUNNING = ["queued", "gathering", "screening", "enriching", "judging"];
 
 const STATUS: Record<string, string> = {
-  queued: "Starting the search…",
-  gathering: "Looking on Google Lens, Google Shopping and Amazon…",
+  queued: "Starting your search…",
+  gathering: "Looking for dupes…",
   screening: "Picking the closest matches…",
   enriching: "Reading the listings…",
   judging: "Checking each match…",
@@ -146,7 +146,7 @@ export default function Results({
 
       {search.missing_sources?.length > 0 && (
         <p className={styles.note}>
-          {search.missing_sources.join(" and ")} didn&rsquo;t answer this time, so these come from the other stores.
+          Some stores didn&rsquo;t answer this time, so there may be fewer results than usual.
         </p>
       )}
 
