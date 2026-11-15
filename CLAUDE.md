@@ -6,11 +6,15 @@ A private, invite-only web app for Maggie and up to 20 friends. A friend drops i
 - **`prototype.html` is the look and behavior reference.** Reuse its prompts, palette, type, swing-tag look and interaction details unless `PLAN.md` says otherwise.
 - Maggie is a first-time builder. She doesn't write code; she reads plans and tests on her phone.
 
-## Current phase: 1 (Sign-in)
+## Current phase: 2 (Start and brief)
 
-**Builds:** Supabase project, Resend connected to the domain and set as Supabase's email sender, email-link sign-in, `invites` and `profiles` tables, row-level security.
+**Builds:** Home screen, photo upload and shrink, `searches` table, brief builder (plain fields, both briefs, query matrix), review card with editable anchor chips and dealbreaker toggles.
 
-**Done when:** 5 test invites all land in the inbox, not spam, within 2 minutes; an uninvited email is turned away.
+**Done when:** the Sau Lee Joanna gown link fills in 100% polyester jacquard and true to size, and its anchors include the off-shoulder neckline, burnt red jacquard and boned bodice.
+
+**Needs before coding:** an Anthropic Console API key (`ANTHROPIC_API_KEY`) with a monthly spend limit set, the model settings `ANTHROPIC_FAST_MODEL` and `ANTHROPIC_JUDGE_MODEL`, and a TinyFish API key for reading product links. Maggie pastes key values into `.env.local` and Vercel herself.
+
+**Phase 1 passed on 2026-11-14:** 5 test invites (Gmail `+test1`–`+test5`) arrived in the inbox fast, and an uninvited email was turned away by the database's "Before User Created" hook. Supabase sends email through Resend as `login@dupedupe.studio` ("Dupe Dupe"). Invites are added in Supabase's SQL Editor for now (`insert into public.invites (email) values (...)`); the usage screen for invites comes in Phase 8. Database changes go in `supabase/migrations/` as numbered files that Maggie pastes into the SQL Editor.
 
 **Phase 0 passed on 2026-11-14:** "Hello Dupe Dupe" loads at https://dupe-dupe.vercel.app. Repo: https://github.com/maggieemmons-code/Dupe-Dupe (Vercel deploys from `main` on every push). Domain: **dupedupe.studio**, registered at Squarespace (DNS on Squarespace's nameservers), so Resend's DNS records and any Vercel domain records are added in Squarespace's DNS settings. Still open from Phase 0: open the Supabase and Resend accounts, send the eBay Partner Network application, open the other accounts in `PLAN.md` › Stack and accounts.
 
