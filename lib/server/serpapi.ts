@@ -255,6 +255,99 @@ export async function storePage(token: string, storeName: string): Promise<{ url
   return d.url ? { url: d.url, details: d.details } : null;
 }
 
+const COLOR_WORDS = new Set([
+  "black", "white", "cream", "ivory", "ecru", "beige", "tan", "camel", "brown", "chocolate", "mocha", "taupe", "grey", "gray",
+  "charcoal", "silver", "gold", "red", "burgundy", "wine", "maroon", "rust", "orange", "coral", "peach", "yellow", "mustard",
+  "green", "olive", "sage", "emerald", "teal", "blue", "navy", "cobalt", "sapphire", "turquoise", "aqua", "purple", "plum",
+  "lilac", "lavender", "pink", "blush", "fuchsia", "magenta", "nude",
+]);
+
+/**
+ * When a store blocks page reading (Revolve does), find the original on Google
+ * Shopping by the name in its web address, and describe it from Google's listing:
+ * price, details (fabric, neckline, length…) and product photos. 2 searches.
+ * Picks the result whose name matches the address best, preferring the same store.
+ */
+export async function lookupOriginal(link: string): Promise<{
+  page: { url: string; title: string; text: string; images: string[] };
+  photoUrls: string[];
+  price: number | null;
+} | null> {
+  let u: URL;
+  try {
+    u = new URL(link);
+  } catch {
+    return null;
+  }
+  const slug = u.pathname
+    .split("/")
+    .filter((p) => /[a-z]-[a-z]/i.test(p))
+    .sort((a, b) => b.length - a.length)[0];
+  if (!slug) return null;
+  const nameWords = decodeURIComponent(slug)
+    .toLowerCase()
+    .replace(/\.[a-z]+$/, "")
+    .split(/[-_]+/)
+    .filter((w) => /^[a-z']+$/.test(w));
+  if (nameWords.length < 2) return null;
+  const q = nameWords.join(" ");
+  const key = (w: string) => w.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const distinctive = nameWords.map(key).filter((w) => w.length > 2 && !["the", "and", "for", "with"].includes(w));
+  const host = u.hostname.replace(/^www\./, "").split(".")[0];
+
+  const body = await serp({ engine: "google_shopping", q, gl: "us", hl: "en" });
+  type R = { title?: string; source?: string; extracted_price?: number | string; thumbnail?: string; immersive_product_page_token?: string };
+  const results = ((body.shopping_results as R[] | undefined) ?? []).filter((r) => !isSponsored(r));
+  let best: R | null = null;
+  let bestScore = 0;
+  // The color named in the link wins: Google may list the same style in another color.
+  const linkColors = nameWords.filter((w) => COLOR_WORDS.has(w));
+  for (const r of results) {
+    const t = new Set((r.title ?? "").toLowerCase().split(/[^a-z0-9']+/).map(key).filter(Boolean));
+    const overlap = distinctive.filter((w) => t.has(w)).length / Math.max(1, distinctive.length);
+    const sameStore = key(r.source ?? "").includes(key(host)) ? 0.15 : 0;
+    const titleColors = [...t].filter((w) => COLOR_WORDS.has(w));
+    const otherColor = linkColors.length && titleColors.length && !titleColors.some((c) => linkColors.includes(c)) ? -0.5 : 0;
+    if (overlap + sameStore + otherColor > bestScore) {
+      best = r;
+      bestScore = overlap + sameStore + otherColor;
+    }
+  }
+  if (!best || bestScore < 0.6) return null;
+
+  const lines = [`Title: ${best.title}`, `Store: ${best.source}`];
+  if (linkColors.length) lines.push(`Color named in the shopper's link (use this color): ${linkColors.join(" ")}`);
+  const price = num(best.extracted_price);
+  if (price != null) lines.push(`Price: $${price}`);
+  let photoUrls = best.thumbnail ? [best.thumbnail] : [];
+  if (best.immersive_product_page_token) {
+    try {
+      const d = await serp({ engine: "google_immersive_product", page_token: best.immersive_product_page_token });
+      const pr = (d.product_results ?? {}) as {
+        brand?: string;
+        thumbnails?: string[];
+        about_the_product?: { description?: string; features?: { title?: string; value?: string }[] };
+      };
+      if (pr.brand) lines.push(`Brand: ${pr.brand}`);
+      if (pr.about_the_product?.description) lines.push(`Description: ${pr.about_the_product.description}`);
+      for (const f of pr.about_the_product?.features ?? []) if (f.title && f.value) lines.push(`${f.title}: ${f.value}`);
+      if (pr.thumbnails?.length) photoUrls = [...pr.thumbnails, ...photoUrls];
+    } catch {
+      // The Shopping result alone still gives the name, store, price and a photo.
+    }
+  }
+  return {
+    page: {
+      url: link,
+      title: best.title ?? "",
+      text: `PRODUCT LISTING FROM GOOGLE SHOPPING (the store's own page couldn't be read; this is the same product found by name):\n${lines.join("\n")}`,
+      images: [],
+    },
+    photoUrls: [...new Set(photoUrls.filter((p) => /^https:\/\//.test(p)))].slice(0, 3),
+    price,
+  };
+}
+
 /** Product details for an Amazon result (1 search): description, specs and feature bullets. */
 export async function amazonDetails(asin: string): Promise<{ text: string; inStock: boolean | null }> {
   const body = await serp({ engine: "amazon_product", asin, amazon_domain: "amazon.com" });

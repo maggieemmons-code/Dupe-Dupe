@@ -60,7 +60,10 @@ const APPROVED_ENTRIES = [
   "macduggal.com | Mac Duggal", "sherrihill.com | Sherri Hill", "jovani.com | Jovani", "azazie.com | Azazie", "birdygrey.com | Birdy Grey",
   "davidsbridal.com | David's Bridal", "promgirl.com | PromGirl", "couturecandy.com | Couture Candy", "amarra.com | Amarra",
   "petalandpup.com | Petal & Pup | Petal & Pup USA", "bohme.com | Böhme | Bohme", "marsthelabel.com | Mars The Label | Mars The Label USA",
-  "safiyaa.com | SAFIYAA", "ounass.com | Ounass", "cultmia.com | CULT MIA", "katiemay.com | Katie May", "vicicollection.com | VICI",
+  "safiyaa.com | SAFIYAA",
+  // From Maggie's test set (Nov 15): stores of dupes she picked as good
+  "clubllondon.us | Club L London | clubllondon.com", "selfieleslie.com | Selfie Leslie", "rosier.com | Rosier",
+  "dessy.com | Dessy | Dessy Group", "dollskill.com | Dolls Kill", "shopakira.com | Akira | AKIRA", "ounass.com | Ounass", "cultmia.com | CULT MIA", "katiemay.com | Katie May", "vicicollection.com | VICI",
   // Shoes and bags
   "stevemadden.com | Steve Madden", "samedelman.com | Sam Edelman", "vincecamuto.com | Vince Camuto", "stuartweitzman.com | Stuart Weitzman",
   "sarahflint.com | Sarah Flint", "margauxny.com | Margaux", "rothys.com | Rothy's", "loefflerrandall.com | Loeffler Randall",

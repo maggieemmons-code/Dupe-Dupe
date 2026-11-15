@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { parseToolInput } from "./parseToolInput";
 import {
   CATEGORIES,
   COLOR_NAMES,
@@ -235,6 +236,7 @@ Rules for item fields:
 - color is the color family; color_name is the store's own name for the shade, copied as written.
 - fabrics lists the fibers of the shell (the main fabric), not the lining.
 - Product photos show the garment itself. Read neckline, sleeve, length (hem), closure, color, weave and construction details from them when the listing text doesn't say.
+- If the sources say "Color named in the shopper's link", that is the piece's color. Photos from a Google listing may show the same style in another color: take shape and details from them, but use the link's color for color, color_name, anchors and queries.
 - If the listing doesn't state stretch, infer it from the shell fabric: woven jacquard, brocade, taffeta, satin, crepe, organza, tweed or denim with no elastane in the shell is "None"; knit, jersey or elastane in the shell is "Slight" or more. Mark it as a guess with the reason. Lining fabric doesn't count.
 
 Rules for the visual brief:
@@ -340,7 +342,7 @@ export async function runBriefBuilder(input: BriefInput) {
     const call = response.content.find(
       (b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use" && b.name === "submit_brief",
     );
-    const raw = call?.input as RawBrief | undefined;
+    const raw = parseToolInput<RawBrief>(call?.input);
     if (raw?.item && raw.visual_brief && raw.search_queries) {
       return { brief: cleanBrief(raw), usage };
     }

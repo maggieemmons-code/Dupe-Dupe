@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { parseToolInput } from "./parseToolInput";
 import type { Checklist } from "@/lib/search/score";
 
 /*
@@ -157,7 +158,7 @@ export async function runJudge(original: JudgeOriginal, candidates: JudgeCandida
     const call = response.content.find(
       (b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use" && b.name === "submit_checklists",
     );
-    const raw = (call?.input as { checklists?: (Checklist & { candidate_id: string })[] } | undefined)?.checklists;
+    const raw = parseToolInput<{ checklists?: (Checklist & { candidate_id: string })[] }>(call?.input)?.checklists;
     if (Array.isArray(raw) && raw.some((c) => ids.has(c.candidate_id))) {
       const out = new Map<string, Checklist>();
       const anchorIds = new Set(original.anchors.map((a) => a.id));

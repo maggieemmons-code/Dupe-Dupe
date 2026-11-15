@@ -1,5 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
+import { parseToolInput } from "./parseToolInput";
 
 /*
  * New-items screener (PLAN.md › Search pipeline › 4. Screen), Haiku 5.5 via
@@ -119,7 +120,7 @@ export async function runScreener(original: ScreenOriginal, items: ScreenItem[],
     const call = response.content.find(
       (b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use" && b.name === "submit_picks",
     );
-    const raw = (call?.input as { picks?: ScreenPick[] } | undefined)?.picks;
+    const raw = parseToolInput<{ picks?: ScreenPick[] }>(call?.input)?.picks;
     if (Array.isArray(raw)) {
       const seen = new Set<number>();
       const picks = raw

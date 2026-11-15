@@ -1,0 +1,32 @@
+{
+  "about": "Maggie's test set (PLAN.md \u203a Testing): each original with 3 dupes she'd call good. Add the rest here.",
+  "items": [
+    {
+      "name": "Mother of All Amaya strapless maxi, cream",
+      "original": "https://www.revolve.com/mother-of-all-amaya-strapless-maxi-dress-in-cream/",
+      "good": [
+        "https://clubllondon.us/products/alina-white-bandeau-maxi-dress-with-cape-cl137636110",
+        "https://www.selfieleslie.com/products/well-versed-strapless-pleat-bust-maxi-dress-white",
+        "https://www.meshki.us/products/hilda-embellished-strapless-maxi-dress-white"
+      ]
+    },
+    {
+      "name": "The Sei halter drape bias gown, sapphire",
+      "original": "https://www.revolve.com/the-sei-halter-drape-bias-gown-in-sapphire/dp/TSEI-WD153/?d=Womens",
+      "good": [
+        "https://rosier.com/products/lilou-blue-backless-satin-maxi-dress-with-chiffon-drape",
+        "https://dessy.com/products/draped-scarf-halter-open-back-stretch-satin-bias-maxi-dress-with-adjustable-straps-6925?variant=48272203448451",
+        "https://cultmia.com/en-us/products/zuma-maxi-in-sapphire"
+      ]
+    },
+    {
+      "name": "Lamarque Rosabella faux fur blazer, black",
+      "original": "https://www.revolve.com/lamarque-rosabella-faux-fur-blazer-in-black/",
+      "good": [
+        "https://www.dollskill.com/products/kenzy-faux-fur-trim-peplum-coat?cf=black",
+        "https://shopakira.com/products/azalea-wang-faux-fur-trim-peplum-moto-black",
+        "https://www.windsorstore.com/products/belted-up-faux-fur-trim-faux-leather-jacket-06201000109001"
+      ]
+    }
+  ]
+}
