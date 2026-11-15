@@ -191,32 +191,97 @@ export async function shoppingSearch(q: string, maxPrice: number | null, minPric
 }
 
 /**
- * The store's own page for a Google Shopping result (1 search). SerpApi's
- * product lookup lists the stores that sell it, each with a Google redirect
- * link; following that redirect (no search) gives the store's page.
+ * Product details for a Google Shopping result (1 search). SerpApi's product
+ * lookup lists the stores that sell it, each with a Google redirect link;
+ * following that redirect (no search) gives the store's own page. It also has
+ * the product's features and shopper reviews, which often describe the fabric
+ * and how it looks in person, for the judge.
  */
-export async function storePage(token: string, storeName: string): Promise<{ url: string; details: string[] } | null> {
+export async function shoppingDetails(
+  token: string,
+  storeName: string,
+): Promise<{ url: string | null; details: string[]; text: string }> {
   const body = await serp({ engine: "google_immersive_product", page_token: token });
-  type Store = { name?: string; link?: string; details_and_offers?: string[]; shipping?: string };
-  const stores = ((body.product_results as { stores?: Store[] } | undefined)?.stores ?? []).filter((s) => s.link);
+  type Store = { name?: string; link?: string; details_and_offers?: string[]; title?: string };
+  type Review = { title?: string; text?: string; rating?: number };
+  const pr = (body.product_results ?? {}) as {
+    title?: string;
+    brand?: string;
+    rating?: number;
+    reviews?: number;
+    stores?: Store[];
+    about_the_product?: { description?: string; features?: { title?: string; value?: string }[] };
+    user_reviews?: Review[];
+  };
+
+  const stores = (pr.stores ?? []).filter((s) => s.link);
   const want = storeName.toLowerCase().replace(/[^a-z0-9]/g, "");
   const store =
     stores.find((s) => (s.name ?? "").toLowerCase().replace(/[^a-z0-9]/g, "") === want) ??
     stores.find((s) => want && (s.name ?? "").toLowerCase().replace(/[^a-z0-9]/g, "").includes(want)) ??
     stores[0];
-  if (!store?.link) return null;
 
-  const google = new URL(store.link, "https://www.google.com");
-  let url = google.toString();
-  if (google.hostname.endsWith("google.com") && google.pathname === "/goto") {
-    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(10_000) });
-    const loc = res.headers.get("location");
-    if (!loc || !/^https:\/\//.test(loc)) return null;
-    url = loc;
+  let url: string | null = null;
+  if (store?.link) {
+    const google = new URL(store.link, "https://www.google.com");
+    url = google.toString();
+    if (google.hostname.endsWith("google.com") && google.pathname === "/goto") {
+      const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(10_000) }).catch(() => null);
+      const loc = res?.headers.get("location");
+      url = loc && /^https:\/\//.test(loc) ? loc : null;
+    }
+    if (url && !/^https:\/\//.test(url)) url = null;
   }
-  if (!/^https:\/\//.test(url)) return null;
-  const details = (store.details_and_offers ?? []).filter((d) => typeof d === "string").slice(0, 4);
-  return { url, details };
+  const details = (store?.details_and_offers ?? []).filter((d) => typeof d === "string").slice(0, 4);
+
+  const lines: string[] = [];
+  if (pr.title) lines.push(`Title: ${pr.title}`);
+  if (pr.brand) lines.push(`Brand: ${pr.brand}`);
+  if (pr.about_the_product?.description) lines.push(`Description: ${pr.about_the_product.description}`);
+  for (const f of pr.about_the_product?.features ?? []) if (f.title && f.value) lines.push(`${f.title}: ${f.value}`);
+  if (details.length) lines.push(`Store: ${details.join(" · ")}`);
+  if (pr.rating) lines.push(`Rating: ${pr.rating} from ${pr.reviews ?? "?"} reviews`);
+  const reviews = (pr.user_reviews ?? []).filter((r) => r.text).slice(0, 6);
+  if (reviews.length) {
+    lines.push("Shopper reviews:");
+    for (const r of reviews) lines.push(`- ${r.rating ? `${r.rating}★ ` : ""}${(r.text ?? "").replace(/\s+/g, " ").slice(0, 300)}`);
+  }
+  return { url, details, text: lines.join("\n").slice(0, 4000) };
+}
+
+/** The store's own page for a Google Shopping result (used by /go when the details weren't looked up). */
+export async function storePage(token: string, storeName: string): Promise<{ url: string; details: string[] } | null> {
+  const d = await shoppingDetails(token, storeName);
+  return d.url ? { url: d.url, details: d.details } : null;
+}
+
+/** Product details for an Amazon result (1 search): description, specs and feature bullets. */
+export async function amazonDetails(asin: string): Promise<{ text: string; inStock: boolean | null }> {
+  const body = await serp({ engine: "amazon_product", asin, amazon_domain: "amazon.com" });
+  const pr = (body.product_results ?? {}) as Record<string, unknown>;
+  const lines: string[] = [];
+  const add = (label: string, v: unknown) => {
+    if (typeof v === "string" && v.trim()) lines.push(`${label}: ${v.trim()}`);
+    else if (Array.isArray(v)) {
+      const items = v
+        .map((x) => (typeof x === "string" ? x : x && typeof x === "object" ? Object.values(x).filter((y) => typeof y === "string").join(": ") : ""))
+        .filter(Boolean);
+      if (items.length) lines.push(`${label}:\n- ${items.join("\n- ")}`);
+    } else if (v && typeof v === "object") {
+      const items = Object.entries(v).filter(([, y]) => typeof y === "string").map(([k, y]) => `${k}: ${y}`);
+      if (items.length) lines.push(`${label}:\n- ${items.join("\n- ")}`);
+    }
+  };
+  add("Title", pr.title);
+  add("Brand", pr.brand);
+  add("About this item", pr.about_item);
+  add("Feature bullets", pr.feature_bullets);
+  add("Product details", pr.product_details);
+  add("Specifications", pr.item_specifications ?? pr.specifications);
+  add("Description", pr.description);
+  if (typeof pr.rating === "number") lines.push(`Rating: ${pr.rating} from ${pr.reviews ?? "?"} reviews`);
+  const stock = typeof pr.stock === "string" ? pr.stock : "";
+  return { text: lines.join("\n").slice(0, 4000), inStock: stock ? !/unavailable|out of stock/i.test(stock) : null };
 }
 
 /* ---------- Amazon ---------- */

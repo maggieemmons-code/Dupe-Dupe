@@ -37,7 +37,7 @@ const SUBMIT_PICKS_TOOL = {
     properties: {
       picks: {
         type: "array",
-        maxItems: 8,
+        maxItems: 10,
         items: {
           type: "object",
           required: ["n", "color_match", "note"],
@@ -60,9 +60,11 @@ const SYSTEM_PROMPT = `You are a fashion buyer screening search results for a du
 
 You see the original (its photo, details and the details that make the piece) and a numbered list of candidates, each with its title, store, price and a small photo.
 
-Pick the candidates that could pass for the original: same kind of garment, same silhouette and neckline, a close color, and the details that make the piece. Judge mostly from the photo; titles are often stuffed with keywords. A candidate that misses a "must match" detail is out. Skip anything that is a different kind of garment, a costume, a set, or a photo you can't make out.
+Pass every candidate a shopper might plausibly accept as a dupe: the same kind of garment with a similar silhouette, neckline and color family. A stricter judge checks each one closely next, including fabric and quality, so when in doubt, pass it. Judge mostly from the photo; titles are often stuffed with keywords.
 
-Be selective: pick at most {{max}}, best first, and pick none if none is close. A weaker pick wastes the shopper's time.
+Skip only clear misses: a different kind of garment, a clearly different silhouette or color family, a "must match" detail that is plainly missing, a costume or a set, or a photo you can't make out.
+
+Pick at most {{max}}, best first.
 
 Pick only by number. Never invent a product, a price or a link.
 

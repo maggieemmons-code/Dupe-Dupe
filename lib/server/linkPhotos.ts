@@ -107,8 +107,8 @@ export async function downloadPhoto(url: string): Promise<Buffer | null> {
   }
 }
 
-/** Downloads a result's small photo for the screener and shrinks it to 256px. Null if unusable. */
-export async function downloadThumb(url: string): Promise<Buffer | null> {
+/** Downloads a result's photo for the screener (256px) or the judge (larger) and shrinks it. Null if unusable. */
+export async function downloadThumb(url: string, side = 256): Promise<Buffer | null> {
   const safe = safeUrl(url);
   if (!safe) return null;
   try {
@@ -117,7 +117,7 @@ export async function downloadThumb(url: string): Promise<Buffer | null> {
     const buf = Buffer.from(await res.arrayBuffer());
     if (buf.length > MAX_BYTES) return null;
     return await sharp(buf)
-      .resize({ width: 256, height: 256, fit: "inside", withoutEnlargement: true })
+      .resize({ width: side, height: side, fit: "inside", withoutEnlargement: true })
       .flatten({ background: "#ffffff" })
       .jpeg({ quality: 75 })
       .toBuffer();

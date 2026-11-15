@@ -8,7 +8,7 @@ export type FetchedPage = { url: string; title: string; text: string; images: st
  * Reads web pages as markdown with TinyFish Fetch (free up to 1,000 URLs a day),
  * plus the image links on each page. Returns the pages that loaded and the URLs that failed.
  */
-export async function fetchPages(urls: string[], purpose: string) {
+export async function fetchPages(urls: string[], purpose: string, perUrlTimeoutMs = 45000) {
   // Tolerate a stray space, line break or quotes from pasting the key into settings.
   const key = process.env.TINYFISH_API_KEY?.trim().replace(/^["']|["']$/g, "");
   if (!key) throw new Error("TINYFISH_API_KEY is not set");
@@ -21,9 +21,9 @@ export async function fetchPages(urls: string[], purpose: string) {
       format: "markdown",
       purpose,
       image_links: true,
-      per_url_timeout_ms: 45000,
+      per_url_timeout_ms: perUrlTimeoutMs,
     }),
-    signal: AbortSignal.timeout(60000),
+    signal: AbortSignal.timeout(perUrlTimeoutMs + 15000),
   });
 
   if (!res.ok) {

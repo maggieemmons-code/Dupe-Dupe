@@ -23,10 +23,21 @@ export type CandidateRow = {
   color_match: "same" | "close" | "different" | "unclear" | null;
   screen_note: string | null;
   screen_rank: number | null;
+  stage: string;
+  look_score: number | null;
+  fit_score: number | null;
+  verdict: "approved" | "caveat" | "rejected" | null;
+  caveat: string | null;
+  judge_note: string | null;
+  confidence: number | null;
+  fabric_tier: string | null;
+  fabric_evidence: string | null;
+  checklist: import("@/lib/search/score").Checklist | null;
+  store_details: string[];
 };
 
 export const CANDIDATE_FIELDS =
-  "id, search_id, kind, source, title, brand, store, store_domain, link_is_google, photo_url, thumb_url, price, old_price, price_is_estimate, price_checked_at, rating, reviews, delivery, size, color, color_match, screen_note, screen_rank";
+  "id, search_id, kind, source, title, brand, store, store_domain, link_is_google, photo_url, thumb_url, price, old_price, price_is_estimate, price_checked_at, rating, reviews, delivery, size, color, color_match, screen_note, screen_rank, stage, look_score, fit_score, verdict, caveat, judge_note, confidence, fabric_tier, fabric_evidence, checklist, store_details";
 
 export function money(n: number | null) {
   if (n == null) return "";

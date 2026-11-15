@@ -34,7 +34,9 @@ export default function Results({
 }) {
   const router = useRouter();
   const running = RUNNING.includes(search.status);
-  const [sort, setSort] = useState<"match" | "price">("match");
+  const scored = candidates.some((c) => c.look_score != null);
+  const [sort, setSort] = useState<"look" | "fit" | "price">("look");
+  const [view, setView] = useState<"all" | "new" | "used">(search.view ?? "all");
   const [pending, startTransition] = useTransition();
   const [retryError, setRetryError] = useState<string | null>(null);
 
@@ -86,10 +88,12 @@ export default function Results({
   }, [running, search.id, router]);
 
   const items = useMemo(() => {
-    const list = [...candidates];
+    const list = candidates.filter((c) => view === "all" || (view === "new" ? c.kind === "new" : c.kind === "secondhand"));
     if (sort === "price") list.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+    else if (scored && sort === "fit") list.sort((a, b) => (b.fit_score ?? -1) - (a.fit_score ?? -1) || (b.look_score ?? -1) - (a.look_score ?? -1));
+    else if (scored) list.sort((a, b) => (b.look_score ?? -1) - (a.look_score ?? -1) || (b.fit_score ?? -1) - (a.fit_score ?? -1));
     return list;
-  }, [candidates, sort]);
+  }, [candidates, sort, view, scored]);
 
   const name = searchName(search);
   const summary = [search.hem, search.neckline, search.composition || search.fabrics.join(", "), search.color_name || search.color]
@@ -99,7 +103,7 @@ export default function Results({
     ? candidates.length
       ? `${candidates.length} so far`
       : "Searching"
-    : `${candidates.length} new dupe${candidates.length === 1 ? "" : "s"}`;
+    : `${candidates.length} dupe${candidates.length === 1 ? "" : "s"}`;
 
   return (
     <main className={`${ui.page} ${styles.page}`}>
@@ -151,15 +155,20 @@ export default function Results({
         </p>
       )}
 
-      {candidates.length > 1 && (
+      {candidates.length > 0 && (
         <div className={styles.toolbar}>
-          <div className={styles.segmented} role="group" aria-label="Sort">
-            <button aria-pressed={sort === "match"} onClick={() => setSort("match")}>
-              Best match
-            </button>
-            <button aria-pressed={sort === "price"} onClick={() => setSort("price")}>
-              Lowest price
-            </button>
+          <div className={styles.segmented} role="group" aria-label="Show">
+            {(
+              [
+                ["all", "All"],
+                ["new", "New"],
+                ["used", "Secondhand"],
+              ] as const
+            ).map(([v, label]) => (
+              <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>
+                {label}
+              </button>
+            ))}
           </div>
           {search.budget != null && (
             <span className={styles.budget}>
@@ -169,6 +178,29 @@ export default function Results({
               })()}
             </span>
           )}
+        </div>
+      )}
+
+      {candidates.length > 1 && (
+        <div className={styles.sortRow}>
+          <span className={styles.sortLabel}>Sort</span>
+          <div className={styles.segmented} role="group" aria-label="Sort">
+            {(scored
+              ? ([
+                  ["look", "Best look"],
+                  ["fit", "Best fit"],
+                  ["price", "Lowest price"],
+                ] as const)
+              : ([
+                  ["look", "Best match"],
+                  ["price", "Lowest price"],
+                ] as const)
+            ).map(([v, label]) => (
+              <button key={v} aria-pressed={sort === v} onClick={() => setSort(v)}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -185,7 +217,11 @@ export default function Results({
       {!running && search.status === "done" && !items.length && (
         <section className={styles.empty}>
           <h2>Nothing strong enough yet</h2>
-          <p>We only show close matches, and none made the cut this time. Secondhand often has the real thing; it arrives in a later update.</p>
+          <p>
+            {view === "used"
+              ? "Secondhand arrives in a later update."
+              : "We only show close matches, and none made the cut this time. Secondhand often has the real thing; it arrives in a later update."}
+          </p>
         </section>
       )}
     </main>
@@ -218,7 +254,14 @@ function Card({ c }: { c: CandidateRow }) {
         <span className={styles.imageLabel}>Image · {imageSource(c)}</span>
       </div>
       <div className={styles.cardText}>
-        <span className={styles.store}>{c.brand && c.brand.toLowerCase() !== c.store.toLowerCase() ? `${c.brand} · ${c.store}` : c.store}</span>
+        <span className={styles.storeRow}>
+          <span className={styles.store}>{c.brand && c.brand.toLowerCase() !== c.store.toLowerCase() ? `${c.brand} · ${c.store}` : c.store}</span>
+          {c.look_score != null && (
+            <span className={styles.scores} aria-label={`Look ${c.look_score}, fit ${c.fit_score}`}>
+              L{c.look_score} · F{c.fit_score}
+            </span>
+          )}
+        </span>
         <span className={styles.name}>{c.title}</span>
         <span className={styles.priceLine}>
           {c.price != null ? (
@@ -241,6 +284,15 @@ function Card({ c }: { c: CandidateRow }) {
           <span className={styles.sizeDotHollow} aria-hidden="true" />
           Size not checked
         </span>
+        {c.verdict === "caveat" && c.caveat && (
+          <span className={styles.caveat}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3 2 21h20L12 3z" />
+              <path d="M12 10v5M12 18h.01" />
+            </svg>
+            {c.caveat}
+          </span>
+        )}
       </div>
     </Link>
   );

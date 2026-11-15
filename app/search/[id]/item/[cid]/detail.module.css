@@ -260,3 +260,136 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Verdict */
+.verdictRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pillInk,
+.pillOutline {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+
+.pillInk {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.pillOutline {
+  border: 1px solid var(--ink);
+}
+
+.caveatText {
+  font-size: 14px;
+}
+
+/* Look and Fit tiles */
+.scoreTiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.scoreLook,
+.scoreFit {
+  border-radius: 22px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scoreLook {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.scoreFit {
+  background: var(--surface);
+}
+
+.scoreLabel {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.scoreNum {
+  font-family: var(--mono);
+  font-size: 40px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+/* See why */
+.seeWhy summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.seeWhy summary::-webkit-details-marker {
+  display: none;
+}
+
+.seeWhy[open] summary {
+  margin-bottom: 12px;
+}
+
+.barGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.barTitle {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: 96px 1fr 32px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.barNum {
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: right;
+}

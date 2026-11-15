@@ -24,7 +24,8 @@ async function SearchLoader({ params }: { params: PageProps<"/search/[id]">["par
 
   if (!searchHasRun(search)) return <Review search={search} photoUrl={photoUrl} />;
 
-  // Results: candidates that passed (from phase 4, the judge's approved and caveat ones).
+  // Results: the judge's approved and caveat candidates. Searches run before the judge
+  // existed (phase 3) have no judged rows, so they show what the screener picked.
   const { data: rows } = await session.supabase
     .from("candidates")
     .select(CANDIDATE_FIELDS)
@@ -32,8 +33,12 @@ async function SearchLoader({ params }: { params: PageProps<"/search/[id]">["par
     .in("stage", ["screened", "enriched", "judged"])
     .is("drop_reason", null)
     .order("screen_rank", { ascending: true });
+  const all = (rows ?? []) as CandidateRow[];
+  const judged = all.filter((c) => c.stage === "judged");
+  const legacy = search.status === "done" && !judged.length && !all.some((c) => c.stage === "enriched");
+  const shown = legacy ? all : judged.filter((c) => c.verdict !== "rejected");
 
-  return <Results search={search} photoUrl={photoUrl} candidates={(rows ?? []) as CandidateRow[]} />;
+  return <Results search={search} photoUrl={photoUrl} candidates={shown} />;
 }
 
 export default function SearchPage({ params }: PageProps<"/search/[id]">) {

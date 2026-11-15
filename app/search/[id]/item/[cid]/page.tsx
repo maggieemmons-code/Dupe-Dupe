@@ -7,6 +7,7 @@ import { getSession } from "@/lib/server/session";
 import { signedPhotoUrls } from "@/lib/server/photos";
 import { searchName, type SearchRow } from "@/lib/searches";
 import { CANDIDATE_FIELDS, money, imageSource, ago, type CandidateRow } from "@/lib/candidates";
+import { breakdown, type AnchorDef } from "@/lib/search/score";
 import styles from "./detail.module.css";
 import ui from "../../../../ui.module.css";
 
@@ -31,7 +32,11 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
   const savings = search.retail_price != null && item.price != null ? search.retail_price - item.price : null;
   const onSale = item.old_price != null && item.price != null && item.old_price > item.price;
   const storeLabel = `Shop at ${item.store}`;
-  const detailsSummary = ["Size not checked", "Fabric not listed", item.delivery].filter(Boolean).join(" · ");
+  const detailsSummary = [item.fabric_evidence ? "Fabric listed" : "Fabric not listed", "Size not checked", item.delivery]
+    .filter(Boolean)
+    .join(" · ");
+  const anchors = ((search.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id);
+  const b = item.checklist ? breakdown(item.checklist, anchors) : null;
 
   return (
     <main className={`${ui.page} ${styles.page}`}>
@@ -91,18 +96,78 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
         )}
       </section>
 
-      {item.color_match === "different" && (
+      {/* Verdict and caveat */}
+      {item.verdict && item.verdict !== "rejected" && (
+        <section className={styles.verdictRow}>
+          <span className={item.verdict === "approved" ? styles.pillInk : styles.pillOutline}>
+            {item.verdict === "approved" ? "Approved" : "Caveat"}
+          </span>
+          {item.caveat && <span className={styles.caveatText}>{item.caveat}</span>}
+        </section>
+      )}
+      {!item.verdict && item.color_match === "different" && (
         <p className={styles.caveat}>
           <span aria-hidden="true">⚠</span> Different color from your original
         </p>
       )}
 
-      {item.screen_note && (
+      {/* Why it matches: look and fit, always shown separately */}
+      {b && item.look_score != null ? (
         <section className={styles.why}>
-          <h2 className={styles.h2}>Why it made the cut</h2>
-          <p>{item.screen_note}</p>
-          <p className={styles.meta}>Look and fit scores arrive in the next update.</p>
+          <h2 className={styles.h2}>Why it matches</h2>
+          <div className={styles.scoreTiles}>
+            <div className={styles.scoreLook}>
+              <span className={styles.scoreLabel}>Look</span>
+              <span className={styles.scoreNum}>{item.look_score}</span>
+            </div>
+            <div className={styles.scoreFit}>
+              <span className={styles.scoreLabel}>Fit</span>
+              <span className={styles.scoreNum}>{item.fit_score}</span>
+            </div>
+          </div>
+          {item.judge_note && (
+            <p>
+              <strong>Biggest difference:</strong> {item.judge_note}
+            </p>
+          )}
+          {item.confidence != null && item.confidence < 0.5 && (
+            <p className={styles.meta}>Less certain: the photo or listing didn&rsquo;t show much.</p>
+          )}
+          <details className={styles.seeWhy}>
+            <summary>See why</summary>
+            {(
+              [
+                ["Look", b.look.groups],
+                ["Fit", b.fit.groups],
+              ] as const
+            ).map(([title, groups]) => (
+              <div key={title} className={styles.barGroup}>
+                <span className={styles.barTitle}>{title}</span>
+                {Object.entries(groups).map(([label, v]) => (
+                  <div key={label} className={styles.barRow}>
+                    <span className={styles.barLabel}>{label}</span>
+                    <span className={styles.bar} aria-hidden="true">
+                      <span style={{ width: `${v ?? 0}%` }} />
+                    </span>
+                    <span className={styles.barNum}>{v ?? "–"}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+            <p className={styles.meta}>
+              How we match: a checker compares this piece with your original, detail by detail, and reads its listing for
+              the fabric. Look counts your signature details, shape, color, sheen and how high end it looks. Fit counts the
+              fabric and your size. Scores are worked out from those answers the same way every time.
+            </p>
+          </details>
         </section>
+      ) : (
+        item.screen_note && (
+          <section className={styles.why}>
+            <h2 className={styles.h2}>Why it made the cut</h2>
+            <p>{item.screen_note}</p>
+          </section>
+        )
       )}
 
       <details className={styles.collapse}>
@@ -112,12 +177,12 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
         </summary>
         <dl className={styles.rows}>
           <div>
-            <dt>Size</dt>
-            <dd>Not checked yet. Check your size at the store.</dd>
+            <dt>Fabric</dt>
+            <dd>{item.fabric_evidence ? `“${item.fabric_evidence}”` : "Not listed by the store."}</dd>
           </div>
           <div>
-            <dt>Fabric</dt>
-            <dd>Not listed in the search results.</dd>
+            <dt>Size</dt>
+            <dd>Not checked yet. Check your size at the store.</dd>
           </div>
           {item.delivery && (
             <div>
@@ -125,10 +190,12 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
               <dd>{item.delivery}</dd>
             </div>
           )}
-          <div>
-            <dt>Found on</dt>
-            <dd>{item.source === "lens" ? "Google Lens" : item.source === "amazon" ? "Amazon" : "Google Shopping"}</dd>
-          </div>
+          {item.store_details?.length > 0 && (
+            <div>
+              <dt>Store</dt>
+              <dd>{item.store_details.join(" · ")}</dd>
+            </div>
+          )}
         </dl>
       </details>
 

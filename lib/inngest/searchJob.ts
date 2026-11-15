@@ -2,7 +2,19 @@ import "server-only";
 import sharp from "sharp";
 import { inngest, SEARCH_CONFIRMED, type SearchConfirmed } from "./client";
 import { adminClient, logJobCall } from "@/lib/server/admin";
-import { lensSearch, shoppingSearch, amazonSearch, serpSearchesLeft, type Gathered } from "@/lib/server/serpapi";
+import {
+  lensSearch,
+  shoppingSearch,
+  amazonSearch,
+  serpSearchesLeft,
+  shoppingDetails,
+  amazonDetails,
+  type Gathered,
+} from "@/lib/server/serpapi";
+import { fetchPages } from "@/lib/server/tinyfish";
+import { usefulPageText } from "@/lib/search/listingText";
+import { runJudge, type JudgeCandidate } from "@/lib/agents/judge";
+import { score, type AnchorDef } from "@/lib/search/score";
 import { downloadThumb } from "@/lib/server/linkPhotos";
 import { cleanCandidates, type CleanRow } from "@/lib/search/clean";
 import { runScreener, type ScreenItem } from "@/lib/agents/screener";
@@ -12,13 +24,15 @@ import { lowEnd } from "@/lib/search/priceFloor";
 /*
  * The search job (PLAN.md › Search pipeline). One Inngest step per stage, so a
  * failed step retries on its own and a paid search never runs twice.
- * Phase 3: gather (Lens, Shopping, Amazon) → clean → screen new items → done.
- * Enrich and judge come in phases 4 to 6; secondhand in phase 5.
+ * gather (Lens, Shopping, Amazon) → clean → screen new items → enrich (product
+ * lookups and page reads for fabric) → judge (checklist; code scores) → done.
+ * Secondhand comes in phase 5.
  */
 
 /** Pause searches when SerpApi gets this low (PLAN.md › Costs and guardrails). */
 const SERP_FLOOR = 30;
-const MAX_RESULTS = 10;
+/** How many screened picks go on to the judge (PLAN.md: up to 10 new; a few more since the judge now does the filtering). */
+const MAX_RESULTS = 12;
 /**
  * The second Shopping search is scoped to one well-made store by adding its name
  * to the words (Maggie, Nov 15: Revolve had dupes the general search missed).
@@ -27,6 +41,10 @@ const MAX_RESULTS = 10;
 const STORE_SEARCH = "Revolve";
 const BATCH = 20;
 const MAX_BATCHES = 3;
+/** Paid product lookups (1 SerpApi search each) per search, for the top picks (Maggie, Nov 15: top picks, open to upgrading). */
+const MAX_LOOKUPS = 8;
+/** Candidates per judge call (PLAN.md). */
+const JUDGE_BATCH = 5;
 
 type Ctx = {
   userId: string;
@@ -41,6 +59,8 @@ type Ctx = {
   sizes: string[];
   fields: Record<string, unknown>;
   visualBrief: unknown;
+  compositionBrief: unknown;
+  anchors: AnchorDef[];
 };
 
 export const runSearch = inngest.createFunction(
@@ -112,6 +132,8 @@ export const runSearch = inngest.createFunction(
         sizes: s.sizes ?? [],
         fields: pickFields(s),
         visualBrief: s.visual_brief,
+        compositionBrief: s.composition_brief,
+        anchors: ((s.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id),
       };
     });
     if (!ctx) return { skipped: true };
@@ -198,7 +220,7 @@ export const runSearch = inngest.createFunction(
     for (let b = 0; b < MAX_BATCHES && picked < MAX_RESULTS; b++) {
       const ids = survivors.slice(b * BATCH, (b + 1) * BATCH);
       if (!ids.length) break;
-      const room = Math.min(6, MAX_RESULTS - picked);
+      const room = Math.min(10, MAX_RESULTS - picked);
       const got = await step.run(`screen-${b + 1}`, async () => {
         const { data: rows } = await db
           .from("candidates")
@@ -250,7 +272,166 @@ export const runSearch = inngest.createFunction(
       picked += got;
     }
 
-    /* 5. Done (enrich and judge arrive in later phases). */
+    /* 5. Enrich: look up the top picks' product details (fabric words, reviews, store link), then read store pages. */
+    const picks = await step.run("enrich-start", async () => {
+      await db.from("searches").update({ status: "enriching" }).eq("id", searchId);
+      const { data } = await db
+        .from("candidates")
+        .select("id, source, link, product_token, store")
+        .eq("search_id", searchId)
+        .eq("user_id", userId)
+        .eq("stage", "screened")
+        .is("drop_reason", null)
+        .order("screen_rank");
+      return data ?? [];
+    });
+
+    await Promise.all(
+      picks.map((p, i) =>
+        step.run(`lookup-${i + 1}`, async () => {
+          if (i >= MAX_LOOKUPS) return;
+          const asin = p.source === "amazon" ? p.link.match(/\/dp\/([A-Z0-9]{10})/)?.[1] : null;
+          if (!(p.source === "shopping" && p.product_token) && !asin) return; // Lens links are read for free below
+          try {
+            if (asin) {
+              const d = await amazonDetails(asin);
+              await db
+                .from("candidates")
+                .update({ listing_text: d.text, ...(d.inStock === false ? { drop_reason: "Out of stock" } : {}) })
+                .eq("id", p.id);
+            } else {
+              const d = await shoppingDetails(p.product_token!, p.store);
+              await db
+                .from("candidates")
+                .update({ listing_text: d.text, store_details: d.details, ...(d.url ? { store_link: d.url } : {}) })
+                .eq("id", p.id);
+            }
+            await logJobCall({ userId, searchId, service: "serpapi", stage: "lookup", units: { searches: 1 }, ok: true });
+          } catch (e) {
+            // A failed lookup isn't retried (it costs a search); the judge works from the title and photo.
+            await logJobCall({ userId, searchId, service: "serpapi", stage: "lookup", ok: false, error: String(e) });
+          }
+        }),
+      ),
+    );
+
+    await step.run("read-pages", async () => {
+      const { data: rows } = await db
+        .from("candidates")
+        .select("id, source, link, store_link, listing_text")
+        .in("id", picks.map((p) => p.id));
+      const urlFor = (r: { source: string; link: string; store_link: string | null }) =>
+        r.source === "amazon" ? null : (r.store_link ?? (r.source === "shopping" ? null : r.link));
+      const targets = (rows ?? []).filter((r) => urlFor(r));
+      if (targets.length) {
+        try {
+          const { pages } = await fetchPages(
+            targets.map((r) => urlFor(r)!),
+            "Read a clothing product page: fabric content, lining, care, fit and sizes in stock",
+            20000,
+          );
+          for (const r of targets) {
+            const host = new URL(urlFor(r)!).hostname;
+            const page = pages.find((pg) => pg.url === urlFor(r) || new URL(pg.url).hostname === host);
+            const useful = page ? usefulPageText(page.text) : "";
+            if (useful) {
+              await db
+                .from("candidates")
+                .update({ listing_text: [r.listing_text, `From the store's page:\n${useful}`].filter(Boolean).join("\n\n") })
+                .eq("id", r.id);
+            }
+          }
+          await logJobCall({ userId, searchId, service: "tinyfish", stage: "enrich", units: { pages: pages.length, asked: targets.length }, ok: true });
+        } catch (e) {
+          await logJobCall({ userId, searchId, service: "tinyfish", stage: "enrich", ok: false, error: String(e) });
+        }
+      }
+      await db
+        .from("candidates")
+        .update({ stage: "enriched", enriched_at: new Date().toISOString() })
+        .in("id", picks.map((p) => p.id))
+        .is("drop_reason", null);
+    });
+
+    /* 6. Judge, 5 at a time; cards appear on the phone as each batch is scored. */
+    await step.run("judge-start", async () => {
+      await db.from("searches").update({ status: "judging" }).eq("id", searchId);
+    });
+    const batches: string[][] = [];
+    for (let i = 0; i < picks.length; i += JUDGE_BATCH) batches.push(picks.slice(i, i + JUDGE_BATCH).map((p) => p.id));
+
+    await Promise.all(
+      batches.map((ids, b) =>
+        step.run(`judge-${b + 1}`, async () => {
+          const { data: rows } = await db
+            .from("candidates")
+            .select("id, title, brand, store, price, photo_url, thumb_url, listing_text, drop_reason")
+            .in("id", ids)
+            .is("drop_reason", null);
+          if (!rows?.length) return 0;
+          const [original, ...photos] = await Promise.all([
+            originalPhoto(ctx.photoPath),
+            ...rows.map((r) => downloadThumb(r.photo_url ?? r.thumb_url ?? "", 512).then((x) => x ?? downloadThumb(r.thumb_url ?? "", 512))),
+          ]);
+          const candidates: JudgeCandidate[] = rows.map((r, i) => ({
+            id: `c${i + 1}`,
+            title: r.title,
+            brand: r.brand,
+            store: r.store,
+            price: r.price,
+            photo: photos[i],
+            listingText: r.listing_text ?? "",
+          }));
+
+          let result;
+          try {
+            result = await runJudge(
+              {
+                name: ctx.name,
+                photo: original,
+                fields: ctx.fields,
+                visualBrief: ctx.visualBrief,
+                compositionBrief: ctx.compositionBrief,
+                sizes: ctx.sizes,
+              },
+              candidates,
+            );
+            await logJobCall({ userId, searchId, service: "claude", stage: "judge", units: result.usage, ok: true });
+          } catch (e) {
+            await logJobCall({ userId, searchId, service: "claude", stage: "judge", ok: false, error: String(e) });
+            if (!lastTry) throw e;
+            return 0;
+          }
+
+          let judged = 0;
+          for (const [i, r] of rows.entries()) {
+            const c = result.checklists.get(`c${i + 1}`);
+            if (!c) continue;
+            const v = score(c, ctx.anchors);
+            await db
+              .from("candidates")
+              .update({
+                stage: "judged",
+                checklist: c,
+                fabric_tier: c.fabric_tier,
+                fabric_evidence: c.fabric_evidence || null,
+                stock_photo_flag: c.stock_photo_suspected,
+                judge_note: c.biggest_difference,
+                confidence: c.confidence === "high" ? 1 : c.confidence === "medium" ? 0.6 : 0.3,
+                look_score: v.look,
+                fit_score: v.fit,
+                verdict: v.verdict,
+                caveat: v.caveat,
+              })
+              .eq("id", r.id);
+            judged++;
+          }
+          return judged;
+        }),
+      ),
+    );
+
+    /* 7. Done. */
     await step.run("finish", async () => {
       // Cleaned items the screener never reached (it stops once it has enough).
       await db
