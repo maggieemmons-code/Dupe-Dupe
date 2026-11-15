@@ -12,6 +12,10 @@ export function adminClient() {
   if (client) return client;
   const key = process.env.SUPABASE_SECRET_KEY?.trim().replace(/^["']|["']$/g, "");
   if (!key) throw new Error("SUPABASE_SECRET_KEY is not set");
+  // The publishable key would quietly change nothing (row-level security), so refuse it loudly.
+  if (!key.startsWith("sb_secret_") && !key.startsWith("eyJ")) {
+    throw new Error("SUPABASE_SECRET_KEY isn't Supabase's secret key (it should start with sb_secret_)");
+  }
   client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });

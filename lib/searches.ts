@@ -38,6 +38,7 @@ export type SearchRow = {
   ran_at: string | null;
   missing_sources: string[];
   created_at: string;
+  updated_at: string;
 };
 
 /** True once "Looks right, search" was tapped: the page shows Results instead of Review. */

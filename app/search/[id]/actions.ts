@@ -282,6 +282,7 @@ export async function confirmSearch(searchId: string): Promise<Result> {
     .maybeSingle();
   if (error) return { ok: false, error: "That didn't save. Try again." };
   if (!data) return { ok: true }; // already searching or done; the page shows where it is
+  // (A stuck "queued" search is re-sent below; the job claims queued → gathering once, so it never runs twice.)
 
   try {
     await inngest.send({ name: SEARCH_CONFIRMED, data: { searchId, userId: session.userId } });

@@ -4,7 +4,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { confirmSearch } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 import { searchName, type SearchRow } from "@/lib/searches";
 import { money, imageSource, type CandidateRow } from "@/lib/candidates";
@@ -33,6 +34,29 @@ export default function Results({
   const router = useRouter();
   const running = RUNNING.includes(search.status);
   const [sort, setSort] = useState<"match" | "price">("match");
+  const [pending, startTransition] = useTransition();
+  const [retryError, setRetryError] = useState<string | null>(null);
+
+  // A search still "queued" a minute after it was confirmed never started (for example a
+  // server setting was wrong). Offer to start it again instead of waiting forever.
+  const [timedOut, setTimedOut] = useState<string | null>(null); // the updated_at that timed out
+  const stuck = search.status === "queued" && timedOut === search.updated_at;
+  useEffect(() => {
+    if (search.status !== "queued") return;
+    const wait = Math.max(0, 60_000 - (Date.now() - new Date(search.updated_at).getTime()));
+    const t = setTimeout(() => setTimedOut(search.updated_at), wait);
+    return () => clearTimeout(t);
+  }, [search.status, search.updated_at]);
+
+  function retry() {
+    setRetryError(null);
+    startTransition(async () => {
+      const r = await confirmSearch(search.id);
+      if (!r.ok) return setRetryError(r.error);
+      setTimedOut(null);
+      router.refresh();
+    });
+  }
 
   // Live updates: new cards and status changes arrive through Supabase Realtime.
   // A slow refresh while the search runs covers a dropped connection.
@@ -101,14 +125,24 @@ export default function Results({
         </div>
       </section>
 
-      {running && (
+      {running && !stuck && (
         <p className={styles.status} role="status">
           <span className={styles.spinner} aria-hidden="true" />
           {STATUS[search.status] ?? "Searching…"}
         </p>
       )}
 
-      {search.status === "failed" && <p className={ui.error}>{search.error ?? "The search stopped partway. Try again in a minute."}</p>}
+      {(stuck || search.status === "failed") && (
+        <section className={styles.retry}>
+          <p className={ui.error}>
+            {stuck ? "This search didn't start." : (search.error ?? "The search stopped partway.")}
+          </p>
+          <button className={ui.btnSmall} onClick={retry} disabled={pending}>
+            {pending ? "Starting…" : "Try again"}
+          </button>
+          {retryError && <p className={ui.error}>{retryError}</p>}
+        </section>
+      )}
 
       {search.missing_sources?.length > 0 && (
         <p className={styles.note}>

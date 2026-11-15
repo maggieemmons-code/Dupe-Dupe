@@ -68,7 +68,13 @@ export const runSearch = inngest.createFunction(
         .eq("status", "queued")
         .select("*")
         .maybeSingle();
-      if (!s) return null; // already running, or not confirmed
+      if (!s) {
+        // Already running or not confirmed. Make sure it's not because the search is missing.
+        const { data: exists } = await db.from("searches").select("status").eq("id", searchId).maybeSingle();
+        if (!exists) throw new Error(`Search ${searchId} not found with the server key`);
+        console.log(`Search ${searchId} is ${exists.status}, not queued; skipping`);
+        return null;
+      }
 
       const left = await serpSearchesLeft();
       if (left != null && left < SERP_FLOOR) {
