@@ -23,7 +23,7 @@ function key() {
 /** One gathered item, before cleaning. Every field comes from the source. */
 export type Gathered = {
   kind: "new" | "secondhand";
-  source: "lens" | "shopping" | "amazon";
+  source: "lens" | "shopping" | "amazon" | "shopify";
   query: string;
   position: number | null;
   title: string;
@@ -43,6 +43,8 @@ export type Gathered = {
   in_stock: boolean | null;
   /** Shopping only: SerpApi's token for looking up the stores that sell it. */
   product_token?: string | null;
+  /** Shopify's catalog only: what the store states (material, sizes), saved for the judge. */
+  listing_text?: string | null;
   drop_reason?: string;
 };
 

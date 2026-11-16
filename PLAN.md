@@ -102,6 +102,7 @@ A search runs as a background job in six stages: brief, gather, clean, screen, e
    - Google Lens through SerpApi, visual matches, the most important source (Maggie, Nov 15): the first two photos go by 10-minute signed links from Supabase Storage, the first with a short description in `q`, the second alone. Lens sometimes answers with nothing and SerpApi caches that for an hour, so an empty answer is retried with the cache off. Lens matches without a price are kept; the price is read from the store's page before judging, or the card says "Price at store".
    - Google Shopping through SerpApi: the first look-alike query, and the same words plus "revolve", which brings back Revolve's own listings (Maggie, Nov 15), filtered to the budget.
    - Amazon through SerpApi: the first look-alike query, filtered to the budget (Maggie, Nov 14).
+   - Shopify's Global Catalog (free, no key; Maggie, Nov 15): the first two photos (visual search), one phrasing per signature detail (shade, detail, garment word) and the first two look-alike phrasings, 50 results each, filtered to the price range and US shipping. It reaches small Shopify brands Google rarely shows; plain phrasings drown in cheap results, so the detail phrasings matter. Each call names the app's public agent profile (`/ucp/agent.json`). Shopify's terms: results only for friends' searches, attribution kept on links, prices re-checked at Shop.
    - eBay Browse API: exact, look-alike and peer-brand queries.
    - TinyFish resale search pages: look-alike and peer-brand queries on every site the friend has on, exact queries on the top 3.
 
@@ -372,6 +373,7 @@ At 20 friends doing 10 searches a month, the app uses about 600 of SerpApi's 1,0
 | SerpApi | 1 Lens search, 2 Shopping searches (one scoped to Revolve), 1 Amazon search (3 more in a retry), plus 1 store lookup per first tap on a Shopping result | Covered by the $25 plan up to about 200 searches a month |
 | Claude | Brief builder and judge with both photos and listing text (Sonnet 5.5), 2 screeners (Haiku 5.5) | About $0.11; the judge and the brief are most of it. Re-ranking after a rating costs nothing |
 | TinyFish | About 9 search pages plus up to 20 listing pages | $0 today |
+| Shopify catalog | About 7 searches (2 by photo, 5 by words) | $0 |
 | eBay | About 6 searches and up to 10 item calls | $0, well under 5,000 a day |
 
 **Guardrails**

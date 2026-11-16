@@ -26,7 +26,7 @@ export function adminClient() {
 export async function logJobCall(call: {
   userId: string;
   searchId: string;
-  service: "claude" | "tinyfish" | "serpapi" | "ebay";
+  service: "claude" | "tinyfish" | "serpapi" | "ebay" | "shopify";
   stage: string;
   units?: Record<string, unknown>;
   estCost?: number;

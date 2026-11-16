@@ -12,6 +12,8 @@ import {
   type Gathered,
 } from "@/lib/server/serpapi";
 import { fetchPages } from "@/lib/server/tinyfish";
+import { catalogSearch } from "@/lib/server/shopifyCatalog";
+import { detailPhrases } from "@/lib/search/catalogPhrases";
 import { usefulPageText } from "@/lib/search/listingText";
 import { usdPriceFromPage } from "@/lib/server/price";
 import { shopifyAvailable, pageAvailable, offersAvailable } from "@/lib/server/stock";
@@ -29,7 +31,7 @@ import { lowEnd } from "@/lib/search/priceFloor";
 /*
  * The search job (PLAN.md › Search pipeline). One Inngest step per stage, so a
  * failed step retries on its own and a paid search never runs twice.
- * gather (Lens, Shopping, Amazon) → clean → screen new items → enrich (product
+ * gather (Lens, Shopping, Amazon, Shopify's catalog) → clean → screen new items → enrich (product
  * lookups and page reads for fabric) → judge (checklist; code scores) → done.
  * Secondhand comes in phase 5.
  */
@@ -56,6 +58,15 @@ const LENS_PHOTOS = 2;
  */
 const MAX_PHRASINGS = 4;
 const STORE_SEARCHES = ["Revolve", "Nordstrom"];
+/**
+ * Shopify's catalog (free, no SerpApi): by photo, and by one phrasing per signature
+ * detail. Plain phrasings drown in cheap results; naming the detail found Maggie's
+ * picks (NOTES.md › Shopify Global Catalog): "white embellished strapless maxi dress"
+ * put her Meshki Hilda at #1.
+ */
+const CATALOG_PHOTOS = 2;
+const CATALOG_PHRASINGS = 2;
+const CATALOG_LIMIT = 50;
 const BATCH = 20;
 const MAX_BATCHES = 10;
 /** Paid product lookups (1 SerpApi search each) per search, for the top picks (Maggie, Nov 15: top picks, open to upgrading). */
@@ -70,6 +81,8 @@ type Ctx = {
   photoPaths: string[];
   lensHint: string;
   lookAlike: string[];
+  /** Shopify catalog phrasings: color + one signature detail + the garment word. */
+  detailPhrases: string[];
   budget: number | null;
   priceFloor: number | null;
   brand: string;
@@ -147,6 +160,8 @@ export const runSearch = inngest.createFunction(
           })
           .eq("search_id", searchId)
           .eq("user_id", userId);
+        // Shopify's catalog is free: gather it again below rather than reuse it.
+        await db.from("candidates").delete().eq("search_id", searchId).eq("user_id", userId).eq("source", "shopify");
       } else {
         // A rerun starts fresh.
         await db.from("candidates").delete().eq("search_id", searchId).eq("user_id", userId);
@@ -161,6 +176,7 @@ export const runSearch = inngest.createFunction(
         photoPaths: (s.photo_paths ?? []).slice(0, LENS_PHOTOS),
         lensHint: (q.lens_hint || fallback).slice(0, 80),
         lookAlike: (q.look_alike ?? []).filter(Boolean).length ? q.look_alike!.filter(Boolean) : [fallback || searchName(s)],
+        detailPhrases: detailPhrases(s, (q.look_alike ?? []).filter(Boolean)),
         budget: s.budget ?? null,
         priceFloor: lowEnd({ budget_min: s.budget_min ?? null }),
         brand: s.brand ?? "",
@@ -183,23 +199,53 @@ export const runSearch = inngest.createFunction(
     if (!ctx) return { skipped: true };
 
     /* 2. Gather, all sources at once. A source that still fails after a retry is skipped. */
-    const gather = (name: string, label: string, run: () => Promise<Gathered[] | { items: Gathered[]; searches: number }>) =>
+    const gather = (
+      name: string,
+      label: string,
+      run: () => Promise<Gathered[] | { items: Gathered[]; searches: number }>,
+      service: "serpapi" | "shopify" = "serpapi",
+    ) =>
       step.run(name, async () => {
         try {
           const out = await run();
           const items = Array.isArray(out) ? out : out.items;
           const searches = Array.isArray(out) ? 1 : out.searches;
           await saveGathered(searchId, userId, items);
-          await logJobCall({ userId, searchId, service: "serpapi", stage: name, units: { searches, results: items.length }, ok: true });
+          await logJobCall({ userId, searchId, service, stage: name, units: { searches, results: items.length }, ok: true });
           return { name, label, found: items.length, failed: false };
         } catch (e) {
-          await logJobCall({ userId, searchId, service: "serpapi", stage: name, ok: false, error: String(e) });
+          await logJobCall({ userId, searchId, service, stage: name, ok: false, error: String(e) });
           if (!lastTry) throw e;
           return { name, label, found: 0, failed: true };
         }
       });
 
-    const sources = reuseGathered ? [] : await Promise.all([
+    // Shopify's catalog runs every time, also when reusing paid results (it's free).
+    const catalogSources = [
+      ...ctx.photoPaths.slice(0, CATALOG_PHOTOS).map((path, i) =>
+        gather(
+          `shopify-photo-${i + 1}`,
+          "Shopify",
+          async () => {
+            const image = await catalogPhoto(path);
+            if (!image) return [];
+            return catalogSearch({ image, maxPrice: ctx.budget, minPrice: ctx.priceFloor, limit: CATALOG_LIMIT }, `photo ${i + 1}`);
+          },
+          "shopify",
+        ),
+      ),
+      ...[...ctx.detailPhrases, ...ctx.lookAlike.slice(0, CATALOG_PHRASINGS)].map((q, i) =>
+        gather(
+          `shopify-words-${i + 1}`,
+          "Shopify",
+          () => catalogSearch({ query: q, maxPrice: ctx.budget, minPrice: ctx.priceFloor, limit: CATALOG_LIMIT }, q),
+          "shopify",
+        ),
+      ),
+    ];
+
+    const sources = reuseGathered ? await Promise.all(catalogSources) : await Promise.all([
+      ...catalogSources,
       ...ctx.photoPaths.map((path, i) =>
         gather(`lens-${i + 1}`, "Google Lens", async () => {
           const { data, error } = await db.storage.from("photos").createSignedUrl(path, 600);
@@ -266,7 +312,12 @@ export const runSearch = inngest.createFunction(
         const k = `${r.source}|${r.query}`;
         byQuery.set(k, [...(byQuery.get(k) ?? []), r]);
       }
-      const lists = [...byQuery.entries()].map(([k, rows]) => ({ rows, take: k.startsWith("lens|") ? 2 : 1, at: 0 }));
+      // Shopify's photo matches count as visual matches too.
+      const lists = [...byQuery.entries()].map(([k, rows]) => ({
+        rows,
+        take: k.startsWith("lens|") || k.startsWith("shopify|photo") ? 2 : 1,
+        at: 0,
+      }));
       const order: string[] = [];
       while (order.length < kept.length) {
         for (const l of lists) for (let t = 0; t < l.take && l.at < l.rows.length; t++) order.push(l.rows[l.at++].id);
@@ -648,4 +699,15 @@ function pickFields(s: Record<string, unknown>) {
     out[k] = v;
   }
   return out;
+}
+
+/** The original's photo, smaller, for Shopify's visual search. */
+async function catalogPhoto(path: string) {
+  const { data } = await adminClient().storage.from("photos").download(path);
+  if (!data) return null;
+  const buf = await sharp(Buffer.from(await data.arrayBuffer()))
+    .resize({ width: 768, height: 768, fit: "inside" })
+    .jpeg({ quality: 82 })
+    .toBuffer();
+  return { data: buf, contentType: "image/jpeg" };
 }
