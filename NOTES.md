@@ -198,3 +198,11 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - Maggie upgraded from Starter to Developer ($75, 5,000 searches a month, 1,000 an hour) when she invited her first friend (ktc2328@hotmail.com, added to `invites` and sent the normal sign-in email). After the upgrade: 4,394 left this month. A search now uses about 25 (Lens, Shopping phrasings and store searches, Amazon, one above-limit search, store lookups), so roughly 175 searches a month. SerpApi's account page took about a minute to show the new plan. Automatic Early Renewal stays off; the job pauses searches under 30 left. Upgrades are charged the difference and keep the renewal date.
 - Still not built: the per-friend daily cap and the monthly budget stop (phase 8).
 
+
+## Search speed (Nov 15)
+
+- Maggie: a live search was past 3.3 minutes. The last full one took about 4.5: gathering ~50 s, screening (10 batches) ~65 s, lookups and page reads ~90 s, judging (11 batches) ~60 s. Cause: `concurrency: { limit: 2 }` per friend, so steps ran two at a time, and the lookup stage made one step per pick (53), almost all with nothing to do but each waiting its turn. Shopify's catalog was also ten steps.
+- Fix: limit 5 (Inngest's free plan allows 5 concurrent steps across the account; Basic allows 25), Shopify's catalog searches in one step (`Promise.allSettled`, fails only if all fail), product lookups in one step (re-reads `listing_text` first so a retry never pays twice). Local `--reuse` run: 140 s, was ~200 s on the Mac's Dev Server.
+- If friends search at the same time they share the 5. Inngest Basic (25 concurrent steps) is the next lever.
+- The $10 Akira Kenzy moto (Lens, "Est.") matches Akira's own Shopify data ($9.99 in every size, USD): a clearance price; Google Shopping still showed $99.90.
+- Second friend invited (helysaker@gmail.com) and sent the sign-in email.

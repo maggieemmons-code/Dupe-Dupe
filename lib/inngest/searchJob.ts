@@ -120,7 +120,9 @@ export const runSearch = inngest.createFunction(
     name: "Run a search",
     retries: 1,
     triggers: [{ event: SEARCH_CONFIRMED }],
-    concurrency: { key: "event.data.userId", limit: 2 },
+    // Steps per friend at once: 5 is the most Inngest's free plan allows across the account
+    // (Nov 15: at 2, a search took over 4 minutes).
+    concurrency: { key: "event.data.userId", limit: 5 },
     onFailure: async ({ event }) => {
       const { searchId, userId } = (event.data.event.data ?? {}) as SearchConfirmed;
       if (!searchId) return;
@@ -244,53 +246,43 @@ export const runSearch = inngest.createFunction(
         }
       });
 
-    // Shopify's catalog runs every time, also when reusing paid results (it's free).
-    const catalogSources = [
-      ...ctx.photoPaths.slice(0, CATALOG_PHOTOS).map((path, i) =>
-        gather(
-          `shopify-photo-${i + 1}`,
-          "Shopify",
-          async () => {
-            const image = await catalogPhoto(path);
-            if (!image) return [];
-            return catalogSearch({ image, maxPrice: ctx.budget, minPrice: ctx.priceFloor, limit: CATALOG_LIMIT }, `photo ${i + 1}`);
-          },
-          "shopify",
-        ),
-      ),
-      ...[...ctx.detailPhrases, ...ctx.lookAlike.slice(0, CATALOG_PHRASINGS)].map((q, i) =>
-        gather(
-          `shopify-words-${i + 1}`,
-          "Shopify",
-          () => catalogSearch({ query: q, maxPrice: ctx.budget, minPrice: ctx.priceFloor, limit: CATALOG_LIMIT }, q),
-          "shopify",
-        ),
+    // Shopify's catalog runs every time, also when reusing paid results (it's free). All of its
+    // searches run in one step: steps run at most 5 at a time (Inngest's free plan), and ten
+    // free searches in ten steps held up the paid ones.
+    const catalogPlan: (() => Promise<Gathered[]>)[] = [
+      ...ctx.photoPaths.slice(0, CATALOG_PHOTOS).map((path, i) => async () => {
+        const image = await catalogPhoto(path);
+        return image ? catalogSearch({ image, maxPrice: ctx.budget, minPrice: ctx.priceFloor, limit: CATALOG_LIMIT }, `photo ${i + 1}`) : [];
+      }),
+      ...[...ctx.detailPhrases, ...ctx.lookAlike.slice(0, CATALOG_PHRASINGS)].map(
+        (q) => () => catalogSearch({ query: q, maxPrice: ctx.budget, minPrice: ctx.priceFloor, limit: CATALOG_LIMIT }, q),
       ),
       // Above the limit, up to the original's price: the first photo and two detail phrasings.
       ...(above(ctx)
         ? [
-            ...ctx.photoPaths.slice(0, 1).map((path) =>
-              gather(
-                "shopify-above-photo",
-                "Shopify",
-                async () => {
-                  const image = await catalogPhoto(path);
-                  if (!image) return [];
-                  return catalogSearch({ image, minPrice: ctx.budget, maxPrice: ctx.ceiling, limit: CATALOG_LIMIT }, "photo, above limit");
-                },
-                "shopify",
-              ),
-            ),
-            ...(ctx.detailPhrases.length ? ctx.detailPhrases : ctx.lookAlike).slice(0, 2).map((q, i) =>
-              gather(
-                `shopify-above-words-${i + 1}`,
-                "Shopify",
-                () => catalogSearch({ query: q, minPrice: ctx.budget, maxPrice: ctx.ceiling, limit: CATALOG_LIMIT }, `${q} (above limit)`),
-                "shopify",
-              ),
-            ),
+            ...ctx.photoPaths.slice(0, 1).map((path) => async () => {
+              const image = await catalogPhoto(path);
+              return image ? catalogSearch({ image, minPrice: ctx.budget, maxPrice: ctx.ceiling, limit: CATALOG_LIMIT }, "photo, above limit") : [];
+            }),
+            ...(ctx.detailPhrases.length ? ctx.detailPhrases : ctx.lookAlike)
+              .slice(0, 2)
+              .map((q) => () => catalogSearch({ query: q, minPrice: ctx.budget, maxPrice: ctx.ceiling, limit: CATALOG_LIMIT }, `${q} (above limit)`)),
           ]
         : []),
+    ];
+    const catalogSources = [
+      gather(
+        "shopify",
+        "Shopify",
+        async () => {
+          // One failed catalog search doesn't lose the others; only all failing counts as a failure.
+          const settled = await Promise.allSettled(catalogPlan.map((run) => run()));
+          const ok = settled.filter((r): r is PromiseFulfilledResult<Gathered[]> => r.status === "fulfilled");
+          if (!ok.length && settled.length) throw (settled[0] as PromiseRejectedResult).reason;
+          return { items: ok.flatMap((r) => r.value), searches: ok.length };
+        },
+        "shopify",
+      ),
     ];
 
     const paidSources = reuseGathered ? [] : [
@@ -486,10 +478,15 @@ export const runSearch = inngest.createFunction(
       return data ?? [];
     });
 
-    await Promise.all(
-      picks.map((p, i) =>
-        step.run(`lookup-${i + 1}`, async () => {
-          if (i >= MAX_LOOKUPS || p.listing_text) return; // already looked up on an earlier run
+    // Product lookups (paid, 1 SerpApi search each) for the top picks, all in one step. One step per
+    // pick held every pick's turn in line, 5 at a time, even the ones with nothing to look up.
+    await step.run("lookups", async () => {
+      // Fresh from the database, so a retried step skips what's already looked up.
+      const { data: fresh } = await db.from("candidates").select("id, listing_text").in("id", picks.map((p) => p.id));
+      const done = new Set((fresh ?? []).filter((r) => r.listing_text).map((r) => r.id));
+      await Promise.all(
+        picks.slice(0, MAX_LOOKUPS).map(async (p) => {
+          if (done.has(p.id)) return;
           const asin = p.source === "amazon" ? p.link.match(/\/dp\/([A-Z0-9]{10})/)?.[1] : null;
           if (!(p.source === "shopping" && p.product_token) && !asin) return; // Lens links are read for free below
           try {
@@ -512,8 +509,8 @@ export const runSearch = inngest.createFunction(
             await logJobCall({ userId, searchId, service: "serpapi", stage: "lookup", ok: false, error: String(e) });
           }
         }),
-      ),
-    );
+      );
+    });
 
     await step.run("read-pages", async () => {
       const { data: rows } = await db
