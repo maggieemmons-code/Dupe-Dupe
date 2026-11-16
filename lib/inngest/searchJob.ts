@@ -151,6 +151,9 @@ export const runSearch = inngest.createFunction(
         return null;
       }
 
+      // Fresh counts for the progress bar (a separate update: if migration 0010 hasn't run, nothing else breaks).
+      await db.from("searches").update({ progress: {} }).eq("id", searchId);
+
       const left = await serpSearchesLeft();
       if (left != null && left < SERP_FLOOR) {
         await db
@@ -225,10 +228,13 @@ export const runSearch = inngest.createFunction(
           const searches = Array.isArray(out) ? 1 : out.searches;
           await saveGathered(searchId, userId, items);
           await logJobCall({ userId, searchId, service, stage: name, units: { searches, results: items.length }, ok: true });
+          await bumpProgress(searchId, "sources_done", 1);
+          await bumpProgress(searchId, "found", items.length);
           return { name, label, found: items.length, failed: false };
         } catch (e) {
           await logJobCall({ userId, searchId, service, stage: name, ok: false, error: String(e) });
           if (!lastTry) throw e;
+          await bumpProgress(searchId, "sources_done", 1);
           return { name, label, found: 0, failed: true };
         }
       });
@@ -282,8 +288,7 @@ export const runSearch = inngest.createFunction(
         : []),
     ];
 
-    const sources = reuseGathered ? await Promise.all(catalogSources) : await Promise.all([
-      ...catalogSources,
+    const paidSources = reuseGathered ? [] : [
       ...ctx.photoPaths.map((path, i) =>
         gather(`lens-${i + 1}`, "Google Lens", async () => {
           const { data, error } = await db.storage.from("photos").createSignedUrl(path, 600);
@@ -314,7 +319,11 @@ export const runSearch = inngest.createFunction(
             ),
           ]
         : []),
-    ]);
+    ];
+    // Progress bar: how many places this search looks in.
+    const plannedSources = catalogSources.length + paidSources.length;
+    await step.run("progress-sources", () => setProgress(searchId, { sources: plannedSources }));
+    const sources = await Promise.all([...catalogSources, ...paidSources]);
 
     const missing = [...new Set(sources.filter((s) => s?.failed).map((s) => s!.label))];
 
@@ -379,7 +388,9 @@ export const runSearch = inngest.createFunction(
       const aboveLimit = order.filter((id) => over.has(id));
       const room = BATCH * MAX_BATCHES;
       const aboveTake = Math.min(aboveLimit.length, Math.max(ABOVE_LIMIT_SCREENED, room - inRange.length));
-      return [...inRange.slice(0, room - aboveTake), ...aboveLimit.slice(0, aboveTake)];
+      const toScreen = [...inRange.slice(0, room - aboveTake), ...aboveLimit.slice(0, aboveTake)];
+      await setProgress(searchId, { to_screen: toScreen.length });
+      return toScreen;
     });
 
     /*
@@ -409,6 +420,7 @@ export const runSearch = inngest.createFunction(
             try {
               const result = await runScreener({ name: ctx.name, fields: ctx.fields, visualBrief: ctx.visualBrief, photo: original }, items, ctx.tasteRules);
               await logJobCall({ userId, searchId, service: "claude", stage: "screen", units: result.usage, ok: true });
+              await bumpProgress(searchId, "screened", ids.length);
               return result.picks.map((p) => ({
                 id: ordered[p.n - 1].id,
                 score: p.score,
@@ -451,6 +463,7 @@ export const runSearch = inngest.createFunction(
       for (const [score, ids] of byScore) {
         await db.from("candidates").update({ drop_reason: `Screener rated ${score}/5` }).in("id", ids);
       }
+      await setProgress(searchId, { picked: best.length });
       return best.length;
     });
 
@@ -616,6 +629,7 @@ export const runSearch = inngest.createFunction(
     /* 6. Judge, 5 at a time; cards appear on the phone as each batch is scored. */
     await step.run("judge-start", async () => {
       await db.from("searches").update({ status: "judging" }).eq("id", searchId);
+      await setProgress(searchId, { to_judge: picks.length });
     });
     const batches: string[][] = [];
     for (let i = 0; i < picks.length; i += JUDGE_BATCH) batches.push(picks.slice(i, i + JUDGE_BATCH).map((p) => p.id));
@@ -692,6 +706,7 @@ export const runSearch = inngest.createFunction(
               .eq("id", r.id);
             judged++;
           }
+          await bumpProgress(searchId, "judged", judged);
           return judged;
         }),
       ),
@@ -830,5 +845,17 @@ function samePage(a: string, b: string) {
   } catch {
     return false;
   }
+}
+
+/** Progress bar counts (migration 0010). A failure here never stops a search. */
+async function bumpProgress(searchId: string, key: string, by: number) {
+  if (!by) return;
+  const { error } = await adminClient().rpc("bump_search_progress", { p_search: searchId, p_key: key, p_by: by });
+  if (error) console.error("progress", error.message);
+}
+
+async function setProgress(searchId: string, values: Record<string, number>) {
+  const { error } = await adminClient().rpc("set_search_progress", { p_search: searchId, p_values: values });
+  if (error) console.error("progress", error.message);
 }
 

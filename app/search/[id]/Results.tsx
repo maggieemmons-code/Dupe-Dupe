@@ -11,18 +11,12 @@ import { createClient } from "@/lib/supabase/client";
 import { searchName, type SearchRow } from "@/lib/searches";
 import { money, imageSource, type CandidateRow } from "@/lib/candidates";
 import { lowEnd, sliderMax } from "@/lib/search/priceFloor";
+import { progressOf, clock } from "@/lib/search/progress";
 import styles from "./results.module.css";
 import ui from "../../ui.module.css";
 
 const RUNNING = ["queued", "gathering", "screening", "enriching", "judging"];
 
-const STATUS: Record<string, string> = {
-  queued: "Starting your search…",
-  gathering: "Looking for dupes…",
-  screening: "Picking the closest matches…",
-  enriching: "Reading the listings…",
-  judging: "Checking each match…",
-};
 
 export default function Results({
   search,
@@ -152,12 +146,7 @@ export default function Results({
         </div>
       </section>
 
-      {running && !stuck && (
-        <p className={styles.status} role="status">
-          <span className={styles.spinner} aria-hidden="true" />
-          {STATUS[search.status] ?? "Searching…"}
-        </p>
-      )}
+      {running && !stuck && <SearchProgress search={search} />}
 
       {(stuck || search.status === "failed") && (
         <section className={styles.retry}>
@@ -358,3 +347,33 @@ function Card({ c }: { c: CandidateRow }) {
     </Link>
   );
 }
+
+/** The progress bar while a search runs: real counts from the search job, and a timer. */
+function SearchProgress({ search }: { search: SearchRow }) {
+  const { percent, line } = progressOf(search.status, search.progress ?? {});
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const started = search.ran_at ? new Date(search.ran_at).getTime() : null;
+  return (
+    <div className={styles.progress} role="status" aria-live="polite">
+      <div
+        className={styles.progressTrack}
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(percent)}
+        aria-label="Search progress"
+      >
+        <span className={styles.progressFill} style={{ width: `${Math.max(3, percent)}%` }} />
+      </div>
+      <div className={styles.progressLine}>
+        <span>{line}</span>
+        {started && <span className={styles.progressClock}>{clock((now - started) / 1000)} · usually about a minute</span>}
+      </div>
+    </div>
+  );
+}
+

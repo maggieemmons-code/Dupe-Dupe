@@ -40,6 +40,8 @@ export type SearchRow = {
   brief_stale: boolean;
   ran_at: string | null;
   missing_sources: string[];
+  /** Counts for the progress bar while it runs (migration 0010; absent before it). */
+  progress?: import("@/lib/search/progress").Progress | null;
   created_at: string;
   updated_at: string;
 };
