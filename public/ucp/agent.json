@@ -9,6 +9,14 @@
           "transport": "mcp",
           "schema": "https://ucp.dev/2026-08-25/services/shopping/mcp.openrpc.json"
         }
+      ],
+      "dev.ucp.common": [
+        {
+          "version": "2026-08-25",
+          "spec": "https://ucp.dev/2026-08-25/specification/overview",
+          "transport": "mcp",
+          "schema": "https://ucp.dev/2026-08-25/services/common/mcp.openrpc.json"
+        }
       ]
     },
     "capabilities": {
@@ -31,9 +39,13 @@
           "version": "2026-08-25",
           "spec": "https://shopify.dev/docs/agents/catalog/global-catalog",
           "schema": "https://shopify.dev/ucp/schemas/2026-08-25/shopify_catalog_global.json",
-          "extends": ["dev.ucp.shopping.catalog.search", "dev.ucp.shopping.catalog.lookup"]
+          "extends": [
+            "dev.ucp.shopping.catalog.search",
+            "dev.ucp.shopping.catalog.lookup"
+          ]
         }
       ]
-    }
+    },
+    "payment_handlers": {}
   }
 }
