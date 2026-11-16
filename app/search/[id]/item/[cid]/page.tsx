@@ -69,15 +69,16 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
           <figcaption className={styles.caption}>Your original</figcaption>
         </figure>
         <figure className={styles.side}>
-          <div className={styles.tile}>
+          {/* Tapping the dupe's photo opens the store (through /go, so the click is counted like Shop). */}
+          <a href={`/go/${item.id}`} target="_blank" rel="noopener sponsored" className={styles.tile} aria-label={`Open ${cleanTitle(item.title, item.store)} at ${item.store}`}>
             {item.photo_url || item.thumb_url ? (
               <img src={item.photo_url ?? item.thumb_url!} alt={cleanTitle(item.title, item.store)} referrerPolicy="no-referrer" />
             ) : (
               <span className={styles.noPhoto}>No photo</span>
             )}
             {item.color_match === "different" && <span className={styles.badgeInk}>Different color</span>}
-            <span className={styles.imageLabel}>Image · {imageSource(item)}</span>
-          </div>
+            <span className={styles.imageLabel}>Image · {imageSource(item)} · Tap to shop</span>
+          </a>
           <figcaption className={styles.caption}>This dupe</figcaption>
         </figure>
       </section>

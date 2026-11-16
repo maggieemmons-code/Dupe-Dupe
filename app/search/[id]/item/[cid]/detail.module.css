@@ -432,3 +432,10 @@
   min-height: 44px;
 }
 
+
+/* The dupe's photo opens the store (Nov 16) */
+a.tile {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
