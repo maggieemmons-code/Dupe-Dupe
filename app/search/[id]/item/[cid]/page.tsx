@@ -14,6 +14,7 @@ import { tasteWeights } from "@/lib/taste";
 import { isHiddenStore } from "@/lib/hiddenStores";
 import { hiddenStoresFor } from "@/lib/server/hiddenStores";
 import HideStore from "./HideStore";
+import RateControls, { type SavedRating } from "@/app/ratings/RateControls";
 import styles from "./detail.module.css";
 import ui from "../../../../ui.module.css";
 
@@ -45,6 +46,8 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
   const anchors = ((search.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id);
   const weights = tasteWeights(await loadTaste(session.supabase as never, session.userId));
   const storeHidden = isHiddenStore(item, await hiddenStoresFor(session));
+  const { data: rated } = await session.supabase.from("ratings").select("vote, reason, scope, bought").eq("candidate_id", cid).maybeSingle();
+  const rating = rated ? ({ vote: rated.vote, reason: rated.reason, scope: rated.scope, bought: rated.bought } as SavedRating) : null;
   const b = item.checklist ? breakdown(item.checklist, anchors, weights) : null;
 
   return (
@@ -180,6 +183,8 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
           </section>
         )
       )}
+
+      <RateControls candidateId={item.id} initial={rating} source="detail" layout="block" />
 
       <details className={styles.collapse}>
         <summary>

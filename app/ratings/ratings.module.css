@@ -1,0 +1,236 @@
+/* Ratings: thumbs, reasons sheet, Rate this match (Nov 16). DESIGN.md: pills, 44px taps, black and white. */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 2px 4px 6px;
+}
+
+.thumb,
+.thumbOn {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.thumbOn {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.summarySmall {
+  font-size: 12px;
+  color: var(--muted-strong);
+}
+
+.link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted-strong);
+  font-weight: 400;
+}
+
+/* Item detail */
+.block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 22px;
+  background: var(--surface-2);
+}
+
+.blockTitle {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.blockBtns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.summary {
+  margin: 0;
+  font-size: 14px;
+}
+
+.primary,
+.secondary {
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.primary {
+  border: 0;
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.secondary {
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.primary:disabled {
+  opacity: 0.5;
+}
+
+/* Reasons sheet */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(10, 10, 10, 0.4);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 560px;
+  background: var(--bg);
+  color: var(--ink);
+  border-radius: 28px 28px 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sheetTitle {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip,
+.chipOn {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chipOn {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-ink);
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.switch,
+.switchOn {
+  width: 52px;
+  height: 32px;
+  border-radius: 999px;
+  border: 0;
+  padding: 3px;
+  background: var(--switch-off);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.switchOn {
+  background: var(--ink);
+}
+
+.switch span,
+.switchOn span {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--bg);
+  transition: transform 0.2s;
+}
+
+.switchOn span {
+  transform: translateX(20px);
+}
+
+.note {
+  min-height: 48px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0 18px;
+  font: inherit;
+  font-size: 15px;
+}
+
+.sheetBtns {
+  display: flex;
+  gap: 10px;
+}
+
+.sheetBtns > * {
+  flex: 1;
+  justify-content: center;
+}

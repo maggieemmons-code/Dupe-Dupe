@@ -13,6 +13,7 @@ import { money, imageSource, sizeStatus, type CandidateRow } from "@/lib/candida
 import { lowEnd, sliderMax } from "@/lib/search/priceFloor";
 import { progressOf } from "@/lib/search/progress";
 import ProgressBar from "./ProgressBar";
+import RateControls, { type SavedRating } from "@/app/ratings/RateControls";
 import { cleanTitle } from "@/lib/titles";
 import styles from "./results.module.css";
 import ui from "../../ui.module.css";
@@ -28,16 +29,20 @@ export default function Results({
   photoUrl,
   candidates,
   misses = [],
+  ratings = {},
 }: {
   search: SearchRow;
   photoUrl: string | null;
   candidates: CandidateRow[];
   misses?: CandidateRow[];
+  /** The friend's ratings on this search, by candidate id. */
+  ratings?: Record<string, SavedRating>;
 }) {
   const router = useRouter();
   const running = RUNNING.includes(search.status);
   const scored = candidates.some((c) => c.look_score != null);
   const [sort, setSort] = useState<"look" | "fit" | "price">("look");
+  const [showPassed, setShowPassed] = useState(false);
   const [view, setView] = useState<"all" | "new" | "used">(search.view ?? "all");
   const [pending, startTransition] = useTransition();
   const [retryError, setRetryError] = useState<string | null>(null);
@@ -109,12 +114,15 @@ export default function Results({
   const items = useMemo(() => {
     const list = candidates
       .filter((c) => view === "all" || (view === "new" ? c.kind === "new" : c.kind === "secondhand"))
-      .filter(inRange);
+      .filter(inRange)
+      // Pieces the friend said no to step aside (Show brings them back).
+      .filter((c) => showPassed || ratings[c.id]?.vote !== "down");
     if (sort === "price") list.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
     else if (scored && sort === "fit") list.sort((a, b) => (b.fit_score ?? -1) - (a.fit_score ?? -1) || (b.look_score ?? -1) - (a.look_score ?? -1));
     else if (scored) list.sort((a, b) => (b.look_score ?? -1) - (a.look_score ?? -1) || (b.fit_score ?? -1) - (a.fit_score ?? -1));
     return list;
-  }, [candidates, sort, view, scored, inRange]);
+  }, [candidates, sort, view, scored, inRange, showPassed, ratings]);
+  const passed = candidates.filter((c) => ratings[c.id]?.vote === "down").length;
 
   const name = searchName(search);
   const summary = [search.hem, search.neckline, search.composition || search.fabrics.join(", "), search.color_name || search.color]
@@ -247,14 +255,33 @@ export default function Results({
         </div>
       )}
 
+      {items.length > 0 && !running && (
+        <p className={styles.note}>
+          Rate with the thumbs to train your eye: this search re-ranks as you go.{" "}
+          <Link href="/swipe" className={styles.inlineLink}>
+            Or swipe through your results
+          </Link>
+        </p>
+      )}
+
       {items.length > 0 && (
         <ul className={styles.grid}>
           {items.map((c) => (
             <li key={c.id}>
               <Card c={c} sizes={search.sizes ?? []} />
+              <RateControls candidateId={c.id} initial={ratings[c.id] ?? null} source="card" layout="row" />
             </li>
           ))}
         </ul>
+      )}
+
+      {passed > 0 && (
+        <p className={styles.note}>
+          You passed on {passed}.{" "}
+          <button type="button" className={styles.linkBtn} onClick={() => setShowPassed(!showPassed)}>
+            {showPassed ? "Hide them" : "Show them"}
+          </button>
+        </p>
       )}
 
       {!running && search.status === "done" && !items.length && (
@@ -279,6 +306,7 @@ export default function Results({
             {misses.map((c) => (
               <li key={c.id}>
                 <Card c={c} sizes={search.sizes ?? []} />
+                <RateControls candidateId={c.id} initial={ratings[c.id] ?? null} source="card" layout="row" />
               </li>
             ))}
           </ul>

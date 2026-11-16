@@ -9,6 +9,7 @@ import { hiddenStoresFor } from "@/lib/server/hiddenStores";
 import { blockedStores } from "@/lib/server/blockedStores";
 import Review from "./Review";
 import Results from "./Results";
+import type { SavedRating } from "@/app/ratings/RateControls";
 import ui from "../../ui.module.css";
 
 export const metadata = { title: "Dupe Dupe" };
@@ -54,7 +55,13 @@ async function SearchLoader({ params }: { params: PageProps<"/search/[id]">["par
           .slice(0, 3)
       : [];
 
-  return <Results search={search} photoUrl={photoUrl} candidates={shown} misses={misses} />;
+  // The friend's ratings on this search (none before migration 0013).
+  const { data: rated } = await session.supabase.from("ratings").select("candidate_id, vote, reason, scope, bought").eq("search_id", id);
+  const ratings = Object.fromEntries(
+    (rated ?? []).map((r) => [r.candidate_id, { vote: r.vote, reason: r.reason, scope: r.scope, bought: r.bought } as SavedRating]),
+  );
+
+  return <Results search={search} photoUrl={photoUrl} candidates={shown} misses={misses} ratings={ratings} />;
 }
 
 export default function SearchPage({ params }: PageProps<"/search/[id]">) {
