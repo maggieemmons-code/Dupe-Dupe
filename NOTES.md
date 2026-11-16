@@ -136,3 +136,19 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 
 - Maggie's top-3 review on the newest search per test item: agree on 8 of 9 (passes at 7). Item 5 (Mulberry) left out: all its good matches are secondhand and the search showed nothing. Item 8 (JD June bodysuit) "wasn't great": top 3 were Clothes Horse ribbed ($258), Alaïa at Vitkac ($1,755) and Celestino (no price). The Max Mara coat was the best (Fibflx, LilySilk, Cako).
 - Find lists only the 8 newest searches, so for a review give her direct `/search/<id>` links (newest search per item: `searches.source_links` contains the item's link, newest `updated_at`).
+
+## Phase 5 findings (Nov 15, before building)
+
+- **Resale search pages can't be read:** TinyFish Fetch on 10 sites' search pages all failed (Poshmark, The RealReal, thredUP, Mercari, Fashionphile, Rebag, Grailed timed out; Vestiaire, Depop, eBay "bot_blocked"). `PLAN.md`'s "TinyFish resale search pages" needs replacing: Google Shopping searches for the exact piece and peer brands (they return Vestiaire, The RealReal, Poshmark, Fashionphile, eBay) plus SerpApi's eBay engine.
+- **Single listing pages read fine:** Vestiaire ("Very good condition"), Lucky Vintage (Shopify), The RealReal ("Condition: Pristine"), Fashionphile ("Condition: Excellent"), Stillwhite. eBay `/itm/` pages are bot-blocked; a removed Poshmark listing gives `page_not_found`.
+- **eBay Browse API** production access is Limited Release, for eBay Partner Network partners only (application not sent). SerpApi `engine=ebay` takes `LH_ItemCondition`, no price filter.
+- **Already gathered, then dropped:** the Mulberry search had 72 secondhand listings (Vestiaire 18, Fashionphile 13, Poshmark 20, eBay ~18). Lens's resale hits for the exact piece are dropped as "Your original", and "eBay - seller" stores hit `MARKETPLACE_SELLER` in `lib/stores.ts`.
+- **The Mulberry brief searched pink:** the Saks link names no color and Google's first listing was pink; Maggie's picks are black.
+- Pickle (shoponpickle.com) is rentals.
+
+## Shopify Global Catalog (Nov 15)
+
+- Maggie chose it first (before AliExpress, then secondhand). Endpoint `POST https://catalog.shopify.com/api/ucp/mcp` (JSON-RPC `tools/call`, tool `search_catalog`), with `meta.ucp-agent.profile` pointing to a public agent-profile JSON that declares `dev.ucp.shopping.catalog.search`, `dev.ucp.shopping.catalog.lookup`, `dev.shopify.catalog.global`. Docs say no key is needed; another page uses Dev Dashboard client credentials (`https://api.shopify.com/auth/access_token`, scope `read_global_api_catalog_search`). Test without first.
+- Filters: `price` in cents, `condition` new/secondhand, `ships_to`, `available`; `like` takes a base64 image for visual search. Up to 50 a page.
+- Terms: results only for shopper experiences; keep attribution parameters on links; prices and availability cached at most 10 minutes, product data 24 hours; no standing product index, no training.
+- First try (through Claude's catalog connector, Nov 15): "white strapless maxi dress" → Meshki, Hello Molly, Princess Polly, Mars the Label, Billy J (448 matches); "red off the shoulder jacquard column gown" → Promlly jacquard column gowns ($159), Elliatt, Windsor (835). Seller domains come back as `*.myshopify.com`; the product `url` is the store's own page. Fashion Nova appears (`fnova`), so the block list still applies.

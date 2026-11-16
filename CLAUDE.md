@@ -17,7 +17,7 @@ A private, invite-only web app for Maggie and up to 20 friends. A friend drops i
 
 **Watch for:** resale listings are dropped from new dupes on purpose ("Used or resale listing" in `lib/search/clean.ts`, the judge's `used_or_resale` gate in `lib/search/score.ts`); secondhand needs its own path, where the original itself secondhand is welcome. First check: test item 5 (Mulberry Bayswater), whose three good matches are all secondhand. Phase 4's "Watch for" still holds: no forced `tool_choice` or strict mode, `parseToolInput.ts` repairs JSON-text replies, every store allowed unless blocked, taste in `taste_profiles`, `scripts/run-test-set.ts [--reuse]`, items 5, 6, 7 and 10 a holdout.
 
-**Status (Nov 15):** plan being written; no Phase 5 code yet.
+**Status (Nov 15):** Phase 5 plan written (in chat; findings in `NOTES.md` › Phase 5 findings), no code yet. **Order set by Maggie, Nov 15:** (1) Shopify Global Catalog probe, then as a source if it finds her picks; (2) AliExpress opt-in; (3) then Phase 5 Secondhand. Price slider above the limit: not yet placed.
 
 **Phase 4 passed on 2026-11-15:** Maggie reviewed the judge's top 3 on the newest search for each test item and agreed on 8 of 9. Item 5 (Mulberry) was left out at her call, since all its good matches are secondhand and it had no results. Item 8 (JD June bodysuit) "wasn't great". The Max Mara coat was the best (Fibflx, LilySilk, Cako). Dealbreakers are enforced in code (`lib/search/score.ts`). Details in `NOTES.md` › Phase 4.
 
