@@ -33,6 +33,13 @@ export const UP_REASONS: Reason[] = [
 
 const reasonOf = (vote: Vote, label: string) => (vote === "down" ? DOWN_REASONS : UP_REASONS).find((r) => r.label === label);
 
+/**
+ * Several reasons can be picked (Maggie, Nov 16: "select multiple choices for what works and what
+ * doesn't"). They're saved in one text field, joined by "; " (no reason contains a semicolon).
+ */
+export const joinReasons = (list: string[]) => [...new Set(list.filter(Boolean))].join("; ");
+export const splitReasons = (s: string | null | undefined) => (s ?? "").split(";").map((x) => x.trim()).filter(Boolean);
+
 /** A miss makes that item count more for this friend; "close enough on" makes it count a little less. */
 const STEP = { down: 0.25, up: -0.1 } as const;
 
@@ -45,19 +52,48 @@ export function nudgeWeights(
   rating: { vote: Vote; reason: string; scope: "taste" | "item" },
   sign: 1 | -1 = 1,
 ): Partial<Weights> {
-  const r = reasonOf(rating.vote, rating.reason);
-  if (rating.scope === "item" || !r?.weight) return current;
-  const base = current[r.weight] ?? WEIGHTS[r.weight];
-  const next = Math.round(Math.min(3, Math.max(0.5, base + sign * STEP[rating.vote])) * 100) / 100;
-  return { ...current, [r.weight]: next };
+  if (rating.scope === "item") return current;
+  let out = current;
+  // Each picked reason nudges its own item once.
+  const weights = new Set(splitReasons(rating.reason).map((l) => reasonOf(rating.vote, l)?.weight).filter((w): w is keyof Weights => !!w));
+  for (const w of weights) {
+    const base = out[w] ?? WEIGHTS[w];
+    out = { ...out, [w]: Math.round(Math.min(3, Math.max(0.5, base + sign * STEP[rating.vote])) * 100) / 100 };
+  }
+  return out;
 }
 
-/** What the judge had said about the item a reason is about ("color: match"), for the agreement count. */
-export function judgeAnswer(checklist: Checklist | null, vote: Vote, reason: string): string | null {
-  const f = reasonOf(vote, reason)?.field;
-  if (!checklist || !f) return null;
+/** What the judge had said about the item one reason is about ("color: match"), for the agreement count. */
+function answerFor(checklist: Checklist, vote: Vote, label: string): string | null {
+  const f = reasonOf(vote, label)?.field;
+  if (!f) return null;
   const v = f === "surface" ? (checklist.surface ?? checklist.sheen) : checklist[f];
   return v == null ? null : `${f}: ${typeof v === "string" ? v : JSON.stringify(v)}`;
+}
+
+/**
+ * The judge's answers for each picked reason, saved as JSON: {"Wrong color": "color: match"}.
+ * Null when none of the reasons is about a checklist item.
+ */
+export function judgeAnswer(checklist: Checklist | null, vote: Vote, reason: string): string | null {
+  if (!checklist) return null;
+  const pairs = splitReasons(reason)
+    .map((l) => [l, answerFor(checklist, vote, l)] as const)
+    .filter(([, a]) => a != null);
+  return pairs.length ? JSON.stringify(Object.fromEntries(pairs)) : null;
+}
+
+/** Reads a saved judge_answer back as reason → answer (also the older single "color: match" form). */
+export function judgeAnswers(saved: string | null, reason: string): [string, string][] {
+  if (!saved) return [];
+  if (saved.startsWith("{")) {
+    try {
+      return Object.entries(JSON.parse(saved) as Record<string, string>);
+    } catch {
+      return [];
+    }
+  }
+  return [[splitReasons(reason)[0] ?? "", saved]];
 }
 
 /**

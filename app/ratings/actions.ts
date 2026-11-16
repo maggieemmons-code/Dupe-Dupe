@@ -2,7 +2,7 @@
 
 import { getSession, type Session } from "@/lib/server/session";
 import { rescoreSearch } from "@/lib/server/rescore";
-import { nudgeWeights, judgeAnswer, type Vote } from "@/lib/ratings";
+import { nudgeWeights, judgeAnswer, joinReasons, splitReasons, type Vote } from "@/lib/ratings";
 import type { Checklist, Weights } from "@/lib/search/score";
 
 export type Rating = { vote: Vote; reason: string; note?: string; scope?: "taste" | "item"; bought?: boolean };
@@ -34,7 +34,8 @@ export async function rate(candidateId: string, rating: Rating, source: "card" |
   if (!c) return { ok: false, error: "This result wasn't found." };
 
   const scope = rating.scope === "item" ? "item" : "taste";
-  const reason = (rating.reason ?? "").slice(0, 60);
+  // One or several reasons, joined by "; " (lib/ratings.ts).
+  const reason = joinReasons(splitReasons(rating.reason)).slice(0, 300);
   const { data: before } = await supabase.from("ratings").select("vote, reason, scope").eq("candidate_id", candidateId).maybeSingle();
 
   const { error } = await supabase.from("ratings").upsert(

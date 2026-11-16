@@ -252,3 +252,6 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - New searches drop pages the friend gave a thumbs down ("You passed on this before"). Google's product pages (`google.com/search?…`) all share one page key, so they're excluded from that check; otherwise one thumbs down would drop every Google Shopping result.
 - `scripts/judge-agreement.ts`: how often people agree with the judge, overall (too generous / too strict) and by reason (the judge's own answer vs the person's).
 - Not checked in a browser (needs Maggie's sign-in).
+
+- **Several reasons (Nov 16):** Maggie: "select multiple choices for what works and what doesn't work." Reasons are multi-select on cards, Item detail and Swipe (Swipe saves on each tap; Done shrinks the pop-up). Saved in `reason` joined by "; "; each reason nudges its own weight once; `judge_answer` is JSON (reason → the judge's answer), older single answers still read. The agreement report counts each reason on its own. 11 ratings existed when this shipped.
+- Third friend invited: baejenny824@gmail.com (added to `invites`, Nov 16).

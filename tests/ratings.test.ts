@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { nudgeWeights, judgeAnswer, disagrees } from "../lib/ratings";
+import { nudgeWeights, judgeAnswer, judgeAnswers, disagrees, joinReasons, splitReasons } from "../lib/ratings";
 import type { Checklist } from "../lib/search/score";
 
 test("a miss makes that item count more; close enough makes it count a little less", () => {
@@ -21,9 +21,21 @@ test("weights stay between 0.5 and 3; Just this piece and reasons without an ite
 
 test("what the judge said, and whether the person disagrees", () => {
   const c = { color: "match", polish: "as_polished" } as unknown as Checklist;
-  assert.equal(judgeAnswer(c, "down", "Wrong color"), "color: match");
+  assert.equal(judgeAnswer(c, "down", "Wrong color"), JSON.stringify({ "Wrong color": "color: match" }));
   assert.equal(disagrees("down", "color: match"), true);
   assert.equal(disagrees("down", "color: different"), false);
   assert.equal(disagrees("up", "color: different"), true);
   assert.equal(judgeAnswer(c, "down", "Too pricey"), null);
 });
+
+test("several reasons: each nudges its own item once, and the judge's answer is kept for each", () => {
+  const both = joinReasons(["Wrong color", "Fabric looks cheap", "Wrong color"]);
+  assert.equal(both, "Wrong color; Fabric looks cheap");
+  assert.deepEqual(splitReasons(both), ["Wrong color", "Fabric looks cheap"]);
+  assert.deepEqual(nudgeWeights({}, { vote: "down", reason: both, scope: "taste" }), { color: 2.25, polish: 2.25 });
+  const c = { color: "match", polish: "looks_cheap" } as unknown as Checklist;
+  const saved = judgeAnswer(c, "down", `${both}; Too pricey`);
+  assert.deepEqual(judgeAnswers(saved, both), [["Wrong color", "color: match"], ["Fabric looks cheap", "polish: looks_cheap"]]);
+  assert.deepEqual(judgeAnswers("color: match", "Wrong color"), [["Wrong color", "color: match"]]);
+});
+

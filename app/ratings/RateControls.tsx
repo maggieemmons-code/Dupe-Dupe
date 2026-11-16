@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { rate, unrate, type Rating } from "./actions";
-import { DOWN_REASONS, UP_REASONS, type Vote } from "@/lib/ratings";
+import { DOWN_REASONS, UP_REASONS, joinReasons, splitReasons, type Vote } from "@/lib/ratings";
 import styles from "./ratings.module.css";
 
 export type SavedRating = { vote: Vote; reason: string; scope: "taste" | "item"; bought: boolean };
@@ -34,14 +34,14 @@ export default function RateControls({
   const router = useRouter();
   const [saved, setSaved] = useState<SavedRating | null>(initial);
   const [sheet, setSheet] = useState<Vote | null>(null);
-  const [reason, setReason] = useState("");
+  const [picked, setPicked] = useState<string[]>([]);
   const [justThis, setJustThis] = useState(false);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
 
   const open = (vote: Vote) => {
-    setReason(saved?.vote === vote ? saved.reason : "");
+    setPicked(saved?.vote === vote ? splitReasons(saved.reason) : []);
     setJustThis(saved?.vote === vote ? saved.scope === "item" : false);
     setNote("");
     setError("");
@@ -66,7 +66,7 @@ export default function RateControls({
     });
 
   const summary = saved
-    ? `${saved.bought ? "Bought" : saved.vote === "up" ? "Good dupe" : "Nope"}${saved.reason ? ` · ${saved.reason}` : ""}${saved.scope === "item" ? " · just this piece" : ""}`
+    ? `${saved.bought ? "Bought" : saved.vote === "up" ? "Good dupe" : "Nope"}${saved.reason ? ` · ${splitReasons(saved.reason).join(", ")}` : ""}${saved.scope === "item" ? " · just this piece" : ""}`
     : "";
 
   const sheetEl = sheet && (
@@ -75,15 +75,15 @@ export default function RateControls({
         <h2 id="rate-title" className={styles.sheetTitle}>
           {sheet === "down" ? "What missed?" : "Good dupe. Close enough on…"}
         </h2>
-        {sheet === "up" && <p className={styles.hint}>Optional: what&rsquo;s different but fine.</p>}
+        <p className={styles.hint}>{sheet === "down" ? "Pick all that apply." : "Optional: what's different but fine. Pick all that apply."}</p>
         <div className={styles.chips}>
           {(sheet === "down" ? DOWN_REASONS : UP_REASONS).map((r) => (
             <button
               key={r.label}
               type="button"
-              className={reason === r.label ? styles.chipOn : styles.chip}
-              aria-pressed={reason === r.label}
-              onClick={() => setReason(reason === r.label ? "" : r.label)}
+              className={picked.includes(r.label) ? styles.chipOn : styles.chip}
+              aria-pressed={picked.includes(r.label)}
+              onClick={() => setPicked(picked.includes(r.label) ? picked.filter((x) => x !== r.label) : [...picked, r.label])}
             >
               {r.label}
             </button>
@@ -108,7 +108,7 @@ export default function RateControls({
             type="button"
             className={styles.primary}
             disabled={pending}
-            onClick={() => save({ vote: sheet, reason, note, scope: justThis ? "item" : "taste", bought: sheet === "up" && !!saved?.bought })}
+            onClick={() => save({ vote: sheet, reason: joinReasons(picked), note, scope: justThis ? "item" : "taste", bought: sheet === "up" && !!saved?.bought })}
           >
             Save
           </button>

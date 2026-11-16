@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { rate, unrate } from "@/app/ratings/actions";
+import { joinReasons } from "@/lib/ratings";
 import styles from "./swipe.module.css";
 
 export type SwipeCard = {
@@ -38,7 +39,8 @@ const money = (n: number) => `$${Number.isInteger(n) ? n.toLocaleString("en-US")
 export default function SwipeDeck({ cards, rated }: { cards: SwipeCard[]; rated: number }) {
   const [i, setI] = useState(0);
   const [count, setCount] = useState(rated);
-  const [last, setLast] = useState<{ card: SwipeCard; dir: 1 | -1; reason: string | null } | null>(null);
+  // picked: the reasons chosen so far; done: the pop-up has shrunk to its summary.
+  const [last, setLast] = useState<{ card: SwipeCard; dir: 1 | -1; picked: string[]; done: boolean } | null>(null);
   const [drag, setDrag] = useState<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
   const [flyOut, setFlyOut] = useState<1 | -1 | 0>(0);
   const [error, setError] = useState("");
@@ -57,7 +59,7 @@ export default function SwipeDeck({ cards, rated }: { cards: SwipeCard[]; rated:
       setDrag({ x: 0, y: 0, active: false });
       setI((n) => n + 1);
     }, 220);
-    setLast({ card, dir, reason: null });
+    setLast({ card, dir, picked: [], done: false });
     setCount((n) => n + 1);
     startTransition(async () => {
       const r = await rate(card.id, { vote: dir > 0 ? "up" : "down", reason: "" }, "swipe");
@@ -65,11 +67,13 @@ export default function SwipeDeck({ cards, rated }: { cards: SwipeCard[]; rated:
     });
   }
 
-  function pickReason(reason: string) {
+  /** Several reasons can be picked; each tap saves, Done shrinks the pop-up to its summary. */
+  function toggleReason(reason: string) {
     if (!last) return;
-    setLast({ ...last, reason });
+    const picked = last.picked.includes(reason) ? last.picked.filter((x) => x !== reason) : [...last.picked, reason];
+    setLast({ ...last, picked });
     startTransition(async () => {
-      const r = await rate(last.card.id, { vote: last.dir > 0 ? "up" : "down", reason }, "swipe");
+      const r = await rate(last.card.id, { vote: last.dir > 0 ? "up" : "down", reason: joinReasons(picked) }, "swipe");
       setError(r.ok ? "" : r.error);
     });
   }
@@ -214,10 +218,10 @@ export default function SwipeDeck({ cards, rated }: { cards: SwipeCard[]; rated:
               )}
             </span>
           </div>
-          {last.reason ? (
+          {last.done && last.picked.length ? (
             <p className={styles.popSummary}>
-              {last.dir > 0 ? "Yes" : "Nope"} · {SHORT[last.reason] ?? last.reason}{" "}
-              <button type="button" className={styles.link} onClick={() => setLast({ ...last, reason: null })}>
+              {last.dir > 0 ? "Yes" : "Nope"} · {last.picked.map((r) => SHORT[r] ?? r).join(", ")}{" "}
+              <button type="button" className={styles.link} onClick={() => setLast({ ...last, done: false })}>
                 Change
               </button>
             </p>
@@ -226,10 +230,21 @@ export default function SwipeDeck({ cards, rated }: { cards: SwipeCard[]; rated:
               <span className={styles.popLabel}>{last.dir > 0 ? "You said yes · What hooked you?" : "You passed · What missed?"}</span>
               <div className={styles.popChips}>
                 {(last.dir > 0 ? YES_REASONS : NO_REASONS).map((r) => (
-                  <button key={r} type="button" className={styles.chip} onClick={() => pickReason(r)}>
+                  <button
+                    key={r}
+                    type="button"
+                    className={last.picked.includes(r) ? styles.chipOn : styles.chip}
+                    aria-pressed={last.picked.includes(r)}
+                    onClick={() => toggleReason(r)}
+                  >
                     {SHORT[r] ?? r}
                   </button>
                 ))}
+                {last.picked.length > 0 && (
+                  <button type="button" className={styles.doneBtn} onClick={() => setLast({ ...last, done: true })}>
+                    Done
+                  </button>
+                )}
               </div>
             </div>
           )}
