@@ -4,6 +4,7 @@ import { getSession } from "@/lib/server/session";
 import { buildBriefFor } from "@/lib/server/brief";
 import { SINGLE_CHOICE, MULTI_CHOICE, type Anchor, type ItemField } from "@/lib/fields";
 import { inngest, SEARCH_CONFIRMED } from "@/lib/inngest/client";
+import { rescoreSearch } from "@/lib/server/rescore";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -194,3 +195,35 @@ export async function saveFabricMustMatch(searchId: string, on: boolean): Promis
     .eq("id", searchId);
   return error ? { ok: false, error: "That didn't save. Try again." } : { ok: true };
 }
+
+/**
+ * Turns one Must match on or off after a search has run, then re-scores the saved
+ * checklists (code only: no search, no AI). `target` is a signature detail's id, or
+ * "fabric" for Fabric must match. Returns how many pieces now pass.
+ */
+export async function setMustMatch(
+  searchId: string,
+  target: string,
+  on: boolean,
+): Promise<{ ok: true; passing: number } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Sign in again to continue." };
+  const { supabase } = session;
+  // Read with the friend's own session: row-level security makes sure the search is theirs.
+  const { data: current } = await supabase.from("searches").select("visual_brief, composition_brief").eq("id", searchId).single();
+  if (!current) return { ok: false, error: "This search wasn't found." };
+
+  const update =
+    target === "fabric"
+      ? { composition_brief: { ...(current.composition_brief ?? {}), must_match: on } }
+      : {
+          visual_brief: {
+            ...(current.visual_brief ?? {}),
+            anchors: ((current.visual_brief?.anchors ?? []) as Anchor[]).map((a) => (a.id === target ? { ...a, dealbreaker: on } : a)),
+          },
+        };
+  const { error } = await supabase.from("searches").update(update).eq("id", searchId);
+  if (error) return { ok: false, error: "That didn't save. Try again." };
+  return { ok: true, passing: await rescoreSearch(searchId, session.userId) };
+}
+

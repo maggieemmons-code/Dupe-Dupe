@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import { confirmSearch, saveChoices } from "./actions";
+import { confirmSearch, saveChoices, setMustMatch } from "./actions";
 import PriceRange from "./PriceRange";
 import { createClient } from "@/lib/supabase/client";
 import { searchName, type SearchRow } from "@/lib/searches";
@@ -16,6 +16,8 @@ import styles from "./results.module.css";
 import ui from "../../ui.module.css";
 
 const RUNNING = ["queued", "gathering", "screening", "enriching", "judging"];
+/** Offer to relax a Must match when fewer dupes than this pass. */
+const RELAX_BELOW = 3;
 
 
 export default function Results({
@@ -257,6 +259,8 @@ export default function Results({
           </p>
         </section>
       )}
+      {!running && search.status === "done" && items.length < RELAX_BELOW && view !== "used" && <RelaxMustMatch search={search} />}
+
       {misses.length > 0 && view !== "used" && (
         <section className={styles.misses} aria-labelledby="misses-title">
           <h2 id="misses-title" className={styles.missesTitle}>
@@ -375,6 +379,57 @@ function SearchProgress({ search }: { search: SearchRow }) {
         {started && <span className={styles.progressClock}>{clock((now - started) / 1000)} · usually about a minute</span>}
       </div>
     </div>
+  );
+}
+
+/**
+ * A way out of a thin result (Nov 15 review): relax one Must match and re-score what was
+ * already found, in code, with no new search. The box closes to a one-line summary with Undo.
+ */
+function RelaxMustMatch({ search }: { search: SearchRow }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [done, setDone] = useState<{ target: string; label: string; passing: number } | null>(null);
+  const [error, setError] = useState("");
+  const musts = [
+    ...(search.visual_brief?.anchors ?? []).filter((a) => a?.id && a.dealbreaker).map((a) => ({ target: a.id, label: a.label })),
+    ...(search.composition_brief?.must_match ? [{ target: "fabric", label: "Fabric must match" }] : []),
+  ];
+  const run = (target: string, label: string, on: boolean) =>
+    start(async () => {
+      setError("");
+      const r = await setMustMatch(search.id, target, on);
+      if (!r.ok) return setError(r.error);
+      setDone(on ? null : { target, label, passing: r.passing });
+      router.refresh();
+    });
+
+  if (done) {
+    return (
+      <p className={styles.relaxDone} role="status">
+        Relaxed &ldquo;{done.label}&rdquo; · {done.passing} dupe{done.passing === 1 ? "" : "s"} now.{" "}
+        <button type="button" className={styles.linkBtn} disabled={pending} onClick={() => run(done.target, done.label, true)}>
+          Undo
+        </button>
+      </p>
+    );
+  }
+  if (!musts.length) return null;
+  return (
+    <section className={styles.relax} aria-labelledby="relax-title">
+      <h2 id="relax-title" className={styles.missesTitle}>
+        Too few matches?
+      </h2>
+      <p className={styles.note}>Relax one Must match. We re-check what we already found; nothing new is searched.</p>
+      <div className={styles.relaxChips}>
+        {musts.map((m) => (
+          <button key={m.target} type="button" className={styles.relaxChip} disabled={pending} onClick={() => run(m.target, m.label, false)}>
+            Relax: {m.label}
+          </button>
+        ))}
+      </div>
+      {error && <p className={styles.note}>{error}</p>}
+    </section>
   );
 }
 

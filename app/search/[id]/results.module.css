@@ -467,3 +467,53 @@
   }
 }
 
+/* Relax a Must match on a thin result (Nov 15) */
+.relax {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 22px;
+  background: var(--surface-2);
+}
+
+.relaxChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.relaxChip {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--ink);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.relaxChip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.relaxDone {
+  margin: 0;
+  font-size: 14px;
+}
+
+.linkBtn {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 44px;
+}
+
