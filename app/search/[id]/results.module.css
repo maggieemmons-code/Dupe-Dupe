@@ -517,3 +517,16 @@
   min-height: 44px;
 }
 
+/* Edit details link in the original strip (Nov 15) */
+.editLink {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+

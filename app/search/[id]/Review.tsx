@@ -22,7 +22,7 @@ import {
   type ItemField,
 } from "@/lib/fields";
 import { SIZES, searchName, type SearchRow } from "@/lib/searches";
-import { buildBrief, retryBrief, saveAnchors, saveChoices, saveFields, confirmSearch, saveFabricMustMatch } from "./actions";
+import { buildBrief, retryBrief, saveAnchors, saveChoices, saveFields, confirmSearch, saveFabricMustMatch, updateResults } from "./actions";
 import PriceRange from "./PriceRange";
 import { lowEnd, sliderMax } from "@/lib/search/priceFloor";
 import styles from "./review.module.css";
@@ -40,11 +40,13 @@ const ROWS: Row[] = [
   { field: "style_name", label: "Item", kind: "text", missing: "Add the style name if you know it" },
   { field: "category", label: "Category", kind: "single", list: CATEGORIES, missing: "Pick one to narrow the search" },
   { field: "color", label: "Color", kind: "single", list: COLOR_NAMES, missing: "Pick one for closer matches" },
+  { field: "color_name", label: "Shade name", kind: "text", missing: "Optional: the store's name for the color" },
   { field: "fabrics", label: "Fibers", kind: "multi", list: FIBERS, missing: "Pick them so we can match fabric" },
   { field: "weave", label: "Weave", kind: "single", list: WEAVES, missing: "Pick one so we can match fabric" },
-  { field: "composition", label: "Fabric tag", kind: "readonly", missing: "Not on the listing" },
+  { field: "composition", label: "Fabric tag", kind: "text", missing: "Not on the listing. Add it if you know it" },
   { field: "stretch", label: "Stretch", kind: "single", list: STRETCH, missing: "Pick one for a closer fit match" },
   { field: "sizing", label: "Sizing", kind: "single", list: SIZING, missing: "Pick one if you know it" },
+  { field: "fit_notes", label: "Fit notes", kind: "text", missing: "Optional" },
   { field: "fit_style", label: "Fit", kind: "multi", list: FIT_STYLES, missing: "Pick how it sits on the body" },
   { field: "neckline", label: "Neckline", kind: "single", list: NECKLINES, missing: "Pick one for closer matches" },
   { field: "sleeve", label: "Sleeves", kind: "single", list: SLEEVES, missing: "Pick one for closer matches" },
@@ -221,7 +223,7 @@ function PickSheet({
 
 /* ---------- the screen ---------- */
 
-export default function Review({ search, photoUrl }: { search: SearchRow; photoUrl: string | null }) {
+export default function Review({ search, photoUrl, mode = "new" }: { search: SearchRow; photoUrl: string | null; mode?: "new" | "edit" }) {
   const router = useRouter();
   const [briefError, setBriefError] = useState("");
   const started = useRef(false);
@@ -230,6 +232,7 @@ export default function Review({ search, photoUrl }: { search: SearchRow; photoU
 
   // Run the brief builder once when a new search opens; poll while another tab runs it.
   useEffect(() => {
+    if (mode === "edit") return; // Edit details runs the brief itself (updateResults)
     if (search.status === "new" && !started.current) {
       started.current = true;
       buildBrief(search.id).then((r) => {
@@ -241,7 +244,7 @@ export default function Review({ search, photoUrl }: { search: SearchRow; photoU
       const t = setInterval(() => router.refresh(), 2500);
       return () => clearInterval(t);
     }
-  }, [search.status, search.id, router]);
+  }, [search.status, search.id, router, mode]);
 
   const header = (
     <header className={ui.topbar}>
@@ -254,6 +257,22 @@ export default function Review({ search, photoUrl }: { search: SearchRow; photoU
       <div style={{ width: 44 }} aria-hidden="true" />
     </header>
   );
+
+  // After a search has run: the same screen, to fix any detail and update the results (Maggie, Nov 15).
+  if (mode === "edit") {
+    const editHeader = (
+      <header className={ui.topbar}>
+        <Link href={`/search/${search.id}`} className={ui.iconBtn} aria-label="Back to results">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 12H5M11 6l-6 6 6 6" />
+          </svg>
+        </Link>
+        <div className={ui.screenTitle}>Edit details</div>
+        <div style={{ width: 44 }} aria-hidden="true" />
+      </header>
+    );
+    return <ReviewForm key={search.id} search={search} photoUrl={photoUrl} header={editHeader} mode="edit" />;
+  }
 
   if (reading) {
     return (
@@ -301,7 +320,17 @@ export default function Review({ search, photoUrl }: { search: SearchRow; photoU
   return <ReviewForm key={search.id} search={search} photoUrl={photoUrl} header={header} />;
 }
 
-function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl: string | null; header: React.ReactNode }) {
+function ReviewForm({
+  search,
+  photoUrl,
+  header,
+  mode = "new",
+}: {
+  search: SearchRow;
+  photoUrl: string | null;
+  header: React.ReactNode;
+  mode?: "new" | "edit";
+}) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
@@ -387,6 +416,20 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
 
   const [fabricMust, setFabricMust] = useState(search.composition_brief?.must_match === true);
   const [confirmed, setConfirmed] = useState(search.status === "queued");
+
+  /** Edit mode: rebuild the brief from these details, then re-check what was found (or search again). */
+  function rerun(fresh: boolean) {
+    startTransition(async () => {
+      setConfirmed(true);
+      const r = await updateResults(search.id, fresh);
+      if (!r.ok) {
+        setConfirmed(false);
+        return setError(r.error);
+      }
+      router.push(`/search/${search.id}`);
+      router.refresh();
+    });
+  }
   const guesses = ROWS.filter((r) => sources[r.field]?.from === "guess" && shown(r, values)).length;
 
   return (
@@ -506,7 +549,11 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
       )}
 
       {stale && (
-        <p className={ui.error}>You changed details since we read this piece. We&apos;ll update the search brief when it runs.</p>
+        <p className={ui.error}>
+          {mode === "edit"
+            ? "You changed details. Tap Save and update results to apply them."
+            : "You changed details since we read this piece. We'll update the search brief when it runs."}
+        </p>
       )}
 
       {/* The details */}
@@ -651,8 +698,6 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
                 {row.field === "color" && text && <ColorDot name={text} />}
                 {text || (row.kind === "readonly" ? row.missing : "Not found")}
               </span>
-              {row.field === "color" && values.color_name && <span className={styles.subNote}>Store calls it “{String(values.color_name)}”</span>}
-              {row.field === "sizing" && values.fit_notes && <span className={styles.subNote}>{String(values.fit_notes)}</span>}
               {row.kind !== "readonly" || text ? (
                 <span className={styles.tagLine}>
                   {tag ? (
@@ -681,7 +726,7 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
                     autoFocus
                     inputMode={row.kind === "price" ? "numeric" : undefined}
                     pattern={row.kind === "price" ? "[0-9]*" : undefined}
-                    maxLength={row.kind === "price" ? 6 : 80}
+                    maxLength={row.kind === "price" ? 6 : row.field === "fit_notes" ? 200 : row.field === "composition" ? 120 : 80}
                     value={textEdit.draft}
                     placeholder={row.kind === "price" ? "e.g. 750" : ""}
                     onChange={(e) =>
@@ -784,8 +829,22 @@ function ReviewForm({ search, photoUrl, header }: { search: SearchRow; photoUrl:
       <div className={styles.bottomBar}>
         {confirmed ? (
           <p className={styles.confirmed} role="status">
-            Starting the search…
+            {mode === "edit" ? "Updating the search with your details…" : "Starting the search…"}
           </p>
+        ) : mode === "edit" ? (
+          <>
+            <button
+              className={ui.btnSecondary}
+              style={{ flex: 1 }}
+              disabled={pending || textEdit !== null}
+              onClick={() => rerun(true)}
+            >
+              Search again
+            </button>
+            <button className={ui.btn} style={{ flex: 1.6 }} disabled={pending || textEdit !== null} onClick={() => rerun(false)}>
+              Save and update results
+            </button>
+          </>
         ) : (
           <>
             <button

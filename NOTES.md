@@ -206,3 +206,11 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - If friends search at the same time they share the 5. Inngest Basic (25 concurrent steps) is the next lever.
 - The $10 Akira Kenzy moto (Lens, "Est.") matches Akira's own Shopify data ($9.99 in every size, USD): a clearance price; Google Shopping still showed $99.90.
 - Second friend invited (helysaker@gmail.com) and sent the sign-in email.
+
+## Edit details after a search (Nov 15)
+
+- Maggie: "I should be able to edit details of my original… the price is wrong and I can add the fabric", then "I should be able to edit all the variables." Results' original strip has **Edit details** → `/search/[id]/edit`, the Review screen in edit mode. Every field is editable now, including the fabric tag (was read-only, copied from the source), the shade name and fit notes; edits are tagged "Edited".
+- **Save and update results** (`updateResults`): rebuilds the brief with her edits as corrections in the notes and written back over the builder's answers (`buildBriefFor(…, { keepEdits: true })`), then reruns with `reuseGathered` (no new store searches; about $0.20 of Claude, plus 2 SerpApi when the link needs a lookup). **Search again** reruns from scratch (about 25 SerpApi). Signature details are rebuilt too (an edit can change them), with her Must match switches carried over where a detail's id or wording is unchanged (`carryMustMatch`).
+- The judge now also gets the fabric tag (`composition`) in the details it reads.
+- Checked on the Mulberry test search: color edited Pink → Black stayed Black after the rebuild, the brief's primary color became black with pink as a dealbreaker, and the look-alike phrasings say black. (That search's results are still from the pink brief until it's updated.)
+- New route needs `npx next typegen` before `tsc` knows it.

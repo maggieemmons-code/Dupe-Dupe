@@ -146,6 +146,11 @@ export default function Results({
             {search.retail_price != null && ` · ${money(search.retail_price)}`}
           </span>
           {summary && <span className={styles.originalMeta}>{summary}</span>}
+          {!running && (
+            <Link href={`/search/${search.id}/edit`} className={styles.editLink}>
+              Edit details
+            </Link>
+          )}
         </div>
       </section>
 

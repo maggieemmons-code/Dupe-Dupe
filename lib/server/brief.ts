@@ -22,7 +22,7 @@ type Result = { ok: true } | { ok: false; error: string };
  * Runs the brief builder once for a new search: reads the link with TinyFish,
  * sends the page, notes and photos to Claude, and saves the plain fields and briefs.
  */
-export async function buildBriefFor(session: Session, searchId: string): Promise<Result> {
+export async function buildBriefFor(session: Session, searchId: string, opts: { keepEdits?: boolean } = {}): Promise<Result> {
   const { supabase } = session;
 
   // Claim the search so two tabs (or React's double run in development) never pay twice.
@@ -35,6 +35,21 @@ export async function buildBriefFor(session: Session, searchId: string): Promise
     .maybeSingle();
   if (!claimed) return { ok: true }; // already running or done; the page will refresh
   const search = claimed as SearchRow;
+
+  // Edit details after a search (Maggie, Nov 15): the friend's edits win over the page. They go to
+  // the brief builder as corrections and are written back over its answers. Signature details are
+  // rebuilt too (an edit can change them: pink → black), keeping her Must match switches where a
+  // detail is the same as before.
+  const edits: Record<string, unknown> = {};
+  if (opts.keepEdits) {
+    for (const [field, src] of Object.entries((search.field_sources ?? {}) as Record<string, { from?: string }>)) {
+      if (src?.from === "edited" && (ITEM_FIELDS as readonly string[]).includes(field)) edits[field] = (search as Record<string, unknown>)[field];
+    }
+  }
+  const corrections = Object.entries(edits)
+    .filter(([, v]) => v != null && v !== "" && !(Array.isArray(v) && !v.length))
+    .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : String(v)}`)
+    .join("; ");
 
   try {
     // 1. Read the product links.
@@ -108,7 +123,9 @@ export async function buildBriefFor(session: Session, searchId: string): Promise
       result = await runBriefBuilder({
         pages,
         unreadLinks,
-        notes: search.pasted_text,
+        notes: corrections
+          ? `${search.pasted_text ? `${search.pasted_text}\n\n` : ""}The shopper corrected these details. They are right; use them over the product page: ${corrections}`
+          : search.pasted_text,
         photos,
         productPhotos,
         tasteRules: tasteText(await loadTaste(supabase as never, session.userId)),
@@ -134,10 +151,14 @@ export async function buildBriefFor(session: Session, searchId: string): Promise
       .update({
         // Only the known item fields: the agent sometimes adds others (e.g. "sources"), which the table doesn't have.
         ...Object.fromEntries(Object.entries(brief.item).filter(([k]) => (ITEM_FIELDS as readonly string[]).includes(k))),
+        ...edits,
         ...(productPaths.length ? { photo_paths: productPaths } : {}),
-        field_sources: brief.sources,
-        visual_brief: brief.visual_brief,
-        composition_brief: brief.composition_brief,
+        field_sources: { ...brief.sources, ...Object.fromEntries(Object.keys(edits).map((k) => [k, { from: "edited" }])) },
+        visual_brief: opts.keepEdits ? { ...brief.visual_brief, anchors: carryMustMatch(brief.visual_brief?.anchors, search.visual_brief?.anchors) } : brief.visual_brief,
+        composition_brief:
+          opts.keepEdits && search.composition_brief?.must_match != null
+            ? { ...brief.composition_brief, must_match: search.composition_brief.must_match }
+            : brief.composition_brief,
         search_queries: brief.search_queries,
         brief_built_at: new Date().toISOString(),
         brief_stale: false,
@@ -157,5 +178,16 @@ export async function buildBriefFor(session: Session, searchId: string): Promise
       .eq("id", searchId);
     return { ok: false, error: "We couldn't read this piece. Try again, or add a photo or a few words." };
   }
+}
+
+type AnchorLike = { id: string; label: string; dealbreaker?: boolean };
+
+/** New signature details, with the friend's Must match switches carried over by id or by wording. */
+export function carryMustMatch(next: AnchorLike[] | undefined, before: AnchorLike[] | undefined): AnchorLike[] {
+  const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return (next ?? []).map((a) => {
+    const old = (before ?? []).find((b) => b.id === a.id || norm(b.label) === norm(a.label));
+    return old ? { ...a, dealbreaker: !!old.dealbreaker } : a;
+  });
 }
 

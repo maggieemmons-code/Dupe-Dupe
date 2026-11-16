@@ -29,7 +29,8 @@ export async function retryBrief(searchId: string): Promise<Result> {
   return { ok: true };
 }
 
-const TEXT_FIELDS: ItemField[] = ["brand", "style_name"];
+/** Typed fields and their longest length. Every detail can be edited (Maggie, Nov 15), including the fabric tag. */
+const TEXT_FIELDS: Partial<Record<ItemField, number>> = { brand: 80, style_name: 80, color_name: 60, composition: 120, fit_notes: 200 };
 
 type FieldValue = string | string[] | number | null;
 
@@ -65,13 +66,13 @@ export async function saveFields(
     } else if (field in MULTI_CHOICE) {
       const list = MULTI_CHOICE[field as keyof typeof MULTI_CHOICE] as readonly string[];
       value = Array.isArray(raw) ? [...new Set(raw.filter((x) => list.includes(x)))] : [];
-    } else if (TEXT_FIELDS.includes(field)) {
-      value = typeof raw === "string" ? raw.trim().slice(0, 120) : "";
+    } else if (field in TEXT_FIELDS) {
+      value = typeof raw === "string" ? raw.trim().slice(0, TEXT_FIELDS[field]) : "";
     } else if (field === "retail_price") {
       const n = typeof raw === "number" ? raw : parseFloat(String(raw ?? "").replace(/[^0-9.]/g, ""));
       value = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
     } else {
-      continue; // composition, color_name and fit_notes are read from sources only
+      continue;
     }
     update[field] = value;
     const filled = Array.isArray(value) ? value.length > 0 : value !== null && value !== "";
@@ -225,5 +226,43 @@ export async function setMustMatch(
   const { error } = await supabase.from("searches").update(update).eq("id", searchId);
   if (error) return { ok: false, error: "That didn't save. Try again." };
   return { ok: true, passing: await rescoreSearch(searchId, session.userId) };
+}
+
+/**
+ * Edit details after a search has run (Maggie, Nov 15): rebuilds the search brief from the
+ * details as they are now (the friend's edits win over the product page), then either
+ * re-checks the pieces already found (fresh = false: no new store searches) or searches again.
+ */
+export async function updateResults(searchId: string, fresh: boolean): Promise<Result> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Sign in again to continue." };
+  const { supabase } = session;
+  const { data: claimed } = await supabase
+    .from("searches")
+    .update({ status: "new", error: null })
+    .eq("id", searchId)
+    .in("status", ["done", "failed", "review"])
+    .not("brief_built_at", "is", null)
+    .select("id")
+    .maybeSingle();
+  if (!claimed) return { ok: false, error: "This search is still running. Try again when it's done." };
+
+  const built = await buildBriefFor(session, searchId, { keepEdits: true });
+  if (!built.ok) {
+    await supabase.from("searches").update({ status: "done", error: null }).eq("id", searchId).eq("status", "failed");
+    return { ok: false, error: "We couldn't update the details. Your results haven't changed; try again." };
+  }
+
+  const { error } = await supabase.from("searches").update({ status: "queued", error: null }).eq("id", searchId).eq("status", "review");
+  if (error) return { ok: false, error: "That didn't save. Try again." };
+  try {
+    await inngest.send({ name: SEARCH_CONFIRMED, data: { searchId, userId: session.userId, reuseGathered: !fresh } });
+  } catch (e) {
+    console.error("Starting the search job failed", e);
+    await supabase.from("searches").update({ status: "done" }).eq("id", searchId);
+    return { ok: false, error: "The update didn't start. Try again in a minute." };
+  }
+  await supabase.from("events").insert({ type: "search_started", search_id: searchId });
+  return { ok: true };
 }
 

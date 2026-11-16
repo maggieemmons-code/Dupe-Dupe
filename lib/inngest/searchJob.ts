@@ -803,7 +803,7 @@ export async function originalPhoto(path: string | null) {
 }
 
 const FIELD_KEYS = [
-  "brand", "style_name", "category", "color", "color_name", "fabrics", "weave", "fit_style", "neckline",
+  "brand", "style_name", "category", "color", "color_name", "composition", "fabrics", "weave", "fit_style", "neckline",
   "sleeve", "hem", "closure", "details", "retail_price", "budget",
 ];
 
