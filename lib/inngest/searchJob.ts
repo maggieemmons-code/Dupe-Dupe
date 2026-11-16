@@ -70,8 +70,10 @@ const MAX_PHRASINGS = 4;
  * put her Meshki Hilda at #1.
  */
 const CATALOG_PHOTOS = 2;
-const CATALOG_PHRASINGS = 2;
-const CATALOG_LIMIT = 50;
+// Only the photo and signature-detail searches: the plain look-alike phrasings mostly brought
+// cheap results (Nov 16). 30 a search, not 50.
+const CATALOG_PHRASINGS = 0;
+const CATALOG_LIMIT = 30;
 /**
  * Above the limit (Maggie, Nov 15: the Results price slider should reveal pieces above
  * her limit without a new search). Between the friend's limit and the original's price,
@@ -395,12 +397,18 @@ export const runSearch = inngest.createFunction(
         const k = `${r.source}|${r.query}`;
         byQuery.set(k, [...(byQuery.get(k) ?? []), r]);
       }
-      // Shopify's photo matches count as visual matches too.
-      const lists = [...byQuery.entries()].map(([k, rows]) => ({
-        rows,
-        take: k.startsWith("lens|") || k.startsWith("shopify|photo") ? 2 : 1,
-        at: 0,
-      }));
+      // Shopify's catalog shares ONE turn across all its searches (Maggie, Nov 16: it took 56% of
+      // screening places, crowding out the Lens and Shopping pieces that found her picks, while
+      // only 25% of what was shown came from it). Its searches take turns inside that one place.
+      const shopifyLists = [...byQuery.entries()].filter(([k]) => k.startsWith("shopify|")).map(([, rows]) => rows);
+      const shopifyMerged: typeof kept = [];
+      for (let i = 0; shopifyLists.some((l) => i < l.length); i++) for (const l of shopifyLists) if (i < l.length) shopifyMerged.push(l[i]);
+      const lists = [
+        ...[...byQuery.entries()]
+          .filter(([k]) => !k.startsWith("shopify|"))
+          .map(([k, rows]) => ({ rows, take: k.startsWith("lens|") ? 2 : 1, at: 0 })),
+        ...(shopifyMerged.length ? [{ rows: shopifyMerged, take: 1, at: 0 }] : []),
+      ];
       const order: string[] = [];
       while (order.length < kept.length) {
         for (const l of lists) for (let t = 0; t < l.take && l.at < l.rows.length; t++) order.push(l.rows[l.at++].id);

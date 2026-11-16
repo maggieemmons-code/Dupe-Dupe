@@ -233,3 +233,11 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - Maggie: "as more people opt to hide retailers, we should learn from what everyone hides to inform which retailers we should permanently hide." She chose to approve each one.
 - Migration 0012: `blocked_stores` (everyone signed in reads it, only the admin adds or removes) and `hidden_store_counts()`, which returns how many different friends hid each store (grouped loosely, "SHOP DDMINE" = "shop ddmine"), counts only and only for the admin.
 - Hidden stores page: Maggie sees "For everyone · Only you see this": stores hidden by 3+ friends (`FRIENDS_TO_SUGGEST`) with **Block for everyone**, and the blocked list with **Unblock**. Blocked stores are dropped in cleaning ("Blocked store") and left out of every friend's results at once. The fixed list in `lib/stores.ts` stays as it is.
+
+## Shopify's share of screening (Nov 16)
+
+- Maggie: "shopify's catalog is skewing the results… the smaller brands are not surfacing." Across her 6 searches since the catalog was added it took 56% of screening places (each catalog search was its own list in the turn-taking, 7–10 of them) but gave 25% of what was shown; Lens took 17% of places and gave 58% of results; 138 Shopping and 31 Lens pieces were never screened.
+- Fix: all catalog searches share one turn (one place per round, its searches taking turns inside it); the catalog keeps only photo and signature-detail searches (`CATALOG_PHRASINGS = 0`), 30 results each (`CATALOG_LIMIT`).
+- Re-run with `--reuse`: Amaya: catalog 21% of screening (42 of 200), every Lens piece screened, Shopping 87 places (was ~50); her three picks judged (Club L L67, Meshki L69, Selfie Leslie L46). Rosabella: Akira (L56) and Windsor (L60) judged; Dolls Kill never gathered by any source.
+- Of her list, H&M, Theory, Aritzia, Abercrombie, Revolve (Nookie), Rosier, Cult Mia and Babyboo aren't Shopify stores, so the catalog can't reach them; Lens and Shopping are what can.
+- Seen in passing: an Amazon "Real Fox Fur" leather jacket at $10 (Amazon's search price, likely a variant or add-on price). Not looked into yet.
