@@ -14,6 +14,7 @@ import {
 import { fetchPages } from "@/lib/server/tinyfish";
 import { catalogSearch, catalogLookup } from "@/lib/server/shopifyCatalog";
 import { detailPhrases } from "@/lib/search/catalogPhrases";
+import { pickStoreSearches, type StoreHit } from "@/lib/search/storeTally";
 import { usefulPageText } from "@/lib/search/listingText";
 import { usdPriceFromPage } from "@/lib/server/price";
 import { shopifyAvailable, shopifyPriceUsd, pageAvailable, offersAvailable } from "@/lib/server/stock";
@@ -57,7 +58,8 @@ const LENS_PHOTOS = 2;
  * Friends' own favorite stores can take this over in phase 7.
  */
 const MAX_PHRASINGS = 4;
-const STORE_SEARCHES = ["Revolve", "Nordstrom"];
+// The two store-scoped searches come from the friend's own best stores (lib/search/storeTally.ts),
+// with Revolve and Nordstrom until there's enough history.
 /**
  * Shopify's catalog (free, no SerpApi): by photo, and by one phrasing per signature
  * detail. Plain phrasings drown in cheap results; naming the detail found Maggie's
@@ -91,6 +93,8 @@ type Ctx = {
   photoPaths: string[];
   lensHint: string;
   lookAlike: string[];
+  /** Stores whose names scope two Shopping searches: the friend's best, learned (storeTally.ts). */
+  storeSearches: string[];
   /** Shopify catalog phrasings: color + one signature detail + the garment word. */
   detailPhrases: string[];
   budget: number | null;
@@ -192,6 +196,7 @@ export const runSearch = inngest.createFunction(
         lensHint: (q.lens_hint || fallback).slice(0, 80),
         lookAlike: (q.look_alike ?? []).filter(Boolean).length ? q.look_alike!.filter(Boolean) : [fallback || searchName(s)],
         detailPhrases: detailPhrases(s, (q.look_alike ?? []).filter(Boolean)),
+        storeSearches: pickStoreSearches(await storeHits(db, userId)),
         budget: s.budget ?? null,
         ceiling: s.budget != null && s.retail_price != null && s.retail_price > s.budget ? s.retail_price : (s.budget ?? null),
         priceFloor: lowEnd({ budget_min: s.budget_min ?? null }),
@@ -300,7 +305,7 @@ export const runSearch = inngest.createFunction(
       ...ctx.lookAlike
         .slice(0, MAX_PHRASINGS)
         .map((q, i) => gather(`shopping-${i + 1}`, "Google Shopping", () => shoppingSearch(q, ctx.budget, ctx.priceFloor))),
-      ...STORE_SEARCHES.map((store) => {
+      ...ctx.storeSearches.map((store) => {
         // The shortest phrasing works best with a store name added.
         const q = [...ctx.lookAlike].sort((a, b) => a.length - b.length)[0];
         return gather(`shopping-${store.toLowerCase()}`, "Google Shopping", () =>
@@ -857,5 +862,19 @@ async function bumpProgress(searchId: string, key: string, by: number) {
 async function setProgress(searchId: string, values: Record<string, number>) {
   const { error } = await adminClient().rpc("set_search_progress", { p_search: searchId, p_values: values });
   if (error) console.error("progress", error.message);
+}
+
+/** The friend's own pieces that passed the judge, and the ones they clicked, for the store tally. */
+async function storeHits(db: ReturnType<typeof adminClient>, userId: string): Promise<StoreHit[]> {
+  const { data: passed } = await db
+    .from("candidates")
+    .select("id, store, search_id, query")
+    .eq("user_id", userId)
+    .in("verdict", ["approved", "caveat"])
+    .order("created_at", { ascending: false })
+    .limit(3000);
+  const { data: clicks } = await db.from("events").select("candidate_id").eq("user_id", userId).eq("type", "result_clicked").limit(2000);
+  const clicked = new Set((clicks ?? []).map((c) => c.candidate_id));
+  return (passed ?? []).map((p) => ({ store: p.store, search_id: p.search_id, clicked: clicked.has(p.id), query: p.query }));
 }
 
