@@ -12,11 +12,11 @@ import {
   type Gathered,
 } from "@/lib/server/serpapi";
 import { fetchPages } from "@/lib/server/tinyfish";
-import { catalogSearch } from "@/lib/server/shopifyCatalog";
+import { catalogSearch, catalogLookup } from "@/lib/server/shopifyCatalog";
 import { detailPhrases } from "@/lib/search/catalogPhrases";
 import { usefulPageText } from "@/lib/search/listingText";
 import { usdPriceFromPage } from "@/lib/server/price";
-import { shopifyAvailable, pageAvailable, offersAvailable } from "@/lib/server/stock";
+import { shopifyAvailable, shopifyPriceUsd, pageAvailable, offersAvailable } from "@/lib/server/stock";
 import { runJudge, type JudgeCandidate } from "@/lib/agents/judge";
 import { score, type AnchorDef, type Weights } from "@/lib/search/score";
 import { anchorKind } from "@/lib/search/anchorKind";
@@ -567,6 +567,41 @@ export const runSearch = inngest.createFunction(
           await logJobCall({ userId, searchId, service: "tinyfish", stage: "enrich", ok: false, error: String(e) });
         }
       }
+      // Still no price (Google Lens matches): Shopify's catalog, then the store's own Shopify
+      // data, both free and in US dollars. Anything still unpriced isn't shown (Maggie, Nov 15:
+      // "Price at store" cards were mostly over her limit).
+      const { data: unpriced } = await db
+        .from("candidates")
+        .select("id, link, store_link")
+        .in("id", picks.map((p) => p.id))
+        .is("price", null)
+        .is("drop_reason", null);
+      if (unpriced?.length) {
+        const urlOf = (r: { link: string; store_link: string | null }) => r.store_link ?? r.link;
+        const known = await catalogLookup(unpriced.map(urlOf)).catch(() => []);
+        await Promise.all(
+          unpriced.map(async (r) => {
+            const url = urlOf(r);
+            const price = known.find((k) => samePage(k.url, url))?.price ?? (await shopifyPriceUsd(url));
+            if (price == null) {
+              await db.from("candidates").update({ drop_reason: "No price found" }).eq("id", r.id);
+              return;
+            }
+            await db
+              .from("candidates")
+              .update({
+                price,
+                price_is_estimate: false,
+                price_checked_at: new Date().toISOString(),
+                ...(ctx.ceiling && price > ctx.ceiling ? { drop_reason: "Over budget" } : {}),
+                ...(ctx.retailPrice && price >= ctx.retailPrice ? { drop_reason: "Costs as much as the original" } : {}),
+                ...(ctx.priceFloor && price < ctx.priceFloor ? { drop_reason: "Under the price floor" } : {}),
+              })
+              .eq("id", r.id);
+          }),
+        );
+      }
+
       const soldOut = [...stock].filter(([, a]) => a === false).map(([id]) => id);
       const inStock = [...stock].filter(([, a]) => a === true).map(([id]) => id);
       if (soldOut.length) await db.from("candidates").update({ availability: "sold_out", drop_reason: "Sold out" }).in("id", soldOut);
@@ -784,5 +819,16 @@ function above(ctx: { budget: number | null; ceiling: number | null }) {
 /** A piece priced above the friend's limit (no price counts as in range, as on Results). */
 function isAbove(price: number | null | undefined, ctx: { budget: number | null }) {
   return price != null && ctx.budget != null && price > ctx.budget;
+}
+
+/** The same product page: host (without www) and path, ignoring query strings. */
+function samePage(a: string, b: string) {
+  try {
+    const x = new URL(a);
+    const y = new URL(b);
+    return x.hostname.replace(/^www\./, "") === y.hostname.replace(/^www\./, "") && x.pathname.replace(/\/$/, "") === y.pathname.replace(/\/$/, "");
+  } catch {
+    return false;
+  }
 }
 

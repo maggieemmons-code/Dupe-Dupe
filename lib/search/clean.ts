@@ -52,7 +52,7 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
 
   function dropReason(r: CleanRow): string | null {
     if (isNotAStore(r.store_domain, r.store)) return "Not a store";
-    if (isRental(r.store_domain, r.store, r.title)) return "Rental, not for sale";
+    if (isRental(r.store_domain, r.store, r.title, r.link)) return "Rental, not for sale";
     // Every store is allowed unless blocked (lib/stores.ts).
     if (vetStore(r.store, r.store_domain) === "blocked") return "Blocked store";
     if (hidden.some((h) => norm(r.store).includes(h) || norm(r.store_domain).includes(h))) return "Hidden store";
@@ -163,7 +163,7 @@ function isSameBrand(r: CleanRow, ctx: CleanContext) {
 /** Pre-owned listings belong in secondhand (phase 5), not new dupes. */
 const RESALE_WORDS = /\b(pre[- ]?owned|pre[- ]?loved|second[- ]?hand|consignment|gently used|used condition)\b|\bsave \d+%/i;
 
-const FOREIGN_TLD = /\.(jp|cn|kr|tw|ru|in|sa|ae|qa|kw|do|br|mx|tr|id|th|vn|hk|my|ph|pk|eg)$/;
+const FOREIGN_TLD = /\.(jp|cn|kr|tw|ru|in|sa|ae|qa|kw|do|br|mx|tr|id|th|vn|hk|my|ph|pk|eg|gr|mt|na|au|nz|za|pl|cz|ro|hu|bg|cl|ar|pe|ec|il|sg|mo)$/;
 const FOREIGN_NAME = /\b(ksa|uae|saudi|dominican republic|india|japan|korea|mexico|brazil|turkey|qatar|kuwait|egypt|nykaa|myntra|ajio|namshi|rakuten|ecuador|ubuy|trenbe|peru|chile|colombia|argentina)\b/i;
 /** Letters from scripts other than Latin: a storefront for another country. */
 const NON_LATIN = /[\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/;

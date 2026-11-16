@@ -478,7 +478,7 @@ const NOT_A_STORE = [
   "wikipedia", "tumblr", "weheartit",
   // Link sites that send shoppers to other stores and don't sell anything themselves (Maggie, Nov 15)
   "editorialist", "lyst", "modesens", "shopstyle", "fashiola", "stylemi", "lovethesales", "clothbase", "shopmy",
-  "glamiris", "spottedfashion", "wheretoget",
+  "glamiris", "spottedfashion", "wheretoget", "shoplook",
 ];
 
 function kindFor(domain: string, store: string): "new" | "secondhand" {
@@ -486,9 +486,18 @@ function kindFor(domain: string, store: string): "new" | "secondhand" {
   return SECONDHAND.some((s) => hay.includes(s)) ? "secondhand" : "new";
 }
 
-export function isRental(domain: string, store: string, title: string) {
+export function isRental(domain: string, store: string, title: string, link = "") {
   const hay = `${domain} ${store} ${title}`.toLowerCase();
-  return RENTAL.some((s) => hay.includes(s)) || /\brent(al)?\b/.test(title.toLowerCase());
+  // "dress-hire" in the address (Nov 15: ONS Boutique's hire gowns showed as dupes).
+  return RENTAL.some((s) => hay.includes(s)) || /\brent(al)?\b/.test(title.toLowerCase()) || /\b(hire|rental|rent)\b/.test(pathOf(link));
+}
+
+function pathOf(u: string) {
+  try {
+    return new URL(u).pathname.toLowerCase().replace(/[-_/]+/g, " ");
+  } catch {
+    return "";
+  }
 }
 
 export function isNotAStore(domain: string, store: string) {

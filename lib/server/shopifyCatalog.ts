@@ -107,8 +107,8 @@ export async function catalogSearch(s: CatalogSearch, label: string): Promise<Ga
   return products.map((p, i) => toGathered(p, i + 1, label)).filter((g): g is Gathered => g !== null);
 }
 
-/** Which of these product links Shopify's catalog knows (for the probe). Returns the matched links. */
-export async function catalogLookup(urls: string[], profile?: string): Promise<{ url: string; title: string }[]> {
+/** Which of these product links Shopify's catalog knows, with the price in US dollars when it gives one. */
+export async function catalogLookup(urls: string[], profile?: string): Promise<{ url: string; title: string; price: number | null }[]> {
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -124,10 +124,14 @@ export async function catalogLookup(urls: string[], profile?: string): Promise<{
     signal: AbortSignal.timeout(45_000),
   });
   const body = (await res.json().catch(() => ({}))) as { result?: { structuredContent?: { products?: Product[] } } };
-  return (body.result?.structuredContent?.products ?? []).map((p) => ({
-    url: p.variants?.[0]?.url ?? p.url ?? "",
-    title: p.title ?? "",
-  }));
+  return (body.result?.structuredContent?.products ?? []).map((p) => {
+    const money = p.variants?.[0]?.price ?? p.price_range?.min;
+    return {
+      url: p.variants?.[0]?.url ?? p.url ?? "",
+      title: p.title ?? "",
+      price: money?.currency === "USD" && typeof money.amount === "number" ? money.amount / 100 : null,
+    };
+  });
 }
 
 function toGathered(p: Product, position: number, label: string): Gathered | null {

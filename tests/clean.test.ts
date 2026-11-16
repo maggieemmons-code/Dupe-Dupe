@@ -139,3 +139,16 @@ test("one style name at the same price merges", () => {
   const out = cleanCandidates([a, b], { ...ctx, budget: 300, priceFloor: null });
   assert.ok(out.some((x) => x.duplicate_of));
 });
+
+// Nov 15: no-price cards that slipped through (NOTES.md › No-price cards).
+test("rentals by address, link sites and more foreign storefronts are dropped", () => {
+  assert.equal(
+    reason(row({ price: null, source: "lens", store: "ONS Boutique", store_domain: "onsboutique.com.au", title: "Nookie - Majesty Gown", link: "https://onsboutique.com.au/nookie-dress-hire/majesty-gown" })),
+    "Rental, not for sale",
+  );
+  assert.equal(reason(row({ price: null, source: "lens", store: "ShopLook", store_domain: "shoplook.io", title: "Tapata Womens Bodysuit" })), "Not a store");
+  assert.equal(reason(row({ price: null, source: "lens", store: "Celestino", store_domain: "celestino.gr", title: "Bodysuit shirt in white" })), "Store outside the US");
+  assert.equal(reason(row({ price: null, source: "lens", store: "Skroutz", store_domain: "skroutz.mt", title: "Dress" })), "Store outside the US");
+  assert.equal(reason(row({ price: 120, store: "Hire Street", store_domain: "hirestreetstore.com", title: "Linen shirt", link: "https://hirestreetstore.com/products/linen-shirt" })), null);
+});
+
