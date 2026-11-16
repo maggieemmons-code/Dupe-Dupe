@@ -67,6 +67,16 @@ const STORE_SEARCHES = ["Revolve", "Nordstrom"];
 const CATALOG_PHOTOS = 2;
 const CATALOG_PHRASINGS = 2;
 const CATALOG_LIMIT = 50;
+/**
+ * Above the limit (Maggie, Nov 15: the Results price slider should reveal pieces above
+ * her limit without a new search). Between the friend's limit and the original's price,
+ * one Google Shopping search (1 SerpApi search) and Shopify's catalog (free) gather more;
+ * Lens and Amazon matches above the limit are kept instead of dropped. Pieces in range
+ * are screened and judged first; then the best this many above the limit.
+ */
+const ABOVE_LIMIT_JUDGED = 8;
+/** Screening places kept for pieces above the limit (2 batches), when there are that many. */
+const ABOVE_LIMIT_SCREENED = 40;
 const BATCH = 20;
 const MAX_BATCHES = 10;
 /** Paid product lookups (1 SerpApi search each) per search, for the top picks (Maggie, Nov 15: top picks, open to upgrading). */
@@ -84,6 +94,8 @@ type Ctx = {
   /** Shopify catalog phrasings: color + one signature detail + the garment word. */
   detailPhrases: string[];
   budget: number | null;
+  /** The most anything gathered may cost: the original's price when it's above the limit (else the limit). */
+  ceiling: number | null;
   priceFloor: number | null;
   brand: string;
   styleName: string;
@@ -178,6 +190,7 @@ export const runSearch = inngest.createFunction(
         lookAlike: (q.look_alike ?? []).filter(Boolean).length ? q.look_alike!.filter(Boolean) : [fallback || searchName(s)],
         detailPhrases: detailPhrases(s, (q.look_alike ?? []).filter(Boolean)),
         budget: s.budget ?? null,
+        ceiling: s.budget != null && s.retail_price != null && s.retail_price > s.budget ? s.retail_price : (s.budget ?? null),
         priceFloor: lowEnd({ budget_min: s.budget_min ?? null }),
         brand: s.brand ?? "",
         styleName: s.style_name ?? "",
@@ -242,6 +255,31 @@ export const runSearch = inngest.createFunction(
           "shopify",
         ),
       ),
+      // Above the limit, up to the original's price: the first photo and two detail phrasings.
+      ...(above(ctx)
+        ? [
+            ...ctx.photoPaths.slice(0, 1).map((path) =>
+              gather(
+                "shopify-above-photo",
+                "Shopify",
+                async () => {
+                  const image = await catalogPhoto(path);
+                  if (!image) return [];
+                  return catalogSearch({ image, minPrice: ctx.budget, maxPrice: ctx.ceiling, limit: CATALOG_LIMIT }, "photo, above limit");
+                },
+                "shopify",
+              ),
+            ),
+            ...(ctx.detailPhrases.length ? ctx.detailPhrases : ctx.lookAlike).slice(0, 2).map((q, i) =>
+              gather(
+                `shopify-above-words-${i + 1}`,
+                "Shopify",
+                () => catalogSearch({ query: q, minPrice: ctx.budget, maxPrice: ctx.ceiling, limit: CATALOG_LIMIT }, `${q} (above limit)`),
+                "shopify",
+              ),
+            ),
+          ]
+        : []),
     ];
 
     const sources = reuseGathered ? await Promise.all(catalogSources) : await Promise.all([
@@ -264,7 +302,18 @@ export const runSearch = inngest.createFunction(
           shoppingSearch(`${q} ${store.toLowerCase()}`, ctx.budget, ctx.priceFloor),
         );
       }),
-      gather("amazon", "Amazon", () => amazonSearch(ctx.lookAlike[0], ctx.budget, ctx.priceFloor)),
+      // Amazon's price filter is applied in code, so keeping up to the ceiling loses nothing in range.
+      gather("amazon", "Amazon", () => amazonSearch(ctx.lookAlike[0], ctx.ceiling, ctx.priceFloor)),
+      // One Shopping search between the limit and the original's price (the others stay in range).
+      ...(above(ctx)
+        ? [
+            gather("shopping-above", "Google Shopping", () =>
+              shoppingSearch(`${ctx.lookAlike[0]}`, ctx.ceiling, ctx.budget).then((items) =>
+                items.map((it) => ({ ...it, query: `${it.query} (above limit)` })),
+              ),
+            ),
+          ]
+        : []),
     ]);
 
     const missing = [...new Set(sources.filter((s) => s?.failed).map((s) => s!.label))];
@@ -279,7 +328,8 @@ export const runSearch = inngest.createFunction(
         .eq("user_id", userId);
       const all = (rows ?? []) as (CleanRow & { position: number | null; query: string })[];
       const results = cleanCandidates(all, {
-        budget: ctx.budget,
+        // Pieces above the limit are kept (up to the original's price) for the price slider.
+        budget: ctx.ceiling,
         priceFloor: ctx.priceFloor,
         retailPrice: ctx.retailPrice,
         brand: ctx.brand,
@@ -322,7 +372,14 @@ export const runSearch = inngest.createFunction(
       while (order.length < kept.length) {
         for (const l of lists) for (let t = 0; t < l.take && l.at < l.rows.length; t++) order.push(l.rows[l.at++].id);
       }
-      return order.slice(0, BATCH * MAX_BATCHES);
+      // In range first, then above the limit (same turn-taking order within each). Pieces above
+      // the limit keep a few places, or the in-range ones fill every batch and none get screened.
+      const over = new Set(kept.filter((r) => isAbove(r.price, ctx)).map((r) => r.id));
+      const inRange = order.filter((id) => !over.has(id));
+      const aboveLimit = order.filter((id) => over.has(id));
+      const room = BATCH * MAX_BATCHES;
+      const aboveTake = Math.min(aboveLimit.length, Math.max(ABOVE_LIMIT_SCREENED, room - inRange.length));
+      return [...inRange.slice(0, room - aboveTake), ...aboveLimit.slice(0, aboveTake)];
     });
 
     /*
@@ -360,6 +417,7 @@ export const runSearch = inngest.createFunction(
                 order: b * BATCH + p.n,
                 priced: ordered[p.n - 1].price != null,
                 lens: ordered[p.n - 1].source === "lens",
+                above: isAbove(ordered[p.n - 1].price, ctx),
               }));
             } catch (e) {
               await logJobCall({ userId, searchId, service: "claude", stage: "screen", ok: false, error: String(e) });
@@ -372,11 +430,15 @@ export const runSearch = inngest.createFunction(
     ).flat();
 
     const picked = await step.run("screen-pick", async () => {
-      const best = ratings
+      const ranked = ratings
         .filter((r) => r.score >= MIN_SCREEN_SCORE)
         // Ties: priced pieces first (a friend can see they're within reach), then Lens's visual matches.
-        .sort((a, b) => b.score - a.score || Number(b.priced) - Number(a.priced) || Number(b.lens) - Number(a.lens) || a.order - b.order)
-        .slice(0, MAX_RESULTS);
+        .sort((a, b) => b.score - a.score || Number(b.priced) - Number(a.priced) || Number(b.lens) - Number(a.lens) || a.order - b.order);
+      // In range first; then the best few above the limit, judged last (for the price slider).
+      const best = [
+        ...ranked.filter((r) => !r.above).slice(0, MAX_RESULTS),
+        ...ranked.filter((r) => r.above).slice(0, ABOVE_LIMIT_JUDGED),
+      ];
       for (const [i, r] of best.entries()) {
         await db
           .from("candidates")
@@ -486,7 +548,7 @@ export const runSearch = inngest.createFunction(
                     price: pagePrice,
                     price_is_estimate: false,
                     price_checked_at: new Date().toISOString(),
-                    ...(ctx.budget && pagePrice > ctx.budget ? { drop_reason: "Over budget" } : {}),
+                    ...(ctx.ceiling && pagePrice > ctx.ceiling ? { drop_reason: "Over budget" } : {}),
                     ...(ctx.priceFloor && pagePrice < ctx.priceFloor ? { drop_reason: "Under the price floor" } : {}),
                   }
                 : {};
@@ -612,6 +674,8 @@ export const runSearch = inngest.createFunction(
         .eq("stage", "judged")
         .neq("verdict", "rejected")
         .is("drop_reason", null)
+        // Only pieces in range: the stock check can cost SerpApi searches.
+        .or(ctx.budget != null ? `price.is.null,price.lte.${ctx.budget}` : "price.is.null,price.gte.0")
         .order("look_score", { ascending: false })
         .limit(10);
       const unsure = (top ?? []).filter((c) => c.availability !== "in_stock" && c.source !== "amazon");
@@ -711,3 +775,14 @@ async function catalogPhoto(path: string) {
     .toBuffer();
   return { data: buf, contentType: "image/jpeg" };
 }
+
+/** Whether this search gathers above the friend's limit (a limit is set and the original costs more). */
+function above(ctx: { budget: number | null; ceiling: number | null }) {
+  return ctx.budget != null && ctx.ceiling != null && ctx.ceiling > ctx.budget;
+}
+
+/** A piece priced above the friend's limit (no price counts as in range, as on Results). */
+function isAbove(price: number | null | undefined, ctx: { budget: number | null }) {
+  return price != null && ctx.budget != null && price > ctx.budget;
+}
+

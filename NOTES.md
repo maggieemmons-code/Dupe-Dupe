@@ -159,3 +159,11 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - `api_calls` needs migration 0009 to accept `shopify`; until it runs, those rows fail quietly (logged to the console) and searches are unaffected.
 
 - **Gotcha, Nov 15:** Shopify refused the first live profile with "profile_malformed: Missing payment handlers". The profile needs `"payment_handlers": {}` even though Dupe Dupe never pays (Shopify's example has it). Until the profile is accepted, the catalog step fails, retries once and the search goes on without it ("Shopify" in missing sources). Check a profile with: `curl -s -X POST https://catalog.shopify.com/api/ucp/mcp -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"tools/call","id":1,"params":{"name":"search_catalog","arguments":{"meta":{"ucp-agent":{"profile":"https://dupe-dupe.vercel.app/ucp/agent.json"}},"catalog":{"query":"dress","pagination":{"limit":1}}}}}'`.
+
+## Above the limit (Nov 15)
+
+- Maggie: the price slider "seems like a low lift", added before AliExpress. Results already had the slider and the "N more dupes up to $X. Raise your limit" note (phase 4); the search now feeds it.
+- `ctx.ceiling` = the original's price when it's above the limit. Gathering up to it: Amazon (filtered in code, so nothing in range is lost), one extra Shopping search (`shopping-above`, 1 SerpApi search, min = limit), and Shopify's catalog (`shopify-above-*`, free). The regular Shopping searches stay in range so their in-range yield doesn't drop. Cleaning uses the ceiling, so Lens and Amazon matches above the limit are kept.
+- Screening: in range first, then above; 40 places kept for above-limit pieces (`ABOVE_LIMIT_SCREENED`) or the in-range ones fill all 200 and none are screened (first try: 112 above-limit pieces "Not screened"). Best 8 above the limit (`ABOVE_LIMIT_JUDGED`) are judged after the in-range 45. Lookups go by screen rank, so they rarely reach them; the stock check skips them (it can cost SerpApi).
+- First run (Amaya, `--reuse`, so the paid Shopping-above search didn't run): 40 above-limit screened, 2 rated 3/5+, 1 judged (House of CB Persephone, $329, L51), 1 sold out. All three of her picks still judged (Club L #3, L76).
+
