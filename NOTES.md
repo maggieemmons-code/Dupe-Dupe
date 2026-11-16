@@ -167,3 +167,8 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - Screening: in range first, then above; 40 places kept for above-limit pieces (`ABOVE_LIMIT_SCREENED`) or the in-range ones fill all 200 and none are screened (first try: 112 above-limit pieces "Not screened"). Best 8 above the limit (`ABOVE_LIMIT_JUDGED`) are judged after the in-range 45. Lookups go by screen rank, so they rarely reach them; the stock check skips them (it can cost SerpApi).
 - First run (Amaya, `--reuse`, so the paid Shopping-above search didn't run): 40 above-limit screened, 2 rated 3/5+, 1 judged (House of CB Persephone, $329, L51), 1 sold out. All three of her picks still judged (Club L #3, L76).
 
+
+## AliExpress findings (Nov 15, before building)
+
+- Google Shopping with "aliexpress" added to the words returned nothing ("Google hasn't returned any results"). A regular Google search (`engine=google`) with `site:aliexpress.us <phrasing>` returned 31 AliExpress listings in `shopping_results`, each with a price and a Google `/goto` link that redirects to the listing (free to follow), so no per-pick SerpApi lookup is needed (`PLAN.md` › AliExpress assumed 1 each).
+- TinyFish reads AliExpress listing pages: on a Lens-found faux leather coat it read "96.2% Positive Feedback", "1126 Followers" and "No review · 6 sold". Only 1 AliExpress item link had ever been gathered (by Lens) before.
