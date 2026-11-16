@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/server/session";
 import { signedPhotoUrls } from "@/lib/server/photos";
 import { searchName, type SearchRow } from "@/lib/searches";
-import { CANDIDATE_FIELDS, money, imageSource, ago, type CandidateRow } from "@/lib/candidates";
+import { CANDIDATE_FIELDS, money, imageSource, ago, sizeStatus, type CandidateRow } from "@/lib/candidates";
 import { breakdown, type AnchorDef } from "@/lib/search/score";
 import { loadTaste } from "@/lib/server/taste";
 import { tasteWeights } from "@/lib/taste";
@@ -34,7 +34,8 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
   const savings = search.retail_price != null && item.price != null ? search.retail_price - item.price : null;
   const onSale = item.old_price != null && item.price != null && item.old_price > item.price;
   const storeLabel = `Shop at ${item.store}`;
-  const detailsSummary = [item.fabric_evidence ? "Fabric listed" : "Fabric not listed", "Size not checked", item.delivery]
+  const size = sizeStatus(item, search.sizes ?? []);
+  const detailsSummary = [item.fabric_evidence ? "Fabric listed" : "Fabric not listed", size.short, item.delivery]
     .filter(Boolean)
     .join(" · ");
   const anchors = ((search.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id);
@@ -190,7 +191,7 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
           </div>
           <div>
             <dt>Size</dt>
-            <dd>Not checked yet. Check your size at the store.</dd>
+            <dd>{size.long}</dd>
           </div>
           {item.delivery && (
             <div>

@@ -60,3 +60,18 @@ export function ago(iso: string | null) {
   if (hrs < 48) return `${hrs} hr${hrs === 1 ? "" : "s"} ago`;
   return `${Math.round(hrs / 24)} days ago`;
 }
+
+/**
+ * The size line on cards and Item detail (Nov 15 review: every card said "Size not
+ * checked" even when the judge had read the sizes). The judge answers yes only when
+ * the listing shows one of the friend's sizes in stock, no when it says they're gone.
+ */
+export function sizeStatus(c: Pick<CandidateRow, "checklist" | "availability">, sizes: string[]) {
+  const mine = sizes.filter(Boolean).join(" / ");
+  const answer = c.checklist?.size_available;
+  if (answer === "yes") return { inStock: true, short: mine ? `Size ${mine} in stock` : "Your size in stock", long: `${mine ? `Size ${mine}` : "Your size"} is in stock, going by the listing.` };
+  if (answer === "no") return { inStock: false, short: mine ? `${mine} sold out or not made` : "Not in your size", long: `The listing shows ${mine ? `size ${mine}` : "your size"} sold out or not made.` };
+  if (c.availability === "in_stock") return { inStock: true, short: "In stock · size not checked", long: "In stock when we checked. The listing didn't show your size; check it at the store." };
+  return { inStock: false, short: "Stock not checked", long: "Not checked. Check your size at the store." };
+}
+

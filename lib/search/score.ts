@@ -159,6 +159,7 @@ export function score(c: Checklist, anchors: AnchorDef[], w: Weights = WEIGHTS, 
   if (c.fabric_tier === "acceptable_swap") notes.push(c.fabric_evidence ? `${shortFabric(c.fabric_evidence)}, not the original fabric` : "Different fabric");
   if (c.fabric_tier === "unknown") notes.push("Fabric not listed");
   if (c.polish === "looks_cheap") notes.push("May look less polished");
+  if (c.size_available === "no") notes.push("Not in your size");
   // Without a price it can't be approved: the friend can't tell it's within reach.
   if (opts.price === null) notes.push("Price at store");
   // Size unknown is shown on every card's size line ("Size not checked"), so it isn't repeated here.

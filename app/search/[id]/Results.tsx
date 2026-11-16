@@ -9,7 +9,7 @@ import { confirmSearch, saveChoices } from "./actions";
 import PriceRange from "./PriceRange";
 import { createClient } from "@/lib/supabase/client";
 import { searchName, type SearchRow } from "@/lib/searches";
-import { money, imageSource, type CandidateRow } from "@/lib/candidates";
+import { money, imageSource, sizeStatus, type CandidateRow } from "@/lib/candidates";
 import { lowEnd, sliderMax } from "@/lib/search/priceFloor";
 import { progressOf, clock } from "@/lib/search/progress";
 import styles from "./results.module.css";
@@ -241,7 +241,7 @@ export default function Results({
         <ul className={styles.grid}>
           {items.map((c) => (
             <li key={c.id}>
-              <Card c={c} />
+              <Card c={c} sizes={search.sizes ?? []} />
             </li>
           ))}
         </ul>
@@ -266,7 +266,7 @@ export default function Results({
           <ul className={styles.grid}>
             {misses.map((c) => (
               <li key={c.id}>
-                <Card c={c} />
+                <Card c={c} sizes={search.sizes ?? []} />
               </li>
             ))}
           </ul>
@@ -277,7 +277,8 @@ export default function Results({
   );
 }
 
-function Card({ c }: { c: CandidateRow }) {
+function Card({ c, sizes }: { c: CandidateRow; sizes: string[] }) {
+  const size = sizeStatus(c, sizes);
   const onSale = c.old_price != null && c.price != null && c.old_price > c.price;
   return (
     <Link href={`/search/${c.search_id}/item/${c.id}`} className={styles.card}>
@@ -330,8 +331,8 @@ function Card({ c }: { c: CandidateRow }) {
           </span>
         )}
         <span className={styles.sizeLine}>
-          <span className={c.availability === "in_stock" ? styles.sizeDot : styles.sizeDotHollow} aria-hidden="true" />
-          {c.availability === "in_stock" ? "In stock · size not checked" : "Stock not checked"}
+          <span className={size.inStock ? styles.sizeDot : styles.sizeDotHollow} aria-hidden="true" />
+          {size.short}
         </span>
         {c.verdict === "rejected" && c.judge_note && <span className={styles.caveat}>{c.judge_note}</span>}
         {c.verdict === "caveat" && c.caveat && (
