@@ -439,3 +439,36 @@ a.tile {
   text-decoration: none;
   cursor: pointer;
 }
+
+/* Maggie only: block for everyone (Nov 16) */
+.admin {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--ink);
+  border-radius: 16px;
+  font-size: 13px;
+}
+
+.admin p {
+  margin: 0;
+}
+
+.adminTag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.adminReasons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+

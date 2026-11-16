@@ -14,6 +14,8 @@ import { tasteWeights } from "@/lib/taste";
 import { isHiddenStore } from "@/lib/hiddenStores";
 import { hiddenStoresFor } from "@/lib/server/hiddenStores";
 import HideStore from "./HideStore";
+import AdminBlock from "./AdminBlock";
+import { blockedStores } from "@/lib/server/blockedStores";
 import RateControls, { type SavedRating } from "@/app/ratings/RateControls";
 import styles from "./detail.module.css";
 import ui from "../../../../ui.module.css";
@@ -46,6 +48,10 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
   const anchors = ((search.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id);
   const weights = tasteWeights(await loadTaste(session.supabase as never, session.userId));
   const storeHidden = isHiddenStore(item, await hiddenStoresFor(session));
+  // Maggie only: block this store for everyone (e.g. an AliExpress dropshipper).
+  const { data: me } = await session.supabase.from("profiles").select("is_admin").eq("id", session.userId).maybeSingle();
+  const admin = !!me?.is_admin;
+  const storeBlocked = admin && isHiddenStore(item, await blockedStores(session.supabase));
   const { data: rated } = await session.supabase.from("ratings").select("vote, reason, scope, bought").eq("candidate_id", cid).maybeSingle();
   const rating = rated ? ({ vote: rated.vote, reason: rated.reason, scope: rated.scope, bought: rated.bought } as SavedRating) : null;
   const b = item.checklist ? breakdown(item.checklist, anchors, weights) : null;
@@ -108,6 +114,7 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
           </span>
         )}
         <HideStore candidateId={item.id} store={item.store} searchId={id} hidden={storeHidden} />
+        {admin && <AdminBlock candidateId={item.id} store={item.store} blocked={storeBlocked} />}
       </section>
 
       {/* Verdict and caveat */}

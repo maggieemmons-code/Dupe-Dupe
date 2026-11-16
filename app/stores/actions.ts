@@ -43,13 +43,37 @@ async function isAdmin() {
   return data?.is_admin ? session : null;
 }
 
-/** Maggie approves: block a store for everyone (several friends hid it). */
-export async function blockForEveryone(store: { name: string; domain: string; friends: number }): Promise<Result> {
+/** Maggie approves: block a store for everyone (several friends hid it, or she flagged it). */
+export async function blockForEveryone(store: { name: string; domain: string; friends: number; reason?: string }): Promise<Result> {
   const session = await isAdmin();
   if (!session) return { ok: false, error: "Only Maggie can block a store for everyone." };
-  const { error } = await session.supabase
-    .from("blocked_stores")
-    .upsert({ name: store.name.trim(), domain: store.domain ?? "", friends: store.friends }, { onConflict: "name", ignoreDuplicates: true });
+  const row = { name: store.name.trim(), domain: (store.domain ?? "").replace(/^www\./, ""), friends: store.friends, reason: (store.reason ?? "").slice(0, 60) };
+  let { error } = await session.supabase.from("blocked_stores").upsert(row, { onConflict: "name", ignoreDuplicates: true });
+  // Before migration 0014 there's no reason column: block without it.
+  if (error && /reason/.test(error.message)) {
+    const { reason: _drop, ...noReason } = row;
+    void _drop;
+    ({ error } = await session.supabase.from("blocked_stores").upsert(noReason, { onConflict: "name", ignoreDuplicates: true }));
+  }
+  return error ? { ok: false, error: "That didn't save. Try again." } : { ok: true };
+}
+
+/** Maggie, from a result: block its store for everyone, with a reason such as "AliExpress dropship". */
+export async function blockStoreOf(candidateId: string, reason: string): Promise<Result> {
+  const session = await isAdmin();
+  if (!session) return { ok: false, error: "Only Maggie can block a store for everyone." };
+  const { data: c } = await session.supabase.from("candidates").select("store, store_domain").eq("id", candidateId).maybeSingle();
+  if (!c?.store) return { ok: false, error: "This result wasn't found." };
+  return blockForEveryone({ name: c.store, domain: c.store_domain ?? "", friends: 0, reason });
+}
+
+/** Maggie: undo a block made from a result (by the store's name). */
+export async function unblockStoreOf(candidateId: string): Promise<Result> {
+  const session = await isAdmin();
+  if (!session) return { ok: false, error: "Only Maggie can unblock a store." };
+  const { data: c } = await session.supabase.from("candidates").select("store").eq("id", candidateId).maybeSingle();
+  if (!c?.store) return { ok: false, error: "This result wasn't found." };
+  const { error } = await session.supabase.from("blocked_stores").delete().eq("name", c.store.trim());
   return error ? { ok: false, error: "That didn't save. Try again." } : { ok: true };
 }
 

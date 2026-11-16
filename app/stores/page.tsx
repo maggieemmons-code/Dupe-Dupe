@@ -82,7 +82,9 @@ async function ForEveryone() {
               <li key={b.id} className={styles.row}>
                 <span className={styles.name}>
                   {b.name}
-                  {b.domain && <span className={styles.domain}>{b.domain}</span>}
+                  <span className={styles.domain}>
+                    {[b.domain, b.reason || (b.friends ? `Hidden by ${b.friends} friends` : "")].filter(Boolean).join(" · ")}
+                  </span>
                 </span>
                 <StoreButton unblock={{ id: b.id, name: b.name }} />
               </li>

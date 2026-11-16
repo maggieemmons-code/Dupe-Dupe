@@ -255,3 +255,8 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 
 - **Several reasons (Nov 16):** Maggie: "select multiple choices for what works and what doesn't work." Reasons are multi-select on cards, Item detail and Swipe (Swipe saves on each tap; Done shrinks the pop-up). Saved in `reason` joined by "; "; each reason nudges its own weight once; `judge_answer` is JSON (reason → the judge's answer), older single answers still read. The agreement report counts each reason on its own. 11 ratings existed when this shipped.
 - Third friend invited: baejenny824@gmail.com (added to `invites`, Nov 16).
+
+## Flagging AliExpress dropshippers (Nov 16)
+
+- Maggie: "can I flag something as dropship from Aliexpress… I found like 5 options that were clearly Aliexpress and I'd like to weed that out for users." Item detail shows her (admin only) **Block for everyone** with a reason: AliExpress dropship, Poor quality, Scam or fake store. It adds the store to `blocked_stores` (with `reason`, migration 0014), so it leaves every friend's results at once and new searches drop it; Undo there or Unblock on Hidden stores, where the reason now shows.
+- Before 0014 runs, blocking still works without the reason. The flagged list is the start of spotting dropshippers automatically later (same photos as AliExpress listings, long shipping times).
