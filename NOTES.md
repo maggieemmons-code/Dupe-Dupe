@@ -214,3 +214,10 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - The judge now also gets the fabric tag (`composition`) in the details it reads.
 - Checked on the Mulberry test search: color edited Pink → Black stayed Black after the rebuild, the brief's primary color became black with pink as a dealbreaker, and the look-alike phrasings say black. (That search's results are still from the pink brief until it's updated.)
 - New route needs `npx next typegen` before `tsc` knows it.
+
+## Hidden stores (Nov 15)
+
+- Maggie: "a way for the user to say, don't show me this store" (The Dress Outlet, DDMINE). `store_prefs` (migration 0011, own rows only; `kind` hidden now, favorite later). Item detail has "Don't show <store>" under the store, closing to "Hidden: you won't see … in any search. Undo". Menu › Hidden stores (`/stores`) lists them with Show again.
+- One matching rule (`lib/hiddenStores.ts`) for cleaning (new searches: "Hidden store") and for Results (past searches hide at once): by web address when both are known, else by name (names of 5+ letters also match inside another name or address, so "DDMINE" covers "SHOP DDMINE").
+- If 0011 hasn't run, the job and screens act as if nothing is hidden; the button says "Hiding stores isn't switched on yet."
+- `console.log` treats `%d` in its first argument as a number placeholder: printing "%dress%" showed "NaNress". Use `process.stdout.write` or put the text after a fixed first argument.

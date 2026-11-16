@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 import styles from "./find.module.css";
 
@@ -23,6 +24,9 @@ export default function Menu() {
         </svg>
       </summary>
       <div className={styles.menuPanel}>
+        <Link href="/stores" className={styles.menuItem}>
+          Hidden stores
+        </Link>
         <form action="/auth/sign-out" method="post">
           <button type="submit" className={styles.menuItem}>
             Sign out

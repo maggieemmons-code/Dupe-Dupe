@@ -254,6 +254,10 @@
 }
 
 .menuItem {
+  display: flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
   width: 100%;
   min-height: 44px;
   border: 0;

@@ -54,7 +54,7 @@ test("Amazon needs 4 stars from 100 reviews", () => {
   assert.equal(reason(row({ source: "amazon", store: "Amazon", store_domain: "amazon.com", rating: 4.6, reviews: 30 })), "Amazon: under 4 stars or 100 reviews");
   assert.equal(reason(row({ source: "amazon", store: "Amazon", store_domain: "amazon.com", rating: 4.2, reviews: 500 })), null);
 });
-test("hidden stores are dropped", () => assert.equal(reason(row({}), { ...ctx, hiddenStores: ["Nordstrom"] }), "Hidden store"));
+test("hidden stores are dropped", () => assert.equal(reason(row({}), { ...ctx, hiddenStores: [{ name: "Nordstrom", domain: "" }] }), "Hidden store"));
 
 test("duplicates merge into the cheapest", () => {
   const a = row({ title: "Lovers and Friends Mischa Gown in Red", price: 198, store: "REVOLVE" });

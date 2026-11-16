@@ -11,6 +11,9 @@ import { CANDIDATE_FIELDS, money, imageSource, ago, sizeStatus, type CandidateRo
 import { breakdown, type AnchorDef } from "@/lib/search/score";
 import { loadTaste } from "@/lib/server/taste";
 import { tasteWeights } from "@/lib/taste";
+import { isHiddenStore } from "@/lib/hiddenStores";
+import { hiddenStoresFor } from "@/lib/server/hiddenStores";
+import HideStore from "./HideStore";
 import styles from "./detail.module.css";
 import ui from "../../../../ui.module.css";
 
@@ -41,6 +44,7 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
     .join(" · ");
   const anchors = ((search.visual_brief?.anchors ?? []) as AnchorDef[]).filter((a) => a && a.id);
   const weights = tasteWeights(await loadTaste(session.supabase as never, session.userId));
+  const storeHidden = isHiddenStore(item, await hiddenStoresFor(session));
   const b = item.checklist ? breakdown(item.checklist, anchors, weights) : null;
 
   return (
@@ -99,6 +103,7 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
             {item.reviews ? ` · ${item.reviews.toLocaleString("en-US")} reviews` : ""}
           </span>
         )}
+        <HideStore candidateId={item.id} store={item.store} searchId={id} hidden={storeHidden} />
       </section>
 
       {/* Verdict and caveat */}

@@ -6,6 +6,7 @@
 
 import { isNotAStore, isRental } from "@/lib/server/serpapi";
 import { vetStore, AMAZON_MIN_RATING, AMAZON_MIN_REVIEWS } from "@/lib/stores";
+import { isHiddenStore, type HiddenStore } from "@/lib/hiddenStores";
 
 export type CleanRow = {
   id: string;
@@ -32,7 +33,8 @@ export type CleanContext = {
   brand: string;
   styleName: string;
   sizes: string[];
-  hiddenStores: string[];
+  /** The friend's hidden stores (store_prefs). */
+  hiddenStores: HiddenStore[];
   /** Secondhand is screened from phase 5 on. */
   secondhandOn: boolean;
 };
@@ -41,7 +43,6 @@ export type CleanResult = { id: string; drop_reason: string | null; duplicate_of
 
 export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResult[] {
   const out = new Map<string, CleanResult>();
-  const hidden = ctx.hiddenStores.map(norm).filter(Boolean);
 
   const keep: CleanRow[] = [];
   for (const r of rows) {
@@ -55,7 +56,7 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
     if (isRental(r.store_domain, r.store, r.title, r.link)) return "Rental, not for sale";
     // Every store is allowed unless blocked (lib/stores.ts).
     if (vetStore(r.store, r.store_domain) === "blocked") return "Blocked store";
-    if (hidden.some((h) => norm(r.store).includes(h) || norm(r.store_domain).includes(h))) return "Hidden store";
+    if (isHiddenStore(r, ctx.hiddenStores)) return "Hidden store";
     if (r.source === "amazon" && ((r.rating ?? 0) < AMAZON_MIN_RATING || (r.reviews ?? 0) < AMAZON_MIN_REVIEWS)) {
       return "Amazon: under 4 stars or 100 reviews";
     }
@@ -235,10 +236,6 @@ function words(t: string) {
       .split(/\s+/)
       .filter((w) => w.length > 1 && !STOP.has(w)),
   );
-}
-
-function norm(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 /** Keeps a listing whose size is one of the friend's (letter or number). */

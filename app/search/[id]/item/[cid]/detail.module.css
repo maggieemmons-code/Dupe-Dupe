@@ -393,3 +393,42 @@
   font-size: 12px;
   text-align: right;
 }
+
+/* Don't show this store (Nov 15) */
+.hideStore {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.hideStore p {
+  margin: 0;
+}
+
+.hideBtn {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hideBtn:disabled {
+  opacity: 0.5;
+}
+
+.linkBtn {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 44px;
+}
+

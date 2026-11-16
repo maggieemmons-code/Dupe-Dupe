@@ -4,6 +4,8 @@ import { getSession } from "@/lib/server/session";
 import { signedPhotoUrls } from "@/lib/server/photos";
 import { searchHasRun, type SearchRow } from "@/lib/searches";
 import { CANDIDATE_FIELDS, type CandidateRow } from "@/lib/candidates";
+import { isHiddenStore } from "@/lib/hiddenStores";
+import { hiddenStoresFor } from "@/lib/server/hiddenStores";
 import Review from "./Review";
 import Results from "./Results";
 import ui from "../../ui.module.css";
@@ -35,7 +37,9 @@ async function SearchLoader({ params }: { params: PageProps<"/search/[id]">["par
     .in("stage", ["screened", "enriched", "judged"])
     .is("drop_reason", null)
     .order("screen_rank", { ascending: true });
-  const all = (rows ?? []) as CandidateRow[];
+  // Stores the friend hid disappear from every search at once, not just new ones.
+  const hidden = await hiddenStoresFor(session);
+  const all = ((rows ?? []) as CandidateRow[]).filter((c) => !isHiddenStore(c, hidden));
   const judged = all.filter((c) => c.stage === "judged");
   const legacy = search.status === "done" && !judged.length && !all.some((c) => c.stage === "enriched");
   const shown = legacy ? all : judged.filter((c) => c.verdict !== "rejected");

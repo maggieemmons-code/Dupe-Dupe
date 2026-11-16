@@ -93,6 +93,8 @@ type Ctx = {
   photoPaths: string[];
   lensHint: string;
   lookAlike: string[];
+  /** Stores the friend said not to show (store_prefs, migration 0011). */
+  hiddenStores: { name: string; domain: string }[];
   /** Stores whose names scope two Shopping searches: the friend's best, learned (storeTally.ts). */
   storeSearches: string[];
   /** Shopify catalog phrasings: color + one signature detail + the garment word. */
@@ -199,6 +201,7 @@ export const runSearch = inngest.createFunction(
         lookAlike: (q.look_alike ?? []).filter(Boolean).length ? q.look_alike!.filter(Boolean) : [fallback || searchName(s)],
         detailPhrases: detailPhrases(s, (q.look_alike ?? []).filter(Boolean)),
         storeSearches: pickStoreSearches(await storeHits(db, userId)),
+        hiddenStores: await hiddenStoresOf(db, userId),
         budget: s.budget ?? null,
         ceiling: s.budget != null && s.retail_price != null && s.retail_price > s.budget ? s.retail_price : (s.budget ?? null),
         priceFloor: lowEnd({ budget_min: s.budget_min ?? null }),
@@ -341,7 +344,7 @@ export const runSearch = inngest.createFunction(
         brand: ctx.brand,
         styleName: ctx.styleName,
         sizes: ctx.sizes,
-        hiddenStores: [], // the friend's hidden stores arrive with Your eye (phase 7)
+        hiddenStores: ctx.hiddenStores,
         secondhandOn: false,
       });
 
@@ -873,5 +876,12 @@ async function storeHits(db: ReturnType<typeof adminClient>, userId: string): Pr
   const { data: clicks } = await db.from("events").select("candidate_id").eq("user_id", userId).eq("type", "result_clicked").limit(2000);
   const clicked = new Set((clicks ?? []).map((c) => c.candidate_id));
   return (passed ?? []).map((p) => ({ store: p.store, search_id: p.search_id, clicked: clicked.has(p.id), query: p.query }));
+}
+
+/** The friend's hidden stores; none if migration 0011 hasn't run yet. */
+async function hiddenStoresOf(db: ReturnType<typeof adminClient>, userId: string) {
+  const { data, error } = await db.from("store_prefs").select("name, domain").eq("user_id", userId).eq("kind", "hidden");
+  if (error) return [];
+  return (data ?? []).map((r) => ({ name: r.name ?? "", domain: r.domain ?? "" }));
 }
 
