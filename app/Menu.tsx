@@ -24,6 +24,9 @@ export default function Menu() {
         </svg>
       </summary>
       <div className={styles.menuPanel}>
+        <Link href="/swipe" className={styles.menuItem}>
+          Swipe to train
+        </Link>
         <Link href="/stores" className={styles.menuItem}>
           Hidden stores
         </Link>
