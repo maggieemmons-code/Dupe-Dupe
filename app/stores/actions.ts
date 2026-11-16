@@ -34,3 +34,29 @@ export async function showStore(target: { id?: string; candidateId?: string }): 
   const { error } = await query;
   return error ? { ok: false, error: "That didn't save. Try again." } : { ok: true };
 }
+
+/** Maggie only: whether the signed-in friend is the admin. */
+async function isAdmin() {
+  const session = await getSession();
+  if (!session) return null;
+  const { data } = await session.supabase.from("profiles").select("is_admin").eq("id", session.userId).maybeSingle();
+  return data?.is_admin ? session : null;
+}
+
+/** Maggie approves: block a store for everyone (several friends hid it). */
+export async function blockForEveryone(store: { name: string; domain: string; friends: number }): Promise<Result> {
+  const session = await isAdmin();
+  if (!session) return { ok: false, error: "Only Maggie can block a store for everyone." };
+  const { error } = await session.supabase
+    .from("blocked_stores")
+    .upsert({ name: store.name.trim(), domain: store.domain ?? "", friends: store.friends }, { onConflict: "name", ignoreDuplicates: true });
+  return error ? { ok: false, error: "That didn't save. Try again." } : { ok: true };
+}
+
+/** Maggie: unblock a store for everyone. */
+export async function unblockForEveryone(id: string): Promise<Result> {
+  const session = await isAdmin();
+  if (!session) return { ok: false, error: "Only Maggie can unblock a store." };
+  const { error } = await session.supabase.from("blocked_stores").delete().eq("id", id);
+  return error ? { ok: false, error: "That didn't save. Try again." } : { ok: true };
+}

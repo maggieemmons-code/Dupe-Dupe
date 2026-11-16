@@ -6,6 +6,7 @@ import { searchHasRun, type SearchRow } from "@/lib/searches";
 import { CANDIDATE_FIELDS, type CandidateRow } from "@/lib/candidates";
 import { isHiddenStore } from "@/lib/hiddenStores";
 import { hiddenStoresFor } from "@/lib/server/hiddenStores";
+import { blockedStores } from "@/lib/server/blockedStores";
 import Review from "./Review";
 import Results from "./Results";
 import ui from "../../ui.module.css";
@@ -38,7 +39,7 @@ async function SearchLoader({ params }: { params: PageProps<"/search/[id]">["par
     .is("drop_reason", null)
     .order("screen_rank", { ascending: true });
   // Stores the friend hid disappear from every search at once, not just new ones.
-  const hidden = await hiddenStoresFor(session);
+  const hidden = [...(await hiddenStoresFor(session)), ...(await blockedStores(session.supabase))];
   const all = ((rows ?? []) as CandidateRow[]).filter((c) => !isHiddenStore(c, hidden));
   const judged = all.filter((c) => c.stage === "judged");
   const legacy = search.status === "done" && !judged.length && !all.some((c) => c.stage === "enriched");

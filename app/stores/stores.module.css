@@ -40,3 +40,41 @@
   font-weight: 400;
   color: var(--muted);
 }
+
+/* Maggie only: block for everyone (Nov 15) */
+.admin {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 22px;
+  background: var(--surface-2);
+}
+
+.h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.h3 {
+  margin: 8px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.only {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+

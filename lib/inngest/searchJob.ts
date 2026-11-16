@@ -17,6 +17,7 @@ import { fetchPages } from "@/lib/server/tinyfish";
 import { catalogSearch, catalogLookup } from "@/lib/server/shopifyCatalog";
 import { detailPhrases } from "@/lib/search/catalogPhrases";
 import { pickStoreSearches, type StoreHit } from "@/lib/search/storeTally";
+import { blockedStores } from "@/lib/server/blockedStores";
 import { usefulPageText } from "@/lib/search/listingText";
 import { usdPriceFromPage } from "@/lib/server/price";
 import { shopifyAvailable, shopifyPriceUsd, pageAvailable, offersAvailable } from "@/lib/server/stock";
@@ -97,6 +98,8 @@ type Ctx = {
   lookAlike: string[];
   /** Stores the friend said not to show (store_prefs, migration 0011). */
   hiddenStores: { name: string; domain: string }[];
+  /** Stores blocked for everyone (blocked_stores, migration 0012). */
+  blockedStores: { name: string; domain: string }[];
   /** Stores whose names scope two Shopping searches: the friend's best, learned (storeTally.ts). */
   storeSearches: string[];
   /** Shopify catalog phrasings: color + one signature detail + the garment word. */
@@ -221,6 +224,7 @@ export const runSearch = inngest.createFunction(
         detailPhrases: detailPhrases(s, (q.look_alike ?? []).filter(Boolean)),
         storeSearches: pickStoreSearches(await storeHits(db, userId)),
         hiddenStores: await hiddenStoresOf(db, userId),
+        blockedStores: (await blockedStores(db)).map(({ name, domain }) => ({ name, domain })),
         budget: s.budget ?? null,
         ceiling: s.budget != null && s.retail_price != null && s.retail_price > s.budget ? s.retail_price : (s.budget ?? null),
         priceFloor: lowEnd({ budget_min: s.budget_min ?? null }),
@@ -364,6 +368,7 @@ export const runSearch = inngest.createFunction(
         styleName: ctx.styleName,
         sizes: ctx.sizes,
         hiddenStores: ctx.hiddenStores,
+        blockedStores: ctx.blockedStores,
         secondhandOn: false,
       });
 

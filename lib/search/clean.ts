@@ -35,6 +35,8 @@ export type CleanContext = {
   sizes: string[];
   /** The friend's hidden stores (store_prefs). */
   hiddenStores: HiddenStore[];
+  /** Stores Maggie blocked for everyone after several friends hid them (blocked_stores). */
+  blockedStores?: HiddenStore[];
   /** Secondhand is screened from phase 5 on. */
   secondhandOn: boolean;
 };
@@ -56,6 +58,7 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
     if (isRental(r.store_domain, r.store, r.title, r.link)) return "Rental, not for sale";
     // Every store is allowed unless blocked (lib/stores.ts).
     if (vetStore(r.store, r.store_domain) === "blocked") return "Blocked store";
+    if (isHiddenStore(r, ctx.blockedStores ?? [])) return "Blocked store";
     if (isHiddenStore(r, ctx.hiddenStores)) return "Hidden store";
     if (r.source === "amazon" && ((r.rating ?? 0) < AMAZON_MIN_RATING || (r.reviews ?? 0) < AMAZON_MIN_REVIEWS)) {
       return "Amazon: under 4 stars or 100 reviews";

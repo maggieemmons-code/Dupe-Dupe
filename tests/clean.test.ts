@@ -152,3 +152,9 @@ test("rentals by address, link sites and more foreign storefronts are dropped", 
   assert.equal(reason(row({ price: 120, store: "Hire Street", store_domain: "hirestreetstore.com", title: "Linen shirt", link: "https://hirestreetstore.com/products/linen-shirt" })), null);
 });
 
+test("stores blocked for everyone are dropped", () => {
+  const c = { ...ctx, blockedStores: [{ name: "The Dress Outlet", domain: "thedressoutlet.com" }] };
+  assert.equal(reason(row({ store: "The Dress Outlet", store_domain: "" }), c), "Blocked store");
+  assert.equal(reason(row({}), c), null);
+});
+
