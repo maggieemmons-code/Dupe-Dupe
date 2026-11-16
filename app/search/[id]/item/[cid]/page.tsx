@@ -121,13 +121,14 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
           <div className={styles.scoreTiles}>
             <div className={styles.scoreLook}>
               <span className={styles.scoreLabel}>Look</span>
-              <span className={styles.scoreNum}>{item.look_score}</span>
+              <span className={styles.scoreNum}>{item.look_score}%</span>
             </div>
             <div className={styles.scoreFit}>
               <span className={styles.scoreLabel}>Fit</span>
-              <span className={styles.scoreNum}>{item.fit_score}</span>
+              <span className={styles.scoreNum}>{item.fit_score}%</span>
             </div>
           </div>
+          <p className={styles.meta}>Look: how close it looks to your original. Fit: the fabric and your size.</p>
           {item.judge_note && (
             <p>
               <strong>Biggest difference:</strong> {item.judge_note}

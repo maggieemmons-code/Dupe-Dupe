@@ -316,12 +316,12 @@ function Card({ c }: { c: CandidateRow }) {
       <div className={styles.cardText}>
         <span className={styles.storeRow}>
           <span className={styles.store}>{c.brand && c.brand.toLowerCase() !== c.store.toLowerCase() ? `${c.brand} · ${c.store}` : c.store}</span>
-          {c.look_score != null && (
-            <span className={styles.scores} aria-label={`Look ${c.look_score}, fit ${c.fit_score}`}>
-              L{c.look_score} · F{c.fit_score}
-            </span>
-          )}
         </span>
+        {c.look_score != null && (
+          <span className={styles.scores} aria-label={`Look ${c.look_score} percent, fit ${c.fit_score} percent`}>
+            Look {c.look_score}% · Fit {c.fit_score}%
+          </span>
+        )}
         <span className={styles.name}>{c.title}</span>
         <span className={styles.priceLine}>
           {c.price != null ? (

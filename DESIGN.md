@@ -82,7 +82,7 @@ Load all three with `next/font/google`.
 
 **Badges on tiles.** "Pre-owned": white with a black border. "Sale": black. "Different color": black, shown whenever the item's color differs from the original. The color pill (white, with a dot and the color name) sits top right on swipe cards.
 
-**Scores.** Always show look and fit separately: "Look 92 · Fit 88" on swipe cards, "L92 · F88" in grids. On the detail page they get two big tiles side by side (Look on black, Fit on `--surface`, the number at 40px JetBrains Mono) and a "See why" button that opens the breakdown: Look into Shape, Color and Details, Fit into Fabric and Size and fit, each a thin black bar out of 100, plus "How we match."
+**Scores.** Always show look and fit separately: "Look 92% · Fit 88%" on swipe cards and in grids (Maggie, Nov 15: "L92" was confusing). On the detail page they get two big tiles side by side (Look on black, Fit on `--surface`, the number with its % at 40px JetBrains Mono), with one plain line under them: "Look: how close it looks to your original. Fit: the fabric and your size." and a "See why" button that opens the breakdown: Look into Shape, Color and Details, Fit into Fabric and Size and fit, each a thin black bar out of 100, plus "How we match."
 
 **Verdict and caveat.** "Approved" is a black pill. "Caveat" is a white pill with a black border, followed by the caveat in plain words ("Poly blend, not 100% wool"). In grids, the caveat sits in a `--surface` box with a small warning triangle.
 
