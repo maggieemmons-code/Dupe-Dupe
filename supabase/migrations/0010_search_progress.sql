@@ -1,4 +1,4 @@
--- Search progress (Nov 15)
+-- Search progress and judge noise (Nov 15)
 -- Paste this whole file into Supabase › SQL Editor and click Run, once.
 --
 -- Results shows a progress bar with real counts while a search runs (Maggie, Nov 15).
@@ -36,3 +36,19 @@ revoke execute on function public.bump_search_progress(uuid, text, int) from pub
 revoke execute on function public.set_search_progress(uuid, jsonb) from public, anon, authenticated;
 grant execute on function public.bump_search_progress(uuid, text, int) to service_role;
 grant execute on function public.set_search_progress(uuid, jsonb) to service_role;
+
+-- Judge noise (Nov 15): twice a week the app re-judges 10 already-judged pieces and
+-- counts how often the judge's answers change. Server only: friends never read it.
+create table if not exists public.judge_noise (
+  id               uuid primary key default gen_random_uuid(),
+  created_at       timestamptz not null default now(),
+  pieces           int not null,          -- pieces re-judged
+  fields_compared  int not null,          -- checklist answers compared
+  fields_changed   int not null,          -- answers that came back different
+  verdicts_changed int not null,          -- approved / caveat / rejected that flipped
+  rate             numeric not null,      -- fields_changed / fields_compared
+  alert            boolean not null default false,
+  details          jsonb not null default '[]'
+);
+alter table public.judge_noise enable row level security;
+revoke all on public.judge_noise from anon, authenticated;

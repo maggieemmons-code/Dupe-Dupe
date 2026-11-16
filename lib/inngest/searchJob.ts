@@ -795,7 +795,7 @@ async function saveGathered(searchId: string, userId: string, items: Gathered[])
   if (error) throw new Error(`Saving candidates failed: ${error.message}`);
 }
 
-async function originalPhoto(path: string | null) {
+export async function originalPhoto(path: string | null) {
   if (!path) return null;
   const { data } = await adminClient().storage.from("photos").download(path);
   if (!data) return null;
@@ -810,7 +810,7 @@ const FIELD_KEYS = [
   "sleeve", "hem", "closure", "details", "retail_price", "budget",
 ];
 
-function pickFields(s: Record<string, unknown>) {
+export function pickFields(s: Record<string, unknown>) {
   const out: Record<string, unknown> = {};
   for (const k of FIELD_KEYS) {
     const v = s[k];
