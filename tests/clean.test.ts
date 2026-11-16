@@ -158,3 +158,14 @@ test("stores blocked for everyone are dropped", () => {
   assert.equal(reason(row({}), c), null);
 });
 
+test("pieces the friend passed on before are dropped, however they're linked", () => {
+  const c = { ...ctx, passedPages: ["shop.example.com/products/red-gown"] };
+  assert.equal(reason(row({ link: "https://www.shop.example.com/products/red-gown/?variant=3" }), c), "You passed on this before");
+  assert.equal(reason(row({ link: "https://shop.example.com/products/blue-gown" }), c), null);
+});
+
+test("a thumbs down on a Google Shopping page never drops other Google Shopping results", () => {
+  const c = { ...ctx, passedPages: ["google.com/search"] };
+  assert.equal(reason(row({ link: "https://www.google.com/search?ibp=oshop&q=red+gown&prds=catalogid:1" }), c), null);
+});
+

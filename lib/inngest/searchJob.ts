@@ -27,7 +27,7 @@ import { anchorKind } from "@/lib/search/anchorKind";
 import { loadTaste } from "@/lib/server/taste";
 import { tasteText, tasteWeights } from "@/lib/taste";
 import { downloadThumb } from "@/lib/server/linkPhotos";
-import { cleanCandidates, type CleanRow } from "@/lib/search/clean";
+import { cleanCandidates, pageKey, isGooglePage, type CleanRow } from "@/lib/search/clean";
 import { runScreener, type ScreenItem } from "@/lib/agents/screener";
 import { searchName } from "@/lib/searches";
 import { lowEnd } from "@/lib/search/priceFloor";
@@ -102,6 +102,8 @@ type Ctx = {
   hiddenStores: { name: string; domain: string }[];
   /** Stores blocked for everyone (blocked_stores, migration 0012). */
   blockedStores: { name: string; domain: string }[];
+  /** Pieces the friend gave a thumbs down before (ratings, migration 0013), by page. */
+  passedPages: string[];
   /** Stores whose names scope two Shopping searches: the friend's best, learned (storeTally.ts). */
   storeSearches: string[];
   /** Shopify catalog phrasings: color + one signature detail + the garment word. */
@@ -227,6 +229,7 @@ export const runSearch = inngest.createFunction(
         storeSearches: pickStoreSearches(await storeHits(db, userId)),
         hiddenStores: await hiddenStoresOf(db, userId),
         blockedStores: (await blockedStores(db)).map(({ name, domain }) => ({ name, domain })),
+        passedPages: await passedPagesOf(db, userId),
         budget: s.budget ?? null,
         ceiling: s.budget != null && s.retail_price != null && s.retail_price > s.budget ? s.retail_price : (s.budget ?? null),
         priceFloor: lowEnd({ budget_min: s.budget_min ?? null }),
@@ -371,6 +374,7 @@ export const runSearch = inngest.createFunction(
         sizes: ctx.sizes,
         hiddenStores: ctx.hiddenStores,
         blockedStores: ctx.blockedStores,
+        passedPages: ctx.passedPages,
         secondhandOn: false,
       });
 
@@ -915,5 +919,12 @@ async function hiddenStoresOf(db: ReturnType<typeof adminClient>, userId: string
   const { data, error } = await db.from("store_prefs").select("name, domain").eq("user_id", userId).eq("kind", "hidden");
   if (error) return [];
   return (data ?? []).map((r) => ({ name: r.name ?? "", domain: r.domain ?? "" }));
+}
+
+/** Pages the friend gave a thumbs down (not "just this piece" either way: a no is a no). None before migration 0013. */
+async function passedPagesOf(db: ReturnType<typeof adminClient>, userId: string) {
+  const { data, error } = await db.from("ratings").select("link").eq("user_id", userId).eq("vote", "down").limit(2000);
+  if (error) return [];
+  return [...new Set((data ?? []).filter((r) => !isGooglePage(r.link)).map((r) => pageKey(r.link)).filter(Boolean))];
 }
 

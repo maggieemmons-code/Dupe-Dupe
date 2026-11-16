@@ -37,6 +37,8 @@ export type CleanContext = {
   hiddenStores: HiddenStore[];
   /** Stores Maggie blocked for everyone after several friends hid them (blocked_stores). */
   blockedStores?: HiddenStore[];
+  /** Pages of pieces the friend gave a thumbs down before (host + path, see pageKey). */
+  passedPages?: string[];
   /** Secondhand is screened from phase 5 on. */
   secondhandOn: boolean;
 };
@@ -59,6 +61,7 @@ export function cleanCandidates(rows: CleanRow[], ctx: CleanContext): CleanResul
     // Every store is allowed unless blocked (lib/stores.ts).
     if (vetStore(r.store, r.store_domain) === "blocked") return "Blocked store";
     if (isHiddenStore(r, ctx.blockedStores ?? [])) return "Blocked store";
+    if (ctx.passedPages?.length && !isGooglePage(r.link) && ctx.passedPages.includes(pageKey(r.link))) return "You passed on this before";
     if (isHiddenStore(r, ctx.hiddenStores)) return "Hidden store";
     if (r.source === "amazon" && ((r.rating ?? 0) < AMAZON_MIN_RATING || (r.reviews ?? 0) < AMAZON_MIN_REVIEWS)) {
       return "Amazon: under 4 stars or 100 reviews";
@@ -250,3 +253,19 @@ export function sizeMatches(size: string, sizes: string[]) {
     return tokens.includes(m) || s === m;
   });
 }
+
+/** One product page, however it was linked: host without www, path without a trailing slash, no query. */
+export function pageKey(link: string) {
+  try {
+    const u = new URL(link);
+    return `${u.hostname.replace(/^www\./, "")}${u.pathname.replace(/\/$/, "")}`.toLowerCase();
+  } catch {
+    return (link ?? "").toLowerCase();
+  }
+}
+
+/** Google's product pages ("google.com/search?…") all share one path, so they never identify one piece. */
+export function isGooglePage(link: string) {
+  return /^google\.[a-z.]+\//.test(pageKey(link));
+}
+
