@@ -76,7 +76,7 @@ One Next.js app on Vercel, with Supabase for logins, data and photos. Every API 
 | Background jobs | Inngest | Runs each search stage as its own step; a failed step retries alone, so a TinyFish hiccup never repeats a paid Lens search; works natively with Next.js | $0 on its free plan (confirm limits) |
 | Logins, database, photo storage | Supabase | Email-link sign-in, Postgres with per-user security rules, file storage, live updates | $0 on Free (pauses after 7 idle days) or $25 on Pro |
 | Sign-in emails | Resend, on Maggie's domain | Supabase's built-in sender is heavily rate-limited and often lands in spam, so invites would silently fail | $0 on its free plan |
-| Visual search | SerpApi: Google Lens (visual matches) and Google Shopping | Photo-to-product matches with thumbnails, prices and condition | $25 (Starter, 1,000 searches) |
+| Visual search | SerpApi: Google Lens (visual matches) and Google Shopping | Photo-to-product matches with thumbnails, prices and condition | $75 (Developer, 5,000 searches; upgraded Nov 15, when the first friend was invited) |
 | Resale page reading | TinyFish Fetch API | Reads resale search pages and the top listings' pages | $0 today |
 | eBay listings | eBay Browse API | Official listing data with prices, sizes, photos and full descriptions | $0 (developer account) |
 | AI agents | Claude API: Haiku 5.5 for the screeners and the taste summarizer, Sonnet 5.5 for the brief builder and the judge | About $0.11 a search with the briefs, thumbnails and enriched judging | About $21 |

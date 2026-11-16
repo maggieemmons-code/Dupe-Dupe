@@ -192,3 +192,9 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 - **Store tally (`lib/search/storeTally.ts`):** the two store-scoped Shopping searches use the friend's own stores that most often passed the judge (clicks double, at least 2 searches), not counting pieces from that store's own scoped search; Revolve and Nordstrom as defaults. Maggie's tally still gives Nordstrom, Revolve. `scripts/store-tally.ts` shows it.
 - **Judge noise (`lib/server/judgeNoise.ts`, Inngest cron Mon and Thu 9am Pacific):** judges 10 pieces from 2 recent searches twice and counts differing answers; saved in `judge_noise` (0010), alert when 1.5× the recent average and at least 10%. Comparing with saved checklists first gave 28% (older judge versions); twice-fresh baseline: 10% of answers, 1 verdict in 10 flipped (a fabric dealbreaker vs acceptable swap). `scripts/judge-noise.ts [--now]`.
 - Not checked in a browser: the screens need Maggie's sign-in.
+
+## SerpApi Developer plan (Nov 15)
+
+- Maggie upgraded from Starter to Developer ($75, 5,000 searches a month, 1,000 an hour) when she invited her first friend (ktc2328@hotmail.com, added to `invites` and sent the normal sign-in email). After the upgrade: 4,394 left this month. A search now uses about 25 (Lens, Shopping phrasings and store searches, Amazon, one above-limit search, store lookups), so roughly 175 searches a month. SerpApi's account page took about a minute to show the new plan. Automatic Early Renewal stays off; the job pauses searches under 30 left. Upgrades are charged the difference and keep the renewal date.
+- Still not built: the per-friend daily cap and the monthly budget stop (phase 8).
+
