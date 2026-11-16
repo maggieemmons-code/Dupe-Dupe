@@ -1,6 +1,8 @@
 import "server-only";
 import sharp from "sharp";
 import { inngest, SEARCH_CONFIRMED, type SearchConfirmed } from "./client";
+import { buildBriefFor } from "@/lib/server/brief";
+import type { Session } from "@/lib/server/session";
 import { adminClient, logJobCall } from "@/lib/server/admin";
 import {
   lensSearch,
@@ -137,9 +139,26 @@ export const runSearch = inngest.createFunction(
     },
   },
   async ({ event, step, attempt, maxAttempts }) => {
-    const { searchId, userId, reuseGathered } = event.data as SearchConfirmed;
+    const { searchId, userId, reuseGathered, rebuildBrief } = event.data as SearchConfirmed;
     const db = adminClient();
     const lastTry = attempt + 1 >= (maxAttempts ?? 2);
+
+    /* 0. Edit details: rebuild the brief from the friend's edits, then run as usual. */
+    if (rebuildBrief) {
+      const rebuilt = await step.run("rebuild-brief", async () => {
+        const r = await buildBriefFor({ supabase: db, userId } as unknown as Session, searchId, { keepEdits: true });
+        if (!r.ok) {
+          await db
+            .from("searches")
+            .update({ status: "failed", error: "We couldn't update the details. Your earlier results are below; try again." })
+            .eq("id", searchId);
+          return false;
+        }
+        await db.from("searches").update({ status: "queued", error: null }).eq("id", searchId).eq("status", "review");
+        return true;
+      });
+      if (!rebuilt) return { skipped: true };
+    }
 
     /* 1. Claim the search and check the SerpApi allowance. */
     const ctx = await step.run("start", async (): Promise<Ctx | null> => {

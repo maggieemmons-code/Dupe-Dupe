@@ -229,9 +229,10 @@ export async function setMustMatch(
 }
 
 /**
- * Edit details after a search has run (Maggie, Nov 15): rebuilds the search brief from the
- * details as they are now (the friend's edits win over the product page), then either
+ * Edit details after a search has run (Maggie, Nov 15): the search job rebuilds the brief from
+ * the details as they are now (the friend's edits win over the product page), then either
  * re-checks the pieces already found (fresh = false: no new store searches) or searches again.
+ * Returns at once so the friend lands on Results and watches it update there.
  */
 export async function updateResults(searchId: string, fresh: boolean): Promise<Result> {
   const session = await getSession();
@@ -239,24 +240,15 @@ export async function updateResults(searchId: string, fresh: boolean): Promise<R
   const { supabase } = session;
   const { data: claimed } = await supabase
     .from("searches")
-    .update({ status: "new", error: null })
+    .update({ status: "new", error: null, progress: {}, ran_at: new Date().toISOString() })
     .eq("id", searchId)
     .in("status", ["done", "failed", "review"])
     .not("brief_built_at", "is", null)
     .select("id")
     .maybeSingle();
   if (!claimed) return { ok: false, error: "This search is still running. Try again when it's done." };
-
-  const built = await buildBriefFor(session, searchId, { keepEdits: true });
-  if (!built.ok) {
-    await supabase.from("searches").update({ status: "done", error: null }).eq("id", searchId).eq("status", "failed");
-    return { ok: false, error: "We couldn't update the details. Your results haven't changed; try again." };
-  }
-
-  const { error } = await supabase.from("searches").update({ status: "queued", error: null }).eq("id", searchId).eq("status", "review");
-  if (error) return { ok: false, error: "That didn't save. Try again." };
   try {
-    await inngest.send({ name: SEARCH_CONFIRMED, data: { searchId, userId: session.userId, reuseGathered: !fresh } });
+    await inngest.send({ name: SEARCH_CONFIRMED, data: { searchId, userId: session.userId, reuseGathered: !fresh, rebuildBrief: true } });
   } catch (e) {
     console.error("Starting the search job failed", e);
     await supabase.from("searches").update({ status: "done" }).eq("id", searchId);
@@ -265,4 +257,3 @@ export async function updateResults(searchId: string, fresh: boolean): Promise<R
   await supabase.from("events").insert({ type: "search_started", search_id: searchId });
   return { ok: true };
 }
-

@@ -809,3 +809,55 @@ div.tile {
   font-size: 15px;
   font-weight: 600;
 }
+
+/* Edit details after a search (Nov 15): say what to do, one clear button */
+.editIntro {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted-strong);
+}
+
+.editBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 560px;
+}
+
+.bottomBar > .editBar {
+  max-width: 560px;
+  padding: 0;
+  white-space: normal;
+}
+
+.editBar > button {
+  flex-shrink: 0;
+  padding: 0 22px;
+}
+
+.editBarNote {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--muted-strong);
+}
+
+.editAgain {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted-strong);
+}
+
+.linkBtn {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 44px;
+}
+

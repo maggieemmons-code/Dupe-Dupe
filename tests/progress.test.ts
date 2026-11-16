@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { progressOf, clock } from "../lib/search/progress";
+import { progressOf, readingProgress } from "../lib/search/progress";
 
 test("each stage fills its stretch of the bar from the counts", () => {
   assert.equal(progressOf("queued").percent, 0);
@@ -16,7 +16,10 @@ test("before the counts arrive, plain words and no jump", () => {
   assert.equal(progressOf("gathering", { sources: 0 }).line, "Searching stores");
 });
 
-test("clock", () => {
-  assert.equal(clock(45), "0:45");
-  assert.equal(clock(72.9), "1:12");
+test("reading a piece: real steps, the long last one keeps moving", () => {
+  assert.deepEqual(readingProgress({}), { percent: 3, line: "Starting" });
+  assert.equal(readingProgress({ brief_step: 2 }).line, "Looking at the photos");
+  assert.equal(readingProgress({ brief_step: 3 }, 10).percent, 56);
+  assert.equal(readingProgress({ brief_step: 3 }, 100).percent, 92);
+  assert.equal(progressOf("briefing", { brief_step: 3 }).line, "Updating with your details · Writing what to search for");
 });

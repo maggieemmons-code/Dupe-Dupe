@@ -11,12 +11,14 @@ import { createClient } from "@/lib/supabase/client";
 import { searchName, type SearchRow } from "@/lib/searches";
 import { money, imageSource, sizeStatus, type CandidateRow } from "@/lib/candidates";
 import { lowEnd, sliderMax } from "@/lib/search/priceFloor";
-import { progressOf, clock } from "@/lib/search/progress";
+import { progressOf } from "@/lib/search/progress";
+import ProgressBar from "./ProgressBar";
 import { cleanTitle } from "@/lib/titles";
 import styles from "./results.module.css";
 import ui from "../../ui.module.css";
 
-const RUNNING = ["queued", "gathering", "screening", "enriching", "judging"];
+// "new", "briefing" and "review" here mean Edit details is rebuilding the brief (Results only shows after a first run).
+const RUNNING = ["new", "briefing", "review", "queued", "gathering", "screening", "enriching", "judging"];
 /** Offer to relax a Must match when fewer dupes than this pass. */
 const RELAX_BELOW = 3;
 
@@ -359,33 +361,10 @@ function Card({ c, sizes }: { c: CandidateRow; sizes: string[] }) {
   );
 }
 
-/** The progress bar while a search runs: real counts from the search job, and a timer. */
+/** The progress bar while a search runs: real counts from the search job. */
 function SearchProgress({ search }: { search: SearchRow }) {
   const { percent, line } = progressOf(search.status, search.progress ?? {});
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const started = search.ran_at ? new Date(search.ran_at).getTime() : null;
-  return (
-    <div className={styles.progress} role="status" aria-live="polite">
-      <div
-        className={styles.progressTrack}
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(percent)}
-        aria-label="Search progress"
-      >
-        <span className={styles.progressFill} style={{ width: `${Math.max(3, percent)}%` }} />
-      </div>
-      <div className={styles.progressLine}>
-        <span>{line}</span>
-        {started && <span className={styles.progressClock}>{clock((now - started) / 1000)} · usually about a minute</span>}
-      </div>
-    </div>
-  );
+  return <ProgressBar percent={percent} line={line} note="Usually about 2 minutes" label="Search progress" />;
 }
 
 /**

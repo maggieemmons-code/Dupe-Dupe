@@ -12,5 +12,11 @@ export const inngest = new Inngest({ id: "dupe-dupe" });
  * search already gathered, without new Lens or Shopping searches (for tuning and
  * re-checks; PLAN.md › Costs and guardrails › Caching).
  */
-export type SearchConfirmed = { searchId: string; userId: string; reuseGathered?: boolean };
+export type SearchConfirmed = {
+  searchId: string;
+  userId: string;
+  reuseGathered?: boolean;
+  /** Edit details: rebuild the brief from the friend's edits before running (status "new" → "queued"). */
+  rebuildBrief?: boolean;
+};
 export const SEARCH_CONFIRMED = "search/confirmed";

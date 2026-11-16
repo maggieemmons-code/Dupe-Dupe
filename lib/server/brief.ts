@@ -35,6 +35,11 @@ export async function buildBriefFor(session: Session, searchId: string, opts: { 
     .maybeSingle();
   if (!claimed) return { ok: true }; // already running or done; the page will refresh
   const search = claimed as SearchRow;
+  // Progress bar while reading (Maggie, Nov 15). A failure here never stops the brief.
+  const step = async (n: number) => {
+    await supabase.from("searches").update({ progress: { brief_step: n } }).eq("id", searchId);
+  };
+  await step(1);
 
   // Edit details after a search (Maggie, Nov 15): the friend's edits win over the page. They go to
   // the brief builder as corrections and are written back over its answers. Signature details are
@@ -95,6 +100,7 @@ export async function buildBriefFor(session: Session, searchId: string, opts: { 
       }
     }
 
+    await step(2);
     // 2. Product photos from the listing page (up to 3). If the friend gave no
     //    photos of their own, the first one becomes the search's main photo.
     const productPhotos: { data: string; mediaType: "image/jpeg" }[] = [];
@@ -116,6 +122,7 @@ export async function buildBriefFor(session: Session, searchId: string, opts: { 
       }
     }
 
+    await step(3);
     // 3. Ask the brief builder.
     const photos = await loadPhotosBase64(session, search.photo_paths);
     let result;

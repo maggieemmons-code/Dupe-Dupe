@@ -25,6 +25,8 @@ import { SIZES, searchName, type SearchRow } from "@/lib/searches";
 import { buildBrief, retryBrief, saveAnchors, saveChoices, saveFields, confirmSearch, saveFabricMustMatch, updateResults } from "./actions";
 import PriceRange from "./PriceRange";
 import { lowEnd, sliderMax } from "@/lib/search/priceFloor";
+import ProgressBar from "./ProgressBar";
+import { readingProgress } from "@/lib/search/progress";
 import styles from "./review.module.css";
 import ui from "../../ui.module.css";
 
@@ -235,6 +237,8 @@ export default function Review({ search, photoUrl, mode = "new" }: { search: Sea
     if (mode === "edit") return; // Edit details runs the brief itself (updateResults)
     if (search.status === "new" && !started.current) {
       started.current = true;
+      // Pick up "briefing" soon, so the progress bar below follows the reading step by step.
+      setTimeout(() => router.refresh(), 1500);
       buildBrief(search.id).then((r) => {
         if (!r.ok) setBriefError(r.error);
         router.refresh();
@@ -281,12 +285,11 @@ export default function Review({ search, photoUrl, mode = "new" }: { search: Sea
         <div>
           <h1 className={styles.title}>Reading your piece…</h1>
           <p className={styles.lede}>
-            We&apos;re reading the fabric, fit and details{search.source_links.length ? " from your link and its photos" : ""}. This
-            usually takes 20 to 40 seconds.
+            We&apos;re reading the fabric, fit and details{search.source_links.length ? " from your link and its photos" : ""}.
           </p>
         </div>
+        <ReadingProgress search={search} />
         <Original search={search} photoUrl={photoUrl} subtitle="Reading now" />
-        <div className={styles.bar} role="progressbar" aria-label="Reading your piece" />
       </main>
     );
   }
@@ -342,7 +345,12 @@ function ReviewForm({
   const [sheet, setSheet] = useState<Extract<Row, { kind: "multi" }> | null>(null);
   const detailsRef = useRef<HTMLElement>(null);
 
+  /** What the friend changed on this visit, for the button in edit mode ("Update results · 2 changes"). */
+  const [changed, setChanged] = useState<string[]>([]);
+  const noteChange = (what: string) => setChanged((c) => (c.includes(what) ? c : [...c, what]));
+
   function saveField(field: ItemField, value: string | string[] | number | null) {
+    noteChange(field);
     setValues((v) => ({ ...v, [field]: value }));
     const filled = Array.isArray(value) ? value.length > 0 : value !== null && value !== "";
     setSources((s) => {
@@ -373,6 +381,7 @@ function ReviewForm({
   }
 
   function updateAnchors(next: Anchor[]) {
+    noteChange("signature details");
     setAnchors(next);
     startTransition(async () => {
       const r = await saveAnchors(search.id, next);
@@ -397,6 +406,7 @@ function ReviewForm({
   const [sizesOpen, setSizesOpen] = useState(false);
 
   function save(choices: Parameters<typeof saveChoices>[1]) {
+    noteChange(Object.keys(choices).join(","));
     startTransition(async () => {
       const r = await saveChoices(search.id, choices);
       if (!r.ok) setError(r.error);
@@ -435,6 +445,11 @@ function ReviewForm({
   return (
     <main className={`${ui.page} ${styles.page} ${styles.withBar}`}>
       {header}
+      {mode === "edit" && (
+        <p className={styles.editIntro}>
+          Fix anything that&rsquo;s wrong below. Each change saves as you make it; then tap <strong>Update results</strong> at the bottom.
+        </p>
+      )}
 
       <div>
         <h1 className={styles.title}>Here&apos;s what we found.</h1>
@@ -501,6 +516,7 @@ function ReviewForm({
             className={fabricMust ? styles.switchOn : styles.switch}
             onClick={() => {
               const next = !fabricMust;
+              noteChange("fabric must match");
               setFabricMust(next);
               startTransition(async () => {
                 const r = await saveFabricMustMatch(search.id, next);
@@ -548,12 +564,8 @@ function ReviewForm({
         </p>
       )}
 
-      {stale && (
-        <p className={ui.error}>
-          {mode === "edit"
-            ? "You changed details. Tap Save and update results to apply them."
-            : "You changed details since we read this piece. We'll update the search brief when it runs."}
-        </p>
+      {stale && mode !== "edit" && (
+        <p className={ui.error}>You changed details since we read this piece. We&apos;ll update the search brief when it runs.</p>
       )}
 
       {/* The details */}
@@ -825,26 +837,33 @@ function ReviewForm({
         />
       )}
 
+      {mode === "edit" && (
+        <p className={styles.editAgain}>
+          Want a whole new search instead?{" "}
+          <button type="button" className={styles.linkBtn} disabled={pending || textEdit !== null} onClick={() => rerun(true)}>
+            Search again from scratch
+          </button>{" "}
+          (uses about 25 of this month&rsquo;s searches)
+        </p>
+      )}
+
       {/* Sticky bottom bar */}
       <div className={styles.bottomBar}>
         {confirmed ? (
           <p className={styles.confirmed} role="status">
-            {mode === "edit" ? "Updating the search with your details…" : "Starting the search…"}
+            {mode === "edit" ? "Taking you to your results…" : "Starting the search…"}
           </p>
         ) : mode === "edit" ? (
-          <>
-            <button
-              className={ui.btnSecondary}
-              style={{ flex: 1 }}
-              disabled={pending || textEdit !== null}
-              onClick={() => rerun(true)}
-            >
-              Search again
+          <div className={styles.editBar}>
+            <span className={styles.editBarNote} aria-live="polite">
+              {changed.length
+                ? `${changed.length} change${changed.length === 1 ? "" : "s"} saved. Update your results to see them.`
+                : "Change any detail above, then update your results."}
+            </span>
+            <button className={ui.btn} disabled={pending || textEdit !== null || !changed.length} onClick={() => rerun(false)}>
+              Update results
             </button>
-            <button className={ui.btn} style={{ flex: 1.6 }} disabled={pending || textEdit !== null} onClick={() => rerun(false)}>
-              Save and update results
-            </button>
-          </>
+          </div>
         ) : (
           <>
             <button
@@ -877,4 +896,21 @@ function ReviewForm({
       </div>
     </main>
   );
+}
+
+/** The bar while a new piece is read: the brief builder's real steps; the long last one keeps moving. */
+function ReadingProgress({ search }: { search: SearchRow }) {
+  const step = search.progress?.brief_step ?? 0;
+  // A new key per step restarts the in-step timer.
+  return <ReadingStep key={step} search={search} />;
+}
+
+function ReadingStep({ search }: { search: SearchRow }) {
+  const [inStep, setInStep] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setInStep((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const { percent, line } = readingProgress(search.progress ?? {}, inStep);
+  return <ProgressBar percent={percent} line={line} note="Usually 20 to 40 seconds" label="Reading your piece" />;
 }
