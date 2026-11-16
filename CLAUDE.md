@@ -7,17 +7,19 @@ A private, invite-only web app for Maggie and up to 20 friends. A friend drops i
 - **`prototype.html` is the prompts and behavior reference.** Reuse its prompts and interaction details unless `PLAN.md` or `DESIGN.md` says otherwise. Its swing-tag look is retired.
 - Maggie is a first-time builder. She doesn't write code; she reads plans and tests on her phone.
 
-## Current phase: 4 (Judge)
+## Current phase: 5 (Secondhand)
 
-**Builds:** listing page reads (TinyFish) for the top new picks before judging, moved up from phase 6 so the fabric tag is known (Maggie, Nov 15: the goal is the same composition and a high-end look, and cheap dresses were rising to the top); the judge on `ANTHROPIC_JUDGE_MODEL` with both photos and both briefs, 5 candidates per call, filling the fixed checklist (`PLAN.md` › Appendix › Judge), including the new "polish" item (does it look as high end as the original); look and fit scores and the three verdicts (approved, caveat, rejected) computed in code from the checklist (`PLAN.md` › Scoring and verdicts); caveats in plain words; sort by look, fit or price; the All / New / Secondhand views; scores and the See why breakdown on cards and Item detail (`design/screens/Results.dc.html`, `Detail.dc.html`).
+**Builds (`PLAN.md` › Build phases):** eBay (Browse API, or page reading until eBay approves), TinyFish resale search pages with peer-brand queries, the secondhand screener, condition, the size filter for secondhand, the Secondhand view on Results and the secondhand Item detail (`design/screens/DetailUsed.dc.html`, which shows `Detail.dc.html` with `variant="used"`).
 
-**Done when:** on the test set, Maggie agrees with the judge's top 3 at least 7 times in 10, and no rejected item breaks a stated dealbreaker.
+**Done when:** at least 6 real secondhand listings with working links; no invented prices.
 
-**Needs before coding:** Maggie's test set (`PLAN.md` › Testing): 10 items across categories and prices, starting with the Sau Lee gown, each with its link and her own short list of 3 matches she'd call good.
+**Needs before coding:** Maggie's yes on the Phase 5 plan, and any keys it lists.
 
-**Watch for:** no forced `tool_choice` and no strict mode for any agent schema (`NOTES.md` › Phase 2); tool replies sometimes arrive as (truncated) JSON text, which `lib/agents/parseToolInput.ts` repairs. Every store is allowed unless blocked (`lib/stores.ts`; the approved-only list was dropped). Maggie's taste rules and weights live in `taste_profiles` (`tests/taste-maggie.json`, `scripts/save-taste.ts`). Test with `scripts/run-test-set.ts [--reuse]` (local `npm run dev` plus the Inngest Dev Server); items 5, 6, 7 and 10 are a holdout, never used for tuning. Full history in `NOTES.md` › Phase 4.
+**Watch for:** resale listings are dropped from new dupes on purpose ("Used or resale listing" in `lib/search/clean.ts`, the judge's `used_or_resale` gate in `lib/search/score.ts`); secondhand needs its own path, where the original itself secondhand is welcome. First check: test item 5 (Mulberry Bayswater), whose three good matches are all secondhand. Phase 4's "Watch for" still holds: no forced `tool_choice` or strict mode, `parseToolInput.ts` repairs JSON-text replies, every store allowed unless blocked, taste in `taste_profiles`, `scripts/run-test-set.ts [--reuse]`, items 5, 6, 7 and 10 a holdout.
 
-**Status (Nov 15):** built, calibrated and live. Last test run: her picks are the judge's #1 for the Amaya dress (Club L) and the Saint Laurent boots (Cassie), #2 for the Max Mara coat (LilySilk, a holdout item), in the top 3 for the Florentina gown; no sold-out pieces in any top 10. **The "Done when" check isn't done yet:** Maggie still has to review the judge's top 3 for each test item in the app (newest search per item) and say agree or disagree; it passes at 7 of 10. Ask her for that before marking phase 4 passed.
+**Status (Nov 15):** plan being written; no Phase 5 code yet.
+
+**Phase 4 passed on 2026-11-15:** Maggie reviewed the judge's top 3 on the newest search for each test item and agreed on 8 of 9. Item 5 (Mulberry) was left out at her call, since all its good matches are secondhand and it had no results. Item 8 (JD June bodysuit) "wasn't great". The Max Mara coat was the best (Fibflx, LilySilk, Cako). Dealbreakers are enforced in code (`lib/search/score.ts`). Details in `NOTES.md` › Phase 4.
 
 **Promised to Maggie, not built yet:**
 - Searches gather and judge pieces above her price limit, so the Results price slider (already built) can reveal them without a new search (`PLAN.md` doesn't cover it yet; Shopping should ask for anything up to the original's price, cleaning keeps over-limit items, the best 8 above the limit are judged after the in-range ones).

@@ -131,3 +131,8 @@ Decisions and gotchas, so later sessions don't repeat mistakes.
 
 - Maggie: "the results coming back are for dresses that are out of stock." `scripts/stock-check.ts` found 3 sold out among the top results, including the #1 and #2 boots (Nine West Hover, Schutz Ulla) and the Sau Lee Penelope gown; most results had never been checked.
 - `lib/server/stock.ts`: Shopify's `/products/<handle>.js` (free, reliable when the store is Shopify), Google's store offers ("In stock online"/"Out of stock"), and page text ("sold out" with no "add to bag"). The read-pages step checks every judged pick (and now reads all of them: the reader takes 10 addresses a call, and only the first 10 had ever been read). After judging, `check-stock` looks at the top 10 not yet confirmed: Google Shopping results get their store page found (1 SerpApi search each) and checked. Sold out → dropped ("Sold out"); confirmed → `availability: in_stock` ("In stock · size not checked" on the card); otherwise "Stock not checked".
+
+### Phase 4 check (Nov 15)
+
+- Maggie's top-3 review on the newest search per test item: agree on 8 of 9 (passes at 7). Item 5 (Mulberry) left out: all its good matches are secondhand and the search showed nothing. Item 8 (JD June bodysuit) "wasn't great": top 3 were Clothes Horse ribbed ($258), Alaïa at Vitkac ($1,755) and Celestino (no price). The Max Mara coat was the best (Fibflx, LilySilk, Cako).
+- Find lists only the 8 newest searches, so for a review give her direct `/search/<id>` links (newest search per item: `searches.source_links` contains the item's link, newest `updated_at`).
