@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/server/session";
 import { signedPhotoUrls } from "@/lib/server/photos";
 import { searchName, type SearchRow } from "@/lib/searches";
+import { cleanTitle } from "@/lib/titles";
 import { CANDIDATE_FIELDS, money, imageSource, ago, sizeStatus, type CandidateRow } from "@/lib/candidates";
 import { breakdown, type AnchorDef } from "@/lib/search/score";
 import { loadTaste } from "@/lib/server/taste";
@@ -63,7 +64,7 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
         <figure className={styles.side}>
           <div className={styles.tile}>
             {item.photo_url || item.thumb_url ? (
-              <img src={item.photo_url ?? item.thumb_url!} alt={item.title} referrerPolicy="no-referrer" />
+              <img src={item.photo_url ?? item.thumb_url!} alt={cleanTitle(item.title, item.store)} referrerPolicy="no-referrer" />
             ) : (
               <span className={styles.noPhoto}>No photo</span>
             )}
@@ -76,7 +77,7 @@ async function DetailLoader({ params }: { params: PageProps<"/search/[id]/item/[
 
       <section className={styles.head}>
         <span className={styles.store}>{item.brand && item.brand.toLowerCase() !== item.store.toLowerCase() ? `${item.brand} · ${item.store}` : item.store}</span>
-        <h1 className={styles.title}>{item.title}</h1>
+        <h1 className={styles.title}>{cleanTitle(item.title, item.store)}</h1>
         {item.price != null ? (
           <div className={styles.priceRow}>
             <span className={styles.price}>{money(item.price)}</span>

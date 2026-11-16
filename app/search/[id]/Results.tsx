@@ -12,6 +12,7 @@ import { searchName, type SearchRow } from "@/lib/searches";
 import { money, imageSource, sizeStatus, type CandidateRow } from "@/lib/candidates";
 import { lowEnd, sliderMax } from "@/lib/search/priceFloor";
 import { progressOf, clock } from "@/lib/search/progress";
+import { cleanTitle } from "@/lib/titles";
 import styles from "./results.module.css";
 import ui from "../../ui.module.css";
 
@@ -316,7 +317,7 @@ function Card({ c, sizes }: { c: CandidateRow; sizes: string[] }) {
             Look {c.look_score}% · Fit {c.fit_score}%
           </span>
         )}
-        <span className={styles.name}>{c.title}</span>
+        <span className={styles.name}>{cleanTitle(c.title, c.store)}</span>
         <span className={styles.priceLine}>
           {c.price != null ? (
             <>
